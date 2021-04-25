@@ -1,23 +1,51 @@
-import gym
+import gym, gym.spaces
 from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
 
 class BaseRosEnv(gym.Env):
-    pass
+
+    def _init_nodes(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []):
+
+        for robot in robots:
+            robot.init_node('')
+        
+        for sensor in sensors:
+            sensor.init_node('')
+        
+        for observer in observers:
+            observer.init_node()
+
+    def _merge_spaces(cls, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []):
+        
+        obs_spaces = OrderedDict()
+        act_spaces = OrderedDict()
+
+        for robot in robots:
+            obs_spaces[robot.name] = robot.observation_space
+            act_spaces[robot.name] = robot.action_space
+        
+        for sensor in sensors:
+            obs_spaces[sensor.name] = sensor.observation_space
+        
+        for observer in observers:
+            obs_spaces[observer.name] = observer.observation_space
+        
+        return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces)
 
 class RosEnv(BaseRosEnv):
 
-    def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], custom_topics: List['Observer'] = []) -> None:
+    def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
         super().__init__()
         self.robots = robots
         self.sensors = sensors
-        self.custom_topics = custom_topics
+        self.observers = observers
 
         # Send init to pysics bridge
         # merge names so: robot1.name/sensor1.name/value is the value channel for sensor1 of robot1
+        self._init_nodes(self.robots, self.sensors, self.observers)
 
-        # Merge and set spaces here
+        self.observation_space, self.action_space = self._merge_spaces(self.robots, self.sensors, self.observers)
     
     def step(self, action: object) -> Tuple[object, float, bool, dict]:
 
@@ -59,8 +87,8 @@ class RosEnv(BaseRosEnv):
 
         obs = OrderedDict()
 
-        for custom_topic in self.custom_topics:
-            obs[custom_topic.name] = custom_topic.get_obs()
+        for observer in self.observers:
+            obs[observer.name] = observer.get_obs()
 
         for sensor in self.sensors:
             obs[sensor.name] = sensor.get_obs()
