@@ -2,6 +2,7 @@ import gym, gym.spaces
 from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
+from ros_env.srv import StepEnv, ResetEnv, CloseEnv
 
 class BaseRosEnv(gym.Env):
 
@@ -41,21 +42,20 @@ class RosEnv(BaseRosEnv):
         self.sensors = sensors
         self.observers = observers
 
-        # Send init to pysics bridge
-        # merge names so: robot1.name/sensor1.name/value is the value channel for sensor1 of robot1
         self._init_nodes(self.robots, self.sensors, self.observers)
 
         self.observation_space, self.action_space = self._merge_spaces(self.robots, self.sensors, self.observers)
-    
-    def step(self, action: object) -> Tuple[object, float, bool, dict]:
 
-        # Same issue as in Robot class
-        # I don't think we're guaranteed to also get a dict back... enforce?
+        self._step_service = rospy.ServiceProxy('physics_bridge/step', StepEnv)
+        self._reset_service = rospy.ServiceProxy('physics_bridge/reset', ResetEnv)
+        self._close_service = rospy.ServiceProxy('physics_bridge/close', CloseEnv)
+    
+    def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
 
         for robot in self.robots:
-            robot.set_action(action[:1]) # How to split?
+            robot.set_action(action[robot.name]) # How to split?
 
-        # Send step
+        self._step_service()
 
         obs = self._get_obs()
         reward = self._get_reward(obs)
@@ -67,7 +67,7 @@ class RosEnv(BaseRosEnv):
         for robot in self.robots:
             robot.reset()
 
-        #Send global reset
+        self._reset_service()
 
         return self._get_obs()
 
@@ -76,8 +76,7 @@ class RosEnv(BaseRosEnv):
         pass
 
     def close(self) -> None:
-        # Send close
-        pass
+        self._close_service()
 
     def seed(self, seed=None) -> None:
         # How to implement?

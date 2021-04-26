@@ -88,13 +88,10 @@ class Robot():
         for actuator in self.actuators:
             actuator.init_node(base_topic + '/' + self.name)
 
-    def set_action(self, action: object) -> None: # Error return?
+    def set_action(self, action: 'OrderedDict[str, object]') -> None: # Error return?
 
-        # I don't think we're guaranteed to also get a dict back... enforce?
-
-        #Split actions?
         for actuator in self.actuators:
-            actuator.set_action(action[1:])
+            actuator.set_action(action[actuator.name])
     
     def get_obs(self) -> 'OrderedDict[str, object]':
 
