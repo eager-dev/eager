@@ -2,6 +2,7 @@
 
 # ROS packages required
 import rospy
+import time
 from ros_env.ros_env import RosEnv
 from ros_env.robots.ur5e import UR5e
 
@@ -14,6 +15,8 @@ if __name__ == '__main__':
                     anonymous=True, log_level=rospy.WARN)
 
     env = RosEnv(robots=[UR5e("ur5e1")])
+
+    time.sleep(10)
 
     check_env(env)
 

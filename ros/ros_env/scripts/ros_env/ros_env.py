@@ -1,23 +1,43 @@
 import gym, gym.spaces
+import rospy
 from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
-from ros_env.srv import StepEnv, ResetEnv, CloseEnv
+from ros_env.srv import StepEnv, ResetEnv, CloseEnv, Register
 
 class BaseRosEnv(gym.Env):
 
-    def _init_nodes(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []):
+    def _init_nodes(self, bridge_name: str, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
+
+        sens_topics = []
+        act_topics = []
 
         for robot in robots:
-            robot.init_node('')
+            st, at = robot.get_topics()
+            sens_topics += st
+            act_topics += at
         
         for sensor in sensors:
-            sensor.init_node('')
+            sens_topics.append(sensor.get_topic())
         
         for observer in observers:
-            observer.init_node()
+            sens_topics.append(observer.get_topic())
 
-    def _merge_spaces(cls, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []):
+        register_service = rospy.ServiceProxy(bridge_name + '/register', Register)
+        register_service(sens_topics, act_topics)
+
+        bt = bridge_name + '/objects'
+
+        for robot in robots:
+            robot.init_node(bt)
+        
+        for sensor in sensors:
+            sensor.init_node(bt)
+        
+        for observer in observers:
+            observer.init_node(bt)
+
+    def _merge_spaces(cls, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict]:
         
         obs_spaces = OrderedDict()
         act_spaces = OrderedDict()
@@ -36,30 +56,30 @@ class BaseRosEnv(gym.Env):
 
 class RosEnv(BaseRosEnv):
 
-    def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
+    def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = [], bridge_name: str = 'physics_bridge') -> None:
         super().__init__()
         self.robots = robots
         self.sensors = sensors
         self.observers = observers
 
-        self._init_nodes(self.robots, self.sensors, self.observers)
+        self._init_nodes(bridge_name, self.robots, self.sensors, self.observers)
 
         self.observation_space, self.action_space = self._merge_spaces(self.robots, self.sensors, self.observers)
 
-        self._step_service = rospy.ServiceProxy('physics_bridge/step', StepEnv)
-        self._reset_service = rospy.ServiceProxy('physics_bridge/reset', ResetEnv)
-        self._close_service = rospy.ServiceProxy('physics_bridge/close', CloseEnv)
+        self._step_service = rospy.ServiceProxy(bridge_name + '/step', StepEnv)
+        self._reset_service = rospy.ServiceProxy(bridge_name + '/reset', ResetEnv)
+        self._close_service = rospy.ServiceProxy(bridge_name + '/close', CloseEnv)
     
     def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
 
         for robot in self.robots:
-            robot.set_action(action[robot.name]) # How to split?
+            robot.set_action(action[robot.name])
 
         self._step_service()
 
         obs = self._get_obs()
         reward = self._get_reward(obs)
-        done = self.is_done(obs)
+        done = self._is_done(obs)
         return obs, reward, done, {}
     
     def reset(self) -> object:
@@ -103,4 +123,8 @@ class RosEnv(BaseRosEnv):
 
     def _get_reward(self, obs: 'OrderedDict[str, object]') -> float:
         # if needed:
-        states = self._get_states()
+        #states = self._get_states()
+        return 0.0
+    
+    def _is_done(self, obs: 'OrderedDict[str, object]') -> bool:
+        return False

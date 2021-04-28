@@ -1,2 +1,3 @@
-string[] objects
+string[] sensors
+string[] actuators
 ---

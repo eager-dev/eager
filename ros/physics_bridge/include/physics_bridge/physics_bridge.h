@@ -2,6 +2,7 @@
 #ifndef PHYSICS_BRIDGE_H
 #define PHYSICS_BRIDGE_H
 
+#include <string>
 #include "ros/ros.h"
 
 #include "ros_env/Register.h"
@@ -11,15 +12,16 @@
 
 class PhysicsBridge {
 public:
-    PhysicsBridge() {
-        register_service = nh.advertiseService("physics_bridge/register", &PhysicsBridge::register_objects, this);
-        step_service = nh.advertiseService("physics_bridge/step", &PhysicsBridge::step, this);
-        reset_service = nh.advertiseService("physics_bridge/reset", &PhysicsBridge::reset, this);
-        close_service = nh.advertiseService("physics_bridge/close", &PhysicsBridge::close, this);
+    PhysicsBridge() : name("physics_bridge") {
+        register_service = nh.advertiseService(name + "/register", &PhysicsBridge::register_objects, this);
+        step_service = nh.advertiseService(name + "/step", &PhysicsBridge::step, this);
+        reset_service = nh.advertiseService(name + "/reset", &PhysicsBridge::reset, this);
+        close_service = nh.advertiseService(name + "/close", &PhysicsBridge::close, this);
     }
 
 protected:
     ros::NodeHandle nh;
+    std::string name;
 
 private:
 
