@@ -7,7 +7,16 @@ from ros_env.srv import StepEnv, ResetEnv, CloseEnv, Register
 
 class BaseRosEnv(gym.Env):
 
-    def _init_nodes(self, bridge_name: str, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
+    def __init__(self, bridge_name: str = 'physics_bridge') -> None:
+        super().__init__()
+
+        self.bridge_name = bridge_name
+
+        self._step = rospy.ServiceProxy(bridge_name + '/step', StepEnv)
+        self._reset = rospy.ServiceProxy(bridge_name + '/reset', ResetEnv)
+        self._close = rospy.ServiceProxy(bridge_name + '/close', CloseEnv)
+
+    def _init_nodes(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
 
         sens_topics = []
         act_topics = []
@@ -23,10 +32,10 @@ class BaseRosEnv(gym.Env):
         for observer in observers:
             sens_topics.append(observer.get_topic())
 
-        register_service = rospy.ServiceProxy(bridge_name + '/register', Register)
+        register_service = rospy.ServiceProxy(self.bridge_name + '/register', Register)
         register_service(sens_topics, act_topics)
 
-        bt = bridge_name + '/objects'
+        bt = self.bridge_name + '/objects'
 
         for robot in robots:
             robot.init_node(bt)
@@ -57,25 +66,21 @@ class BaseRosEnv(gym.Env):
 class RosEnv(BaseRosEnv):
 
     def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = [], bridge_name: str = 'physics_bridge') -> None:
-        super().__init__()
+        super().__init__(bridge_name)
         self.robots = robots
         self.sensors = sensors
         self.observers = observers
 
-        self._init_nodes(bridge_name, self.robots, self.sensors, self.observers)
+        self._init_nodes(self.robots, self.sensors, self.observers)
 
         self.observation_space, self.action_space = self._merge_spaces(self.robots, self.sensors, self.observers)
-
-        self._step_service = rospy.ServiceProxy(bridge_name + '/step', StepEnv)
-        self._reset_service = rospy.ServiceProxy(bridge_name + '/reset', ResetEnv)
-        self._close_service = rospy.ServiceProxy(bridge_name + '/close', CloseEnv)
     
     def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
 
         for robot in self.robots:
             robot.set_action(action[robot.name])
 
-        self._step_service()
+        self._step()
 
         obs = self._get_obs()
         reward = self._get_reward(obs)
@@ -87,7 +92,7 @@ class RosEnv(BaseRosEnv):
         for robot in self.robots:
             robot.reset()
 
-        self._reset_service()
+        self._reset()
 
         return self._get_obs()
 
@@ -96,7 +101,7 @@ class RosEnv(BaseRosEnv):
         pass
 
     def close(self) -> None:
-        self._close_service()
+        self._close()
 
     def seed(self, seed=None) -> None:
         # How to implement?
