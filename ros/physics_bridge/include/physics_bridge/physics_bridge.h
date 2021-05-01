@@ -1,6 +1,5 @@
 
-#ifndef PHYSICS_BRIDGE_H
-#define PHYSICS_BRIDGE_H
+#pragma once
 
 #include <string>
 #include "ros/ros.h"
@@ -39,4 +38,3 @@ private:
     ros::ServiceServer close_service;
 
 };
-#endif

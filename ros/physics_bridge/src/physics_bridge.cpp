@@ -14,12 +14,12 @@ private:
 
     bool register_objects(ros_env::Register::Request &request, ros_env::Register::Response &response) {
 
-        for (std::string sensor : request.sensors) {
+        for (const auto &sensor : request.sensors) {
             ROS_INFO("Sensor: %s", &sensor[0]);
             //TODO: Enable and subscribe to sensor in WeBots
             obs_services.push_back(nh.advertiseService(name + "/objects/" + sensor, &WeBotsBridge::handle_obs, this));
         }
-        for (std::string actuator : request.actuators) {
+        for (const auto &actuator : request.actuators) {
             ROS_INFO("Actuator: %s", &actuator[0]);
             act_services.push_back(nh.serviceClient<ros_env::BoxSpace>(name + "/objects/" + actuator));
         }
