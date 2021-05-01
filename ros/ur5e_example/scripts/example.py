@@ -16,6 +16,8 @@ if __name__ == '__main__':
 
     env = RosEnv(robots=[UR5e("ur5e1")])
 
+    print(env.observation_space)
+
     time.sleep(10)
 
     check_env(env)
