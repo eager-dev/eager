@@ -7,11 +7,11 @@ class UR5e(Robot):
     def __init__(self, name: str) -> None:
 
         sensors = [
-            Sensor("joint_sensors", space=gym.spaces.Box(low=-1.0, high=1.0, shape=(7,)))
+            Sensor(None, "joint_sensors", space=gym.spaces.Box(low=-1.0, high=1.0, shape=(6,)))
         ]
 
         actuators = [
-            Actuator("joints", space=gym.spaces.Box(low=-1.0, high=1.0, shape=(7,)))
+            Actuator(None, "joints", space=gym.spaces.Box(low=-1.0, high=1.0, shape=(6,)))
         ]
 
-        super().__init__(name, sensors, actuators)
+        super().__init__("ur5e", name, sensors, actuators)

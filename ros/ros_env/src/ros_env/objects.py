@@ -4,11 +4,12 @@ from typing import List, Callable, Type, Tuple
 import rospy
 import numpy as np
 
-from ros_env.srv import BoxSpace
+from ros_env.srv import BoxSpace, BoxSpaceResponse
 
 class BaseRosObject():
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, type: str, name: str) -> None:
+        self.type = type
         self.name = name
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
@@ -30,8 +31,8 @@ class BaseRosObject():
 
 
 class Sensor(BaseRosObject):
-    def __init__(self, name: str, space: gym.Space = None) -> None:
-        super().__init__(name)
+    def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
+        super().__init__(type, name)
         self.observation_space = space
 
     def init_node(self, base_topic: str = '') -> None:
@@ -53,8 +54,8 @@ class Sensor(BaseRosObject):
 
 class Actuator(BaseRosObject):
 
-    def __init__(self, name: str, space: gym.Space = None) -> None:
-        super().__init__(name)
+    def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
+        super().__init__(type, name)
         self.action_space = space
 
     def init_node(self, base_topic: str = ''):
@@ -78,11 +79,11 @@ class Actuator(BaseRosObject):
         pass
 
     def _action_service(self, request: object) -> object:
-        return self._buffer
+        return BoxSpaceResponse(self._buffer)
 
 class Robot(BaseRosObject):
-    def __init__(self, name: str, sensors: List[Sensor], actuators: List[Actuator], reset: Callable[['Robot'],  None] = None) -> None:
-        super().__init__(name)
+    def __init__(self, type: str, name: str, sensors: List[Sensor], actuators: List[Actuator], reset: Callable[['Robot'],  None] = None) -> None:
+        super().__init__(type, name)
 
         #TODO: Transform to dicts
         self.sensors = sensors

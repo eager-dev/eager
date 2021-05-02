@@ -4,6 +4,7 @@ from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
 from ros_env.srv import StepEnv, ResetEnv, CloseEnv, Register
+from ros_env.msg import Object
 
 class BaseRosEnv(gym.Env):
 
@@ -18,33 +19,27 @@ class BaseRosEnv(gym.Env):
 
     def _init_nodes(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
 
-        sens_topics = []
-        act_topics = []
+        self._register_objects(robots, sensors, observers)
+        self._init_listeners(robots, sensors, observers)
 
-        for robot in robots:
-            st, at = robot.get_topics()
-            sens_topics += st
-            act_topics += at
-        
-        for sensor in sensors:
-            sens_topics.append(sensor.get_topic())
-        
-        for observer in observers:
-            sens_topics.append(observer.get_topic())
+    def _register_objects(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
+        objects = []
+
+        for el in (robots, sensors, observers):
+            for object in el:
+                objects.append(Object(object.type, object.name))
 
         register_service = rospy.ServiceProxy(self.bridge_name + '/register', Register)
-        register_service(sens_topics, act_topics)
+        register_service.wait_for_service(20)
+        register_service(objects)
 
+
+    def _init_listeners(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
         bt = self.bridge_name + '/objects'
 
-        for robot in robots:
-            robot.init_node(bt)
-        
-        for sensor in sensors:
-            sensor.init_node(bt)
-        
-        for observer in observers:
-            observer.init_node(bt)
+        for el in (robots, sensors, observers):
+            for object in el:
+                object.init_node(bt)
 
     def _merge_spaces(cls, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict]:
         

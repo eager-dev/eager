@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import rospy
 from engines.webots import WeBotsBridge
-
-
 
 if __name__ == '__main__':
 

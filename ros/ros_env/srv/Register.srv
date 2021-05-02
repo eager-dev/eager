@@ -1,3 +1,2 @@
-string[] sensors
-string[] actuators
+ros_env/Object[] objects
 ---

@@ -18,9 +18,16 @@ if __name__ == '__main__':
 
     print(env.observation_space)
 
-    time.sleep(10)
-
     check_env(env)
+
+    obs = env.reset()
+
+    for i in range(10000):
+        obs, reward, done, info = env.step(env.action_space.sample())
+    
+    env.close()
+
+    """
 
     rospy.loginfo("Training starts")
 
@@ -38,3 +45,4 @@ if __name__ == '__main__':
             obs = env.reset()
     
     env.close()
+    """
