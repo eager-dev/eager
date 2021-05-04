@@ -2,7 +2,7 @@ import rospy
 import functools
 from physics_bridge import PhysicsBridge
 from ros_env.srv import BoxSpace, BoxSpaceResponse
-from physics_bridge.srv import set_float
+from physics_bridge.srv import SetFloat
 from std_srvs.srv import SetBool
 from std_msgs.msg import Float64Stamped
 
@@ -34,8 +34,8 @@ class RealBridge(PhysicsBridge):
             self._sensor_buffer[sensor] = [0.0]*len(topic_list)
             for idx, real_sensor_name in enumerate(topic_list):
                 enable_sensor = rospy.ServiceProxy(name + "/" + real_sensor_name + "/enable", SetBool)
-                success, msg = enable_sensor(True)
-                if success:
+                response = enable_sensor(True)
+                if response.success:
                     self._sensor_subscribers.append(rospy.Subscriber(name + "/" + real_sensor_name + "/value",
                         Float64Stamped, functools.partial(self._sensor_callback, sensor=sensor, pos=idx)))
             self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._sensor_service, sensor=sensor)))
@@ -45,7 +45,7 @@ class RealBridge(PhysicsBridge):
             topic_list = actuators[actuator]
             set_action_srvs = []
             for real_actuator_name in topic_list:
-                set_action_srvs.append(rospy.ServiceProxy(name + "/" + real_actuator_name + "/set_position", set_float))
+                set_action_srvs.append(rospy.ServiceProxy(name + "/" + real_actuator_name + "/set_position", SetFloat))
             get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
             self._actuator_services[actuator] = (get_action_srv, set_action_srvs)
 
@@ -61,11 +61,9 @@ class RealBridge(PhysicsBridge):
             (get_action_srv, set_action_srvs) = self._actuator_services[actuator]
             actions = get_action_srv()
             for idx, set_srv in enumerate(set_action_srvs):
-                success = set_srv(actions.value[idx])
-                if not success:
+                response = set_srv(actions.value[idx])
+                if not response.success:
                     rospy.logwarn("Not all actions for %s could be set", actuator)
-    
-        self._step_service(self._step_time)
 
         return True
 

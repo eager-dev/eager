@@ -10,6 +10,7 @@ actuators:
     high: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]
     low: [-3.1415926, -3.1415926, -3.1415926, -3.1415926, -3.1415926, -3.1415926]
 
+
 webots:
   sensors:
     joint_sensors:
@@ -28,3 +29,24 @@ webots:
     - wrist_1_joint
     - wrist_2_joint
     - wrist_3_joint
+    
+real:
+	sensors:
+		joint_sensors:
+		- shoulder_pan_joint_sensor
+		- shoulder_lift_joint_sensor
+		- elbow_joint_sensor
+		- wrist_1_joint_sensor
+		- wrist_2_joint_sensor
+		- wrist_3_joint_sensor
+
+	actuators:
+		joints:
+		- shoulder_pan_joint
+		- shoulder_lift_joint
+		- elbow_joint
+		- wrist_1_joint
+		- wrist_2_joint
+		- wrist_3_joint
+		
+		vel_limits: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]
