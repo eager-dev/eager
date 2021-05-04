@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 import rospy
+import actionlib
+from control_msgs.msg import *
+from trajectory_msgs.msg import *
 
 class ActionServer():
     def __init__(self):
         rospy.init_node('action_server')
         
-        self.name = rospy.get_namespace()
+        
+        name = rospy.get_namespace()
+        self._action_name = name
         
         rate = rospy.get_param('~rate', default=30)
         self.rate = rospy.Rate(rate)
@@ -33,15 +38,21 @@ class ActionServer():
         queue_size = action_info['queue_size']
         self.pub = rospy.Publisher(publisher_topic, msg, queue_size=queue_size)
         
-        subscriber_topic = '/physics_bridge/' + self.name
-        
-        rospy.Subscriber(subscriber_topic, msg, self.callback, queue_size=1)
-        
         self.action = None
         
-    def callback(self, action_msg):
-        self.action = action_msg
+    def set_action_cb(self, goal):
+        success = True
+        self.action = goal
         
+        while not rospy.is_shutdown():
+            # check that preempt has not been requested by the client
+            if self._as.is_preempt_requested():
+                rospy.loginfo('%s: Preempted' % self._action_name)
+                self._as.set_preempted()
+                success = False
+                break
+            self.pub.
+                
     def publish_actions(self): 
         while not rospy.is_shutdown():
             if self.action is not None:
