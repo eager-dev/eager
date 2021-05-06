@@ -1,0 +1,30 @@
+sensors:
+  joint_sensors:
+    type: box
+    high: [2*pi, 2*pi, 2*pi, 2*pi, 2*pi, 2*pi]
+    low: [-2*pi, -2*pi, -2*pi, -2*pi, -2*pi, -2*pi]
+
+actuators:
+  joints:
+    type: box
+    high: [2*pi, 2*pi, 2*pi, 2*pi, 2*pi, 2*pi]
+    low: [-2*pi, -2*pi, -2*pi, -2*pi, -2*pi, -2*pi]
+
+webots:
+  sensors:
+    joint_sensors:
+    - shoulder_pan_joint_sensor
+    - shoulder_lift_joint_sensor
+    - elbow_joint_sensor
+    - wrist_1_joint_sensor
+    - wrist_2_joint_sensor
+    - wrist_3_joint_sensor
+  
+  actuators:
+    joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
