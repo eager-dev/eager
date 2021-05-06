@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import abc
-import rospy, rospkg, rosparam
+import rospy
 from physics_bridge.srv import SetFloat, SetFloatResponse
 from std_srvs.srv import SetBool, SetBoolResponse
 from Queue import Queue
@@ -10,19 +10,16 @@ ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
 
 class ActionServer(ABC):
     
-    def __init__(self, name, object_type, action_topic, msg_type, queue_size=10, rate=30):
+    def __init__(self, topic, name, actuator, action_type):
+        rospy.init_node(name + "_action_server")
+        
         self.enabled = False
         self.action = None
-        
-        pp = rospkg.RosPack().get_path("physics_bridge")
-        filename = pp + "/config/robots/" + object_type + ".yaml"
-        self.params = rosparam.load_file(filename)[0][0]
-        
+
         self.queue = Queue(maxsize=1)
-        
-        self.msg_type = msg_type
-        self.rate = rospy.Rate(rate)
-        self.pub = rospy.Publisher(action_topic, msg_type, queue_size=queue_size)
+        self.msg_type = action_type
+        self.rate = rospy.Rate(actuator["rate"])
+        self.pub = rospy.Publisher(topic, self.msg_type, queue_size=actuator["queue_size"])
         
         self.__enable_service = rospy.Service(name + '/enable', SetBool, self.__enable_handler)
         self.__set_action_service = rospy.Service(name + '/value', SetFloat, self.__set_action_handler)

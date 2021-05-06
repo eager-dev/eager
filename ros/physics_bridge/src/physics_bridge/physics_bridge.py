@@ -1,6 +1,8 @@
 import abc
 import rospy, rosparam, rospkg
 from ros_env.srv import Register, StepEnv, ResetEnv, CloseEnv
+from utils.arg_substitution import substitute_xml_args
+import os
 
 # Abstract Base Class compatible with Python 2 and 3
 ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
@@ -36,8 +38,18 @@ class PhysicsBridge(ABC):
         for object in req.objects:
             pp = rospkg.RosPack().get_path("physics_bridge")
             filename = pp + "/config/robots/" + object.type + ".yaml"
+            # Check if config file exists
+            if not os.path.exists(filename):
+              rospy.logerr("Robot config file {} does not exist.\n \
+                           Please check if {} is the correct robot type \n \
+                             and that its config file is stored in {}".format(
+                             filename, object.type, pp + "/config/robots/")
+                          )
             params = rosparam.load_file(filename)[0][0]
-            self._register_object(self._name + "/objects/" + object.name, object.name, params[self._bridge_type])
+            params = params[self._bridge_type]
+            # Perform xml argument substitution
+            substitute_xml_args(params)
+            self._register_object(self._name + "/objects/" + object.name, object.name, params)
         return () # Success
 
     def __step_handler(self, req):

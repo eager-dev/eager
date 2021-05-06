@@ -2,6 +2,7 @@ import rospy
 import functools
 from physics_bridge import PhysicsBridge
 from ros_env.srv import BoxSpace, BoxSpaceResponse
+from action_servers.moveit_action_server import MoveitActionServer
 from physics_bridge.srv import SetFloat
 from std_srvs.srv import SetBool
 from std_msgs.msg import Float64Stamped
@@ -41,13 +42,13 @@ class RealBridge(PhysicsBridge):
             self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._sensor_service, sensor=sensor)))
     
     def _init_actuators(self, topic, name, actuators):
-        for actuator in actuators:
-            topic_list = actuators[actuator]
-            set_action_srvs = []
-            for real_actuator_name in topic_list:
-                set_action_srvs.append(rospy.ServiceProxy(name + "/" + real_actuator_name + "/set_position", SetFloat))
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
-            self._actuator_services[actuator] = (get_action_srv, set_action_srvs)
+      set_action_srvs = []
+      for actuator in actuators:
+          if actuator["type"].lower() == "moveit":
+              MoveitActionServer(topic, name, actuator)
+          set_action_srvs.append(rospy.ServiceProxy(name + "/" + topic + "/set_position", SetFloat))
+          get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
+          self._actuator_services[actuator] = (get_action_srv, set_action_srvs)
 
     def _sensor_callback(self, data, sensor, pos):
         self._sensor_buffer[sensor][pos] = data.data

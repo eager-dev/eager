@@ -31,22 +31,21 @@ webots:
     - wrist_3_joint
     
 real:
-	sensors:
-		joint_sensors:
-		- shoulder_pan_joint_sensor
-		- shoulder_lift_joint_sensor
-		- elbow_joint_sensor
-		- wrist_1_joint_sensor
-		- wrist_2_joint_sensor
-		- wrist_3_joint_sensor
+  sensors:
+    joint_sensors:
+    - shoulder_pan_joint_sensor
+    - shoulder_lift_joint_sensor
+    - elbow_joint_sensor
+    - wrist_1_joint_sensor
+    - wrist_2_joint_sensor
+    - wrist_3_joint_sensor
 
-	actuators:
-		joints:
-		- shoulder_pan_joint
-		- shoulder_lift_joint
-		- elbow_joint
-		- wrist_1_joint
-		- wrist_2_joint
-		- wrist_3_joint
-		
-		vel_limits: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]
+  actuators:
+    joints:
+      type: moveit
+      rate: 30
+      queue_size: 10
+      min_traj_duration: 0.5
+      controller: vel_based_pos_traj_controller
+      joint_states_topic: joint_states
+      config: $(find ur_modern_driver)/config/ur5_controllers.yaml
