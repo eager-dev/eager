@@ -5,29 +5,18 @@ import rospy
 import time
 from ros_env.ros_env import RosEnv
 from ros_env.robots.ur5e import UR5e
+from ros_env.wrappers.flatten import Flatten
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
-
 
 if __name__ == '__main__':
     rospy.init_node('ur5e_example',
                     anonymous=True, log_level=rospy.WARN)
 
-    env = RosEnv(robots=[UR5e("ur5e1")])
-
-    print(env.observation_space)
+    env = Flatten(RosEnv(robots=[UR5e("ur5e1")]))
 
     check_env(env)
-
-    obs = env.reset()
-
-    for i in range(10000):
-        obs, reward, done, info = env.step(env.action_space.sample())
-    
-    env.close()
-
-    """
 
     rospy.loginfo("Training starts")
 
@@ -45,4 +34,3 @@ if __name__ == '__main__':
             obs = env.reset()
     
     env.close()
-    """
