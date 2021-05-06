@@ -106,14 +106,14 @@ class RosEnv(BaseRosEnv):
 
         obs = OrderedDict()
 
-        for observer in self.observers:
-            obs[observer.name] = observer.get_obs()
+        for robot in self.robots:
+            obs[robot.name] = robot.get_obs()
 
         for sensor in self.sensors:
             obs[sensor.name] = sensor.get_obs()
 
-        for robot in self.robots:
-            obs[robot.name] = robot.get_obs()
+        for observer in self.observers:
+            obs[observer.name] = observer.get_obs()
 
         return obs
     
