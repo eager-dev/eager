@@ -32,13 +32,10 @@ webots:
     
 real:
   sensors:
-    joint_sensors:
-    - shoulder_pan_joint_sensor
-    - shoulder_lift_joint_sensor
-    - elbow_joint_sensor
-    - wrist_1_joint_sensor
-    - wrist_2_joint_sensor
-    - wrist_3_joint_sensor
+    joints:
+      topic: joint_states
+      msg_package: sensor_msgs.msg
+      msg_name: JointState
 
   actuators:
     joints:
@@ -48,4 +45,5 @@ real:
       min_traj_duration: 0.5
       controller: vel_based_pos_traj_controller
       joint_states_topic: joint_states
-      config: $(find ur_modern_driver)/config/ur5_controllers.yaml
+      vel_limits: [${pi}, ${pi}, ${pi}, ${pi}, ${pi}, ${pi}]
+      moveit_config: $(find ur_modern_driver)/config/ur5_controllers.yaml

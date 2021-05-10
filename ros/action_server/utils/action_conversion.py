@@ -4,8 +4,10 @@ from std_msgs.msg import Header
 
 
 def create_action_converter(action_type):
-    def convert_action_to_joint_trajectory(self, action_raw, joint_state, 
-                                           joint_names, joint_limits, 
+    def convert_action_to_joint_trajectory(action_raw, 
+                                           joint_state, 
+                                           joint_names, 
+                                           vel_limits, 
                                            min_traj_duration):
         # Code copied from robo-gym
         action = JointTrajectory()
@@ -17,10 +19,10 @@ def create_action_converter(action_type):
         for i in range(len(action.joint_names)):
             pos = joint_state.position[0:len(joint_names)]
             cmd = action_raw[i]
-            max_vel = joint_limits[i]
+            max_vel = vel_limits[i]
             duration.append(max(abs(cmd-pos)/max_vel, min_traj_duration))
     
         action.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
         return action
-    if action_type.lower() == "jointtrajectorypoint":
+    if action_type.strip().lower().endswith() == "jointtrajectorypoint":
         return convert_action_to_joint_trajectory
