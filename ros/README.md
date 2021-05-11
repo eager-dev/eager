@@ -1,2 +1,0 @@
-# ROS-Gym ROS packages
-

@@ -35,7 +35,7 @@ class WeBotsBridge(PhysicsBridge):
             rospy.sleep(1)
             supervisors = [x for x in rosservice.get_service_list() if 'supervisor' in x]
 
-        return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
+        return re.search("[^\/]+(?=\/supervisor)", supervisors[1]).group()
 
 
     def _register_object(self, topic, name, params):

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="gui" default="false"/>
+    
+    <!-- Bring up UR5 -->
+    <include file="$(find ur_gazebo)/launch/ur5.launch"/>
+    
+    <!-- Launch UR5 MoveIt -->
+    <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
+    	<arg name="sim" value="true"/>
+    </include>
+    
+    <!-- Launch RVIZ -->
+    <include if="$(arg gui)" file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
+     <arg name="config" value="true"/>
+    </include>
+    
+    <node name="ur5e_example" pkg="ur5e_example" type="example.py" output="screen"/>
+    <node name="physics_bridge" pkg="physics_bridge" type="physics_bridge_node_gazebo.py" output="screen"/>
+</launch>

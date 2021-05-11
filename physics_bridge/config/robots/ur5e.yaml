@@ -32,9 +32,8 @@ webots:
     
 real:
   sensors:
-    joints:
+    joint_sensors:
       topic: joint_states
-      msg_package: sensor_msgs.msg
       msg_name: JointState
 
   actuators:
@@ -43,7 +42,27 @@ real:
       rate: 30
       queue_size: 10
       min_traj_duration: 0.5
-      controller: vel_based_pos_traj_controller
       joint_states_topic: joint_states
-      vel_limits: [${pi}, ${pi}, ${pi}, ${pi}, ${pi}, ${pi}]
+      actuator_topic: joint_group_position_controller/command
       moveit_config: $(find ur_modern_driver)/config/ur5_controllers.yaml
+      controller: vel_based_pos_traj_controller
+      vel_limits: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]
+
+gazebo:
+  sensors:
+    joint_sensors:
+      topic: joint_states
+      msg_package: sensor_msgs.msg
+      msg_name: JointState
+      
+  actuators:
+    joints:
+      type: moveit
+      rate: 30
+      queue_size: 10
+      min_traj_duration: 0.5
+      joint_states_topic: joint_states
+      actuator_topic: arm_controller/command 
+      moveit_config: $(find ur_gazebo)/controller/arm_controller_ur5.yaml
+      controller: arm_controller
+      vel_limits: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]

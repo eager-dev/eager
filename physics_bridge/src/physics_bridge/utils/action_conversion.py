@@ -24,5 +24,5 @@ def create_action_converter(action_type):
     
         action.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
         return action
-    if action_type.strip().lower().endswith() == "jointtrajectorypoint":
+    if isinstance(action_type, JointTrajectory):
         return convert_action_to_joint_trajectory

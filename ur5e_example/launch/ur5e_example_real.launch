@@ -9,8 +9,8 @@
     </include>
     
     <!-- Launch UR5 MoveIt -->
-    <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_executing.launch" />
+    <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch" />
     
     <node name="ur5e_example" pkg="ur5e_example" type="example.py" output="screen"/>
-    <node name="physics_bridge" pkg="physics_bridge" type="physics_bridge_node.py" output="screen"/>
+    <node name="physics_bridge" pkg="physics_bridge" type="physics_bridge_node_real.py" output="screen"/>
 </launch>
