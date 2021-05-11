@@ -1,4 +1,4 @@
-import rospy, rosservice
+import rospy, rosservice, roslaunch, rosparam
 import functools
 import re
 from physics_bridge import PhysicsBridge
@@ -8,7 +8,8 @@ from webots_ros.srv import set_int, set_float
 
 class WeBotsBridge(PhysicsBridge):
 
-    def __init__(self, name = 'physics_bridge'):
+    def __init__(self):
+        self._start_simulator()
 
         self._step_time = 80
 
@@ -22,8 +23,22 @@ class WeBotsBridge(PhysicsBridge):
 
         self._actuator_services = dict()
 
-        super(WeBotsBridge, self).__init__("webots", name)
-    
+        super(WeBotsBridge, self).__init__("webots")
+
+    def _start_simulator(self):
+        # todo: Replace hardcoded location of launchfile.
+        #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
+        cli_args = ['/home/bas/ros_gym_ws/src/ros/physics_bridge/launch/webots_sim.launch',
+                    'mode:=%s' % rospy.get_param('physics_bridge/mode', 'fast'),
+                    'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', 'false'),
+                    'world:=%s' % rospy.get_param('physics_bridge/world')]
+        roslaunch_args = cli_args[1:]
+        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(uuid)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        launch.start()
+
     def _get_supervisor(cls):
         supervisor_checks = 0
         supervisors = [x for x in rosservice.get_service_list() if 'supervisor' in x]
