@@ -1,5 +1,5 @@
 import gym, gym.spaces
-import rospy
+import rospy, roslaunch, rosparam
 from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
@@ -7,15 +7,16 @@ from ros_env.srv import StepEnv, ResetEnv, CloseEnv, Register
 from ros_env.msg import Object
 
 class BaseRosEnv(gym.Env):
-
-    def __init__(self, bridge_name: str = 'physics_bridge') -> None:
+    def __init__(self, name: str = 'ros_env', engine_params: dict = {}) -> None:
         super().__init__()
 
-        self.bridge_name = bridge_name
+        self._initialize_physics_bridge(engine_params=engine_params, name=name)
 
-        self._step = rospy.ServiceProxy(bridge_name + '/step', StepEnv)
-        self._reset = rospy.ServiceProxy(bridge_name + '/reset', ResetEnv)
-        self._close = rospy.ServiceProxy(bridge_name + '/close', CloseEnv)
+        self.name = name
+
+        self._step = rospy.ServiceProxy(name + '/step', StepEnv)
+        self._reset = rospy.ServiceProxy(name + '/reset', ResetEnv)
+        self._close = rospy.ServiceProxy(name + '/close', CloseEnv)
 
     def _init_nodes(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
 
@@ -29,13 +30,12 @@ class BaseRosEnv(gym.Env):
             for object in el:
                 objects.append(Object(object.type, object.name))
 
-        register_service = rospy.ServiceProxy(self.bridge_name + '/register', Register)
+        register_service = rospy.ServiceProxy(self.name + '/register', Register)
         register_service.wait_for_service(20)
         register_service(objects)
 
-
     def _init_listeners(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> None:
-        bt = self.bridge_name + '/objects'
+        bt = self.name + '/objects'
 
         for el in (robots, sensors, observers):
             for object in el:
@@ -58,10 +58,36 @@ class BaseRosEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces)
 
+    def _initialize_physics_bridge(self, engine_params: dict = {}, name: str = 'ros_env'):
+        # Delete all parameters parameter server (from a previous run) within namespace 'name'
+        # todo: dangerous! could delete parameters if 'name' used by other ros nodes unrelated to this new env
+        try:
+            rosparam.delete_param('/%s' % name)
+            rospy.loginfo('Pre-existing parameters under namespace "/%s" deleted.' % name)
+        except:
+            pass
+
+        # Upload dictionary with engine parameters to ROS parameter server
+        rosparam.upload_params('%s/physics_bridge' % name, engine_params)
+
+        # Launch the physics bridge under the namespace 'name'
+        cli_args = [engine_params['launch_file'],
+                    'name:=' + name]
+        roslaunch_args = cli_args[1:]
+        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(uuid)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        launch.start()
+        ...
+
+
 class RosEnv(BaseRosEnv):
 
-    def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = [], bridge_name: str = 'physics_bridge') -> None:
-        super().__init__(bridge_name)
+    def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = [], **kwargs) -> None:
+        # todo: Interface changes a lot, use **kwargs.
+        #  Make arguments of subclass explicit when interface is more-or-less fixed.
+        super().__init__(**kwargs)
         self.robots = robots
         self.sensors = sensors
         self.observers = observers

@@ -1,0 +1,46 @@
+sensors:
+  joint_sensors:
+    type: box
+    order: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+    high: [2*pi, 2*pi, 2*pi, 2*pi, 2*pi]
+    low: [-2*pi, -2*pi, -2*pi, -2*pi, -2*pi]
+  gripper:
+    type: box
+    order: [gripper]
+    high: [2*pi]
+    low: [-2*pi]
+
+actuators:
+  joints:
+    type: box
+    order: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+    high: [2*pi, 2*pi, 2*pi, 2*pi, 2*pi, 2*pi]
+    low: [-2*pi, -2*pi, -2*pi, -2*pi, -2*pi, -2*pi]
+  gripper:
+    type: box
+    order: [gripper]
+    high: [2*pi]
+    low: [-2*pi]
+
+pybullet:
+  urdf:
+  fixed_base: True
+  sensors:
+    joint_sensors:
+      - waist
+      - shoulder
+      - elbow
+      - wrist_angle
+      - wrist_rotate
+    gripper:
+      - gripper
+
+  actuators:
+    joints:
+      - waist
+      - shoulder
+      - elbow
+      - wrist_angle
+      - wrist_rotate
+    gripper:
+      - gripper
