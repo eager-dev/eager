@@ -3,13 +3,14 @@ import functools
 import sensor_msgs.msg
 from physics_bridge import PhysicsBridge
 from ros_env.srv import BoxSpace, BoxSpaceResponse
-from action_server.servers.moveit_action_server import MoveitActionServer
+from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from utils.sensor_conversion import create_sensor_converter
+
 
 class RealBridge(PhysicsBridge):
 
     def __init__(self, name = 'physics_bridge'):
-        self._step_time = 0.2
+        self._step_time = 0.1
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
         self._sensor_services = []
@@ -17,7 +18,7 @@ class RealBridge(PhysicsBridge):
         self._action_servers = dict()
         self._actuator_services = dict()
 
-        super(RealBridge, self).__init__("real", name)
+        super(RealBridge, self).__init__("gazebo", name)
 
     def _register_object(self, topic, name, params):
 
@@ -47,13 +48,9 @@ class RealBridge(PhysicsBridge):
     def _init_actuators(self, topic, name, actuators):
       for actuator in actuators:
           rospy.logdebug("Initializing actuator {}".format(actuator))
-          actuator_params = actuators[actuator]
-          rate = actuator_params["rate"]
-          if actuator_params["type"].strip().lower() == "moveit":
-               self._action_servers[actuator] = MoveitActionServer(topic, name, actuator, actuator_params)
-               rospy.Timer(rospy.Duration(1.0 / rate), self._action_servers[actuator].publish_action)
-          else:
-              rospy.logerr("Currently only actuators of type \"MoveIt\" are implemented")
+          joint_names = actuators[actuator]["joint_names"]
+          server_name = actuators[actuator]["server_name"]
+          self._action_servers[actuator] = FollowJointTrajectoryActionServer(joint_names, server_name)
           self._actuator_services[actuator] = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
 
     def _sensor_callback(self, data, sensor):
@@ -69,7 +66,7 @@ class RealBridge(PhysicsBridge):
             get_action_srv = self._actuator_services[actuator]
             actions = get_action_srv()
             rospy.logdebug("Actuator {} received action: {}".format(actuator, actions.value))
-            self._action_servers[actuator].set_action(actions.value)
+            self._action_servers[actuator].act(actions.value)
             rospy.sleep(self._step_time)
         return True
 

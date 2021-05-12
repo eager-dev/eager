@@ -29,7 +29,7 @@ webots:
     - wrist_1_joint
     - wrist_2_joint
     - wrist_3_joint
-    
+
 real:
   sensors:
     joint_sensors:
@@ -38,31 +38,28 @@ real:
 
   actuators:
     joints:
-      type: moveit
-      rate: 30
-      queue_size: 10
-      min_traj_duration: 0.5
-      joint_states_topic: joint_states
-      actuator_topic: joint_group_position_controller/command
-      moveit_config: $(find ur_modern_driver)/config/ur5_controllers.yaml
-      controller: vel_based_pos_traj_controller
-      vel_limits: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]
+      server_name: follow_joint_trajectory
+      joint_names: 
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
 
 gazebo:
   sensors:
     joint_sensors:
       topic: joint_states
-      msg_package: sensor_msgs.msg
       msg_name: JointState
       
   actuators:
     joints:
-      type: moveit
-      rate: 30
-      queue_size: 10
-      min_traj_duration: 0.5
-      joint_states_topic: joint_states
-      actuator_topic: arm_controller/command 
-      moveit_config: $(find ur_gazebo)/controller/arm_controller_ur5.yaml
-      controller: arm_controller
-      vel_limits: [3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926, 3.1415926]
+      server_name: arm_controller/follow_joint_trajectory
+      joint_names: 
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
