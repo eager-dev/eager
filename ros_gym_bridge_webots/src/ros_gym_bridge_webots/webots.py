@@ -1,7 +1,7 @@
 import rospy, rosservice, roslaunch, rosparam
 import functools
 import re
-from physics_bridge import PhysicsBridge
+from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from webots_ros.msg import Float64Stamped
 from webots_ros.srv import set_int, set_float

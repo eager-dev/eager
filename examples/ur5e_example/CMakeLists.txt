@@ -8,7 +8,8 @@ project(ur5e_example)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  ros_env
+  ros_gym_core
+  ros_gym_robot_ur5e
   rospy
   std_msgs
 )
