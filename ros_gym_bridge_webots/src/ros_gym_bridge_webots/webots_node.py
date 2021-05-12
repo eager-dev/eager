@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from webots_bridge.webots import WeBotsBridge
+from ros_gym_bridge_webots.webots import WeBotsBridge
 
 if __name__ == '__main__':
 

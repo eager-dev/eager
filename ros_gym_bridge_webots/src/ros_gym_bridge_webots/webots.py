@@ -28,7 +28,7 @@ class WeBotsBridge(PhysicsBridge):
     def _start_simulator(self):
         # todo: Replace hardcoded location of launchfile.
         #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
-        cli_args = ['/home/bas/ros_gym_ws/src/ros/physics_bridge/launch/webots_sim.launch',
+        cli_args = ['/home/akeijzer/ros_gym_ws/src/ros-gym/ros_gym_bridge_webots/launch/webots_sim.launch',
                     'mode:=%s' % rospy.get_param('physics_bridge/mode', 'fast'),
                     'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', 'false'),
                     'world:=%s' % rospy.get_param('physics_bridge/world')]

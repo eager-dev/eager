@@ -2,6 +2,6 @@
 <launch>
     <arg name="name" default="ros_env" doc="Set the physics bridge name."/>
     <group ns="$(arg name)">
-        <node name="physics_bridge" pkg="physics_bridge" type="webots_node.py" output="screen"/>
+        <node name="ros_gym_bridge_webots" pkg="ros_gym_bridge_webots" type="webots_node.py" output="screen"/>
     </group>
 </launch>

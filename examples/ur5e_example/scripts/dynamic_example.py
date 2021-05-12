@@ -17,7 +17,7 @@ if __name__ == '__main__':
     #  Environment specific parameters must be supplied as arguments when the parameters are initialized.
     wb_params = dict()
     wb_params['bridge_type'] = 'webots'
-    wb_params['launch_file'] = '/home/bas/ros_gym_ws/src/ros/physics_bridge/launch/%s.launch' % wb_params['bridge_type']
+    wb_params['launch_file'] = '/home/akeijzer/ros_gym_ws/src/ros-gym/ros_gym_core/launch/%s.launch' % wb_params['bridge_type']
     wb_params['mode'] = 'fast'
     wb_params['no_gui'] = 'false'
     wb_params['world'] = '$(find ur5e_example)/worlds/ur5e'
