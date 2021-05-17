@@ -1,4 +1,0 @@
-float64[] data # e.g. for setting action values
----
-bool success   # indicate successful setting float
-string message # informational, e.g. for error messages
