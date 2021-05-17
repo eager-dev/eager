@@ -4,7 +4,7 @@ import sensor_msgs.msg
 from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from ros_gym_bridge_real.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
-from std_srvs.srv import Empty, EmptyRequest, Trigger, TriggerResponse
+from std_srvs.srv import Empty
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
 from gazebo_step_world_plugin.srv import SetInt, SetIntRequest
 class GazeboBridge(PhysicsBridge):
@@ -74,16 +74,7 @@ class GazeboBridge(PhysicsBridge):
           server_name = "/" + actuators[actuator]["server_name"]
           get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
           set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
-          # preprocess_srv = rospy.Service(topic + "/" + actuator + "/enable_preprocess", Trigger, self._actuator_enable_preprocess_service(topic, actuator))
           self._actuator_services[actuator] = (get_action_srv, set_action_srv)
-          
-    # def _actuator_enable_preprocess_service(self, topic, actuator):
-    #     (_, set_action_srv, preprocess_srv) = self._actuator_services[actuator]
-    #     get_action_srv = rospy.ServiceProxy(topic + "/" + actuator + "/preprocessed", BoxSpace)
-    #     self._actuator_services[actuator] = (get_action_srv, set_action_srv, preprocess_srv)
-    #     response = TriggerResponse()
-    #     response.success = True
-    #     return response
         
     def _sensor_callback(self, data, sensor):
         data_list = data.position
