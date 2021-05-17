@@ -18,5 +18,5 @@ class FollowJointTrajectoryActionServer(ActionServer):
         action.trajectory.joint_names = self.joint_names
         action.trajectory.points=[JointTrajectoryPoint()]
         action.trajectory.points[0].positions = action_raw
-        action.trajectory.points[0].time_from_start = rospy.Duration(0.001)
+        action.trajectory.points[0].time_from_start = rospy.Duration(0.0001)
         self.client.send_goal(action)
