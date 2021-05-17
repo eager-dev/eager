@@ -1,4 +1,6 @@
 import gym, gym.spaces
+from ros_gym_core.utils.file_utils import load_yaml
+from ros_gym_core.utils.gym_utils import get_space_from_def
 from collections import OrderedDict
 from typing import List, Callable, Type, Tuple
 import rospy
@@ -89,6 +91,23 @@ class Robot(BaseRosObject):
         self.sensors = sensors
         self.actuators = actuators
         self.reset_func = reset
+    
+    @classmethod
+    def create(cls, name: str, package_name: str, robot_type: str) -> 'Robot':
+
+        params = load_yaml(package_name, robot_type)
+
+        sensors = []
+        for sens_name, sensor in params['sensors'].items():
+            sensor_space = get_space_from_def(sensor)
+            sensors.append(Sensor(None, sens_name, sensor_space))
+
+        actuators = []
+        for act_name, actuator in params['actuators'].items():
+            act_space = get_space_from_def(actuator)
+            actuators.append(Actuator(None, act_name, act_space))
+
+        return cls(package_name + '/' + robot_type, name, sensors, actuators)
 
     def init_node(self, base_topic: str = '') -> None:
 
