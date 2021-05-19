@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <gazebo/physics/physics.hh>
 #include <gazebo/common/Plugin.hh>
-#include <gazebo_step_world_plugin/SetInt.h>
+#include <ros_gym_bridge_gazebo/SetInt.h>
 #include <std_srvs/Empty.h>
 
 namespace gazebo
@@ -29,8 +29,8 @@ namespace gazebo
 		private: ros::ServiceServer srv_;
 		
 		/// Update the controller
-    private: bool stepWorld(gazebo_step_world_plugin::SetInt::Request &req, 
-    												gazebo_step_world_plugin::SetInt::Response &res);
+    private: bool stepWorld(ros_gym_bridge_gazebo::SetInt::Request &req, 
+    												ros_gym_bridge_gazebo::SetInt::Response &res);
 
     /// \brief pointer to ros node
     private: ros::NodeHandle* nh_;
