@@ -1,7 +1,9 @@
 import gym, gym.spaces
 from collections import OrderedDict
 from typing import List, Callable, Type, Tuple
+from std_srvs.srv import SetBool, SetBoolRequest
 import rospy
+import roslaunch
 import numpy as np
 
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
@@ -65,6 +67,7 @@ class Actuator(BaseRosObject):
         self._buffer = self.action_space.sample()
         
         self._act_service = rospy.Service(self.get_topic(base_topic), self._get_message_class(type(self.action_space)), self._action_service)
+        self._add_preprocess_service = rospy.ServiceProxy(self.get_topic(base_topic) + "/add_preprocess", SetBool)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
@@ -74,7 +77,17 @@ class Actuator(BaseRosObject):
         self.launch_path = launch_path
         self.node_type = node_type
         self.stateless = stateless
-    
+        
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(uuid)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])
+        launch.start()
+        
+        if node_type.lower() == 'service':
+            req = SetBoolRequest(True)
+        self._add_preprocess_service(req)
+        
+        
     def reset(self) -> None:
         pass
 

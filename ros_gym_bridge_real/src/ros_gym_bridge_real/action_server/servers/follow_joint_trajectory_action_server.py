@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import rospy
 from ros_gym_bridge_real.action_server.action_server import ActionServer
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
@@ -18,5 +17,5 @@ class FollowJointTrajectoryActionServer(ActionServer):
         action.trajectory.joint_names = self.joint_names
         action.trajectory.points=[JointTrajectoryPoint()]
         action.trajectory.points[0].positions = action_raw
-        action.trajectory.points[0].time_from_start = rospy.Duration(0.0001)
+        action.trajectory.points[0].time_from_start = rospy.Duration(0.5)
         self.client.send_goal(action)

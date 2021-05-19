@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="safe_actions" pkg="safe_actions" type="safe_actions_node.py" output="screen"/>
+</launch>

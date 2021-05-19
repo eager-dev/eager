@@ -1,12 +1,15 @@
 import rospy
 import functools
 import sensor_msgs.msg
+import collections
 from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from ros_gym_bridge_real.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, SetBool, SetBoolResponse
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
 from gazebo_step_world_plugin.srv import SetInt, SetIntRequest
+
+
 class GazeboBridge(PhysicsBridge):
 
     def __init__(self, name = 'physics_bridge'):
@@ -39,6 +42,7 @@ class GazeboBridge(PhysicsBridge):
         self._sensor_subscribers = []
         self._sensor_services = []
         self._actuator_services = dict()
+        self._actuator_preprocess_buffers = dict()
 
         super(GazeboBridge, self).__init__("gazebo")
 
@@ -65,7 +69,13 @@ class GazeboBridge(PhysicsBridge):
                 "/" + msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._sensor_service, sensor=sensor)))
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, 
+                                                       BoxSpace, 
+                                                       functools.partial(self._sensor_service, 
+                                                                         sensor=sensor
+                                                                         )
+                                                       )
+                                         )
     
     def _init_actuators(self, topic, name, actuators):
       for actuator in actuators:
@@ -74,7 +84,17 @@ class GazeboBridge(PhysicsBridge):
           server_name = "/" + actuators[actuator]["server_name"]
           get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
           set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
-          self._actuator_services[actuator] = (get_action_srv, set_action_srv)
+          preprocess_srv = rospy.Service(topic + "/" + actuator + "/add_preprocess", 
+                                         SetBool, 
+                                         functools.partial(self._actuator_enable_preprocess_service, 
+                                                           topic=topic, 
+                                                           actuator=actuator
+                                                           )
+                                         )
+          self._actuator_services[actuator] = {"get" : get_action_srv, 
+                                               "set" :  set_action_srv, 
+                                               "preprocess" : preprocess_srv,
+                                               }
         
     def _sensor_callback(self, data, sensor):
         data_list = data.position
@@ -82,14 +102,41 @@ class GazeboBridge(PhysicsBridge):
     
     def _sensor_service(self, req, sensor):
         return BoxSpaceResponse(self._sensor_buffer[sensor])
+    
+    def _actuator_enable_preprocess_service(self, req, topic, actuator):
+        response = SetBoolResponse()
+        # If the request is True, the preprocessing node is of type service
+        if req.data:        
+            rospy.wait_for_service(topic + "/" + actuator + "/preprocessed")
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator + "/preprocessed", BoxSpace)
+            self._actuator_services[actuator]["get"] = get_action_srv
+        # Otherwise it is a topic
+        else:
+            queue = collections.deque(maxsize=1)
+            self._actuator_services[actuator]["get"] = queue.popleft
+            self.actuator_preprocess_buffers[actuator] = queue
+            rospy.Subscriber(topic + "/" + actuator + "/preprocessed", 
+                             BoxSpace, 
+                             callback=functools.partial(self._actuator_preprocess_callback, 
+                                                        topic=topic, 
+                                                        actuator=actuator
+                                                        )
+                             )
+            rospy.wait_for_message(topic + "/" + actuator + "/preprocessed", BoxSpace)
+        response.success = True
+        return response
 
+    def _actuator_preprocess_callback(self, action, topic, actuator):
+        self.actuator_preprocess_buffers[actuator].append(action)
+    
     def _step(self):
         if not self.paused:
             self.pause_physics_service()
             self.paused = True
         rospy.logdebug("Stepping")
         for actuator in self._actuator_services:
-            (get_action_srv, set_action_srv) = self._actuator_services[actuator]
+            get_action_srv = self._actuator_services[actuator]["get"]
+            set_action_srv = self._actuator_services[actuator]["set"]      
             actions = get_action_srv()
             rospy.logdebug("Actuator {} received action: {}".format(actuator, actions.value))
             set_action_srv(actions.value)

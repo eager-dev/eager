@@ -1,12 +1,7 @@
-#!/usr/bin/env python3
-import abc
 import rospy
 import actionlib
 
-# Abstract Base Class compatible with Python 2 and 3
-ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
-
-class ActionServer(ABC):
+class ActionServer():
     
     def __init__(self, action_server, action_type):
         self.client = actionlib.SimpleActionClient(action_server, action_type)

@@ -6,6 +6,8 @@ import time
 from ros_gym_core.ros_env import RosEnv
 from ros_gym_robot_ur5e.ur5e import UR5e
 from ros_gym_core.wrappers.flatten import Flatten
+from gym.spaces import space
+import gym, gym.spaces
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -21,7 +23,8 @@ if __name__ == '__main__':
 
     # Initialize environment
     env = Flatten(RosEnv(robots=[UR5e("ur5e1")], name='ros_env', engine_params=gb_params))
-
+    env.robots[0].actuators[0].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), launch_path='/home/jelle/catkin_ws/src/ros-gym/custom_topics/safe_actions/launch/safe_actions.launch')
+    
     check_env(env)
 
     rospy.loginfo("Training starts")

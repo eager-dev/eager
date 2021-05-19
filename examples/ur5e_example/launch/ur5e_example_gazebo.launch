@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
-<launch>    
+<launch>
   <arg name="limited" default="true"  doc="If true, limits joint range [-PI, PI] on all joints." />
   <arg name="paused" default="false" doc="Starts gazebo in paused mode" />
   <arg name="gui" default="true" doc="Starts gazebo gui" />
-  
+  <arg name="rviz" default="false" doc="Starts rviz" />
+
   <!-- startup simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find gazebo_step_world_plugin)/worlds/step.world"/>
@@ -28,6 +29,14 @@
   <!-- load other controllers -->
   <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="load joint_group_position_controller" />
 
+	<!-- Launch moveit for collision checking -->
+	<include file="$(find ur5_e_moveit_config)/launch/ur5_e_moveit_planning_execution.launch">
+		<arg name="sim" value="true"/>
+	</include>
+
+  <include if="$(arg rviz)" file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+  </include>
 
   <node name="ur5e_example" pkg="ur5e_example" type="example_gazebo.py" output="screen"/>
 </launch>

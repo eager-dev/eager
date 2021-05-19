@@ -107,7 +107,6 @@ bool GazeboStepWorld::stepWorld(gazebo_step_world_plugin::SetInt::Request &req, 
 		ROS_WARN_NAMED("step_world", "Cannot step, pause physics first.");
 		return true;
 	}
-	ROS_INFO_NAMED("step_world", "Stepping %d iterations.", req.data);
 	world_->Step(req.data);
 	res.success = true;
   return true;

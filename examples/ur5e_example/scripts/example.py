@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # Engine specific parameters
     wb_params = dict()
     wb_params['bridge_type'] = 'webots'
-    wb_params['launch_file'] = '/home/akeijzer/ros_gym_ws/src/ros-gym/ros_gym_bridge_webots/launch/%s.launch' % wb_params['bridge_type']
+    wb_params['launch_file'] = '/home/jelle/catkin_ws/src/ros-gym/ros_gym_bridge_webots/launch/%s.launch' % wb_params['bridge_type']
     wb_params['mode'] = 'fast'
     wb_params['no_gui'] = 'false'
     wb_params['world'] = '$(find ur5e_example)/worlds/ur5e'
