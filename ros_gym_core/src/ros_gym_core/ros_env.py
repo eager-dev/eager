@@ -1,5 +1,6 @@
 import gym, gym.spaces
 import rospy, roslaunch, rosparam
+from roslaunch.substitution_args import resolve_args
 from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
@@ -71,7 +72,7 @@ class BaseRosEnv(gym.Env):
         rosparam.upload_params('%s/physics_bridge' % name, engine_params)
 
         # Launch the physics bridge under the namespace 'name'
-        cli_args = [engine_params['launch_file'],
+        cli_args = [roslaunch.substitution_args.resolve_args(engine_params['launch_file']),
                     'name:=' + name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
@@ -79,7 +80,6 @@ class BaseRosEnv(gym.Env):
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
-        ...
 
 
 class RosEnv(BaseRosEnv):
