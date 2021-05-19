@@ -1,8 +1,8 @@
 import gym, gym.spaces
 from ros_gym_core.utils.file_utils import load_yaml
-from ros_gym_core.utils.gym_utils import get_space_from_def
+from ros_gym_core.utils.gym_utils import *
 from collections import OrderedDict
-from typing import List, Callable, Type, Tuple
+from typing import Dict, List, Callable, Type, Union
 import rospy
 import numpy as np
 
@@ -16,12 +16,6 @@ class BaseRosObject():
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
         pass
-
-    def _get_message_class(cls, space_class: Type[gym.Space]) -> Type:
-        if space_class is gym.spaces.Box:
-            return BoxSpace
-        else:
-            raise NotImplementedError
 
     def init_node(self, base_topic: str = '') -> None:
         raise NotImplementedError
@@ -41,7 +35,7 @@ class Sensor(BaseRosObject):
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
         
-        self._obs_service = rospy.ServiceProxy(self.get_topic(base_topic), self._get_message_class(type(self.observation_space)))
+        self._obs_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(type(self.observation_space)))
 
 
     def get_obs(self) -> object: #Type depends on space
@@ -66,7 +60,7 @@ class Actuator(BaseRosObject):
 
         self._buffer = self.action_space.sample()
         
-        self._act_service = rospy.Service(self.get_topic(base_topic), self._get_message_class(type(self.action_space)), self._action_service)
+        self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(type(self.action_space)), self._action_service)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
@@ -81,15 +75,21 @@ class Actuator(BaseRosObject):
         pass
 
     def _action_service(self, request: object) -> object:
-        return BoxSpaceResponse(self._buffer)
+        msg_class = get_response_from_space(type(self.action_space))
+        return msg_class(self._buffer)
 
 class Robot(BaseRosObject):
-    def __init__(self, type: str, name: str, sensors: List[Sensor], actuators: List[Actuator], reset: Callable[['Robot'],  None] = None) -> None:
+    def __init__(self, type: str, name: str, sensors: Union[List[Sensor], Dict[str, Sensor]], actuators: Union[List[Actuator], Dict[str, Actuator]], reset: Callable[['Robot'],  None] = None) -> None:
         super().__init__(type, name)
 
-        #TODO: Transform to dicts
-        self.sensors = sensors
-        self.actuators = actuators
+        if isinstance(sensors, List):
+            sensors = OrderedDict(zip([sensor.name for sensor in sensors], sensors))
+        self.sensors = sensors if isinstance(sensors, OrderedDict) else OrderedDict(sensors)
+
+        if isinstance(actuators, List):
+            actuators = OrderedDict(zip([actuator.name for actuator in actuators], actuators))
+        self.actuators = actuators if isinstance(actuators, OrderedDict) else OrderedDict(actuators)
+
         self.reset_func = reset
     
     @classmethod
@@ -111,57 +111,43 @@ class Robot(BaseRosObject):
 
     def init_node(self, base_topic: str = '') -> None:
 
-        for sensor in self.sensors:
+        for sensor in self.sensors.values():
             sensor.init_node(self.get_topic(base_topic))
         
-        for actuator in self.actuators:
+        for actuator in self.actuators.values():
             actuator.init_node(self.get_topic(base_topic))
 
     def set_action(self, action: 'OrderedDict[str, object]') -> None: # Error return?
 
-        for actuator in self.actuators:
-            actuator.set_action(action[actuator.name])
+        for act_name, actuator in self.actuators.items():
+            actuator.set_action(action[act_name])
     
-    def get_obs(self) -> 'OrderedDict[str, object]':
-
-        obs = OrderedDict() # We might get away with using a list in some cases, might be quicker
-        
-        for sensors in self.sensors:
-            obs[sensors.name] = sensors.get_obs()
-        
+    def get_obs(self, sensors: List[str] = None) -> 'OrderedDict[str, object]':
+        if sensors is not None:
+            obs = OrderedDict([(sensor, self.sensors[sensor].get_obs()) for sensor in sensors])
+        else:
+            obs = OrderedDict([(sens_name, sensor.get_obs()) for sens_name, sensor in self.sensors.items()])
         return obs
     
     @property
     def action_space(self) -> gym.spaces.Dict:
         spaces = OrderedDict()
-        for actuator in self.actuators:
-            spaces[actuator.name] = actuator.action_space
+        for act_name, actuator in self.actuators.items():
+            spaces[act_name] = actuator.action_space
 
         return gym.spaces.Dict(spaces=spaces)
 
     @property
     def observation_space(self) -> gym.spaces.Dict:
         spaces = OrderedDict()
-        for sensor in self.sensors:
-            spaces[sensor.name] = sensor.observation_space
+        for sens_name, sensor in self.sensors.items():
+            spaces[sens_name] = sensor.observation_space
 
         return gym.spaces.Dict(spaces=spaces)
 
     def reset(self) -> None: # Error return?
-        for actuator in self.actuators:
+        for actuator in self.actuators.values():
             actuator.reset()
         
         if self.reset_func is not None:
             self.reset_func(self)
-    
-    def get_topics(self, base_topic: str = '') -> Tuple[List[str], List[str]]:
-        bt = self.get_topic(base_topic)
-
-        sens_topics = []
-        for sensor in self.sensors:
-            sens_topics.append(sensor.get_topic(bt))
-        
-        act_topics = []
-        for actuator in self.actuators:
-            act_topics.append(actuator.get_topic(bt))
-        return sens_topics, act_topics
