@@ -1,6 +1,5 @@
 import gym, gym.spaces
 import rospy, roslaunch, rosparam
-from roslaunch.substitution_args import resolve_args
 from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable

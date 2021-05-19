@@ -1,6 +1,5 @@
 import rospkg, rosparam
 from roslaunch.substitution_args import resolve_args
-from collections import OrderedDict
 from future.utils import raise_from
 
 
@@ -21,10 +20,10 @@ def substitute_xml_args(param):
         return param
 
     # For every key in the dictionary (not performing deepcopy!)
-    if isinstance(param, dict) or isinstance(param, OrderedDict):
+    if isinstance(param, dict):
         for key in param:
             # If the value is of type `(Ordered)dict`, then recurse with the value
-            if isinstance(param[key], dict) or isinstance(param[key], OrderedDict):
+            if isinstance(param[key], dict):
                 substitute_xml_args(param[key])
             # Otherwise, add the element to the result
             elif isinstance(param[key], str):
