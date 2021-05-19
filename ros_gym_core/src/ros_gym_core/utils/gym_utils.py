@@ -1,6 +1,8 @@
 import gym
 import numpy as np
 from gym.spaces.box import Box
+from typing import Type
+from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 
 def get_space_from_def(object: dict) -> gym.Space:
     if object['type'] == 'box':
@@ -8,4 +10,16 @@ def get_space_from_def(object: dict) -> gym.Space:
         low = np.array(object['low'])
         return Box(low, high)
     else:
-        raise Exception('Unknown space type.')
+        raise NotImplementedError('Unknown space type.')
+
+def get_message_from_space(space_class: Type[gym.Space]) -> Type:
+    if space_class is Box:
+        return BoxSpace
+    else:
+        raise NotImplementedError('Unknown space type.')
+
+def get_response_from_space(space_class: Type[gym.Space]) -> Type:
+    if space_class is Box:
+        return BoxSpaceResponse
+    else:
+        raise NotImplementedError('Unknown space type.')
