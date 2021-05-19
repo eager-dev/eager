@@ -5,6 +5,7 @@ from .objects import *
 from collections import OrderedDict
 from typing import List, Tuple, Callable
 from ros_gym_core.srv import StepEnv, ResetEnv, CloseEnv, Register
+from ros_gym_core.utils.file_utils import substitute_xml_args
 from ros_gym_core.msg import Object
 
 class BaseRosEnv(gym.Env):
@@ -72,7 +73,7 @@ class BaseRosEnv(gym.Env):
         rosparam.upload_params('%s/physics_bridge' % name, engine_params)
 
         # Launch the physics bridge under the namespace 'name'
-        cli_args = [roslaunch.substitution_args.resolve_args(engine_params['launch_file']),
+        cli_args = [substitute_xml_args(engine_params['launch_file']),
                     'name:=' + name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]

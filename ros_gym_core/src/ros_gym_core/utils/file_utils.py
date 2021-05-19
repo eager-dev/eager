@@ -1,5 +1,6 @@
 import rospkg, rosparam
 from roslaunch.substitution_args import resolve_args
+from collections import OrderedDict
 from future.utils import raise_from
 
 
@@ -13,12 +14,18 @@ def load_yaml(package_name, object_name):
     return params
 
 
-def substitute_xml_args(dictionary):
-    # For every key in the dictionary
-    for key in dictionary:
-        # If the value is of type `dict`, then recurse with the value
-        if isinstance(dictionary[key], dict):
-            substitute_xml_args(dictionary[key])
-        # Otherwise, add the element to the result
-        elif isinstance(dictionary[key], str):
-            dictionary[key] = resolve_args(dictionary[key])
+def substitute_xml_args(param):
+    # substitute string
+    if isinstance(param, str):
+        param = resolve_args(param)
+        return param
+
+    # For every key in the dictionary (not performing deepcopy!)
+    if isinstance(param, dict) or isinstance(param, OrderedDict):
+        for key in param:
+            # If the value is of type `(Ordered)dict`, then recurse with the value
+            if isinstance(param[key], dict) or isinstance(param[key], OrderedDict):
+                substitute_xml_args(param[key])
+            # Otherwise, add the element to the result
+            elif isinstance(param[key], str):
+                param[key] = resolve_args(param[key])
