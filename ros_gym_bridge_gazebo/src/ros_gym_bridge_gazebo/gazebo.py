@@ -60,12 +60,8 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-    def _register_object(self, topic, name, params):
-        # Launch gazebo robot
-        # TODO: Replace hardcoded location of launchfile.
-        # TODO: physics bridge should know robot type to launch correct files
-        #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
-        str_launch_object = '$(find ros_gym_robot_%s)/launch/gazebo.launch' % 'ur5e' # This should be the object type
+    def _register_object(self, topic, name, package, object_type, args, bridge_params):
+        str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % name]
         roslaunch_args = cli_args[1:]
@@ -75,9 +71,9 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-        self._init_sensors(topic, name, params['sensors'])
+        self._init_sensors(topic, name, bridge_params['sensors'])
         
-        self._init_actuators(topic, name, params['actuators'])
+        self._init_actuators(topic, name, bridge_params['actuators'])
 
         return True
     

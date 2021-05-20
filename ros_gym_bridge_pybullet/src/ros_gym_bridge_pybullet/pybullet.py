@@ -37,16 +37,16 @@ class PyBulletBridge(PhysicsBridge):
 
         return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
 
-    def _register_object(self, topic, name, params):
+    def _register_object(self, topic, name, package, object_type, args, bridge_params):
         # type: "px150"
         # name: "px150"
         #todo: add urdf to simulator based on type & name
         #todo: register actuators and sensors based on type & name
         #todo: register object requires more info (e.g. base pose) --> How to get info from ROSenv?
 
-        self._init_sensors(topic, name, params['sensors'])
+        self._init_sensors(topic, name, bridge_params['sensors'])
 
-        self._init_actuators(topic, name, params['actuators'])
+        self._init_actuators(topic, name, bridge_params['actuators'])
 
         return True
 

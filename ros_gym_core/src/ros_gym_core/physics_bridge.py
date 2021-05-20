@@ -1,5 +1,6 @@
 import abc
 import rospy
+import ast
 from ros_gym_core.srv import Register, StepEnv, ResetEnv, CloseEnv
 from ros_gym_core.utils.file_utils import load_yaml
 
@@ -16,7 +17,7 @@ class PhysicsBridge(ABC):
         self.__close_service = rospy.Service('close', CloseEnv, self.__close_handler)
 
     @abc.abstractmethod
-    def _register_object(self, topic, name, params):
+    def _register_object(self, topic, name, package, object_type, args, bridge_params):
         pass
 
     @abc.abstractmethod
@@ -34,8 +35,9 @@ class PhysicsBridge(ABC):
     def __register_handler(self, req):
         for object in req.objects:
             object_type = object.type.split('/')
+            args = ast.literal_eval(object.args)
             params = load_yaml(object_type[0], object_type[1])
-            self._register_object("objects/" + object.name, object.name, params[self._bridge_type])
+            self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], params[self._bridge_type], args)
 
         return () # Success
 
