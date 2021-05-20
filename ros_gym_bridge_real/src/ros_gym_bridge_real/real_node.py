@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 import rospy
-from ros_gym_bridge_webots.webots import WeBotsBridge
+from ros_gym_bridge_real.real import RealBridge
 
 if __name__ == '__main__':
 
     rospy.init_node('physics_bridge')
 
-    wb = WeBotsBridge()
+    rb = RealBridge()
 
     rospy.spin()
