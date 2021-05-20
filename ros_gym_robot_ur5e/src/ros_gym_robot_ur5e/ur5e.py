@@ -14,4 +14,4 @@ class UR5e(Robot):
             Actuator(None, "joints", space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)))
         ]
 
-        super().__init__("ur5e", name, sensors, actuators)
+        super().__init__("ros_gym_robot_ur5e/ur5e", name, sensors, actuators)

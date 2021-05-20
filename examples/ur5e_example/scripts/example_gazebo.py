@@ -19,7 +19,11 @@ if __name__ == '__main__':
     # Engine specific parameters
     gb_params = dict()
     gb_params['bridge_type'] = 'gazebo'
-    gb_params['launch_file'] = '/home/jelle/catkin_ws/src/ros-gym/ros_gym_bridge_gazebo/launch/%s.launch' % gb_params['bridge_type']
+    gb_params['launch_file'] = '$(find ros_gym_bridge_gazebo)/launch/gazebo.launch'
+    gb_params['no_gui'] = 'false'
+    gb_params['world'] = '$(find ros_gym_bridge_gazebo)/worlds/ros_gym_empty.world'
+    gb_params['time_step']  = 0.001
+    gb_params['max_update_rate'] = 0.0 # 0.0 means simulate gazebo fast as possible
 
     # Initialize environment
     env = Flatten(RosEnv(robots=[UR5e("ur5e1")], name='ros_env', engine_params=gb_params))

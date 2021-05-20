@@ -1,42 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="limited" default="true"  doc="If true, limits joint range [-PI, PI] on all joints." />
-  <arg name="paused" default="false" doc="Starts gazebo in paused mode" />
-  <arg name="gui" default="true" doc="Starts gazebo gui" />
-  <arg name="rviz" default="false" doc="Starts rviz" />
-
-  <!-- startup simulated world -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find gazebo_step_world_plugin)/worlds/step.world"/>
-    <arg name="paused" value="$(arg paused)"/>
-    <arg name="gui" value="$(arg gui)"/>
-  </include>
-
-  <!-- send robot urdf to param server -->
-  <include file="$(find ur_e_description)/launch/ur5e_upload.launch">
-    <arg name="limited" value="$(arg limited)"/>
-  </include>
-
-  <!-- push robot_description to factory and spawn robot in gazebo -->
-  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -z 0.1" respawn="false" output="screen" />
-
-  <include file="$(find ur_e_gazebo)/launch/controller_utils.launch"/>
-
-  <!-- start this controller -->
-  <rosparam file="$(find ur_e_gazebo)/controller/arm_controller_ur5e.yaml" command="load"/>
-  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
-
-  <!-- load other controllers -->
-  <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="load joint_group_position_controller" />
-
-	<!-- Launch moveit for collision checking -->
-	<include file="$(find ur5_e_moveit_config)/launch/ur5_e_moveit_planning_execution.launch">
-		<arg name="sim" value="true"/>
-	</include>
-
-  <include if="$(arg rviz)" file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
-    <arg name="config" value="true"/>
-  </include>
-
   <node name="ur5e_example" pkg="ur5e_example" type="example_gazebo.py" output="screen"/>
 </launch>

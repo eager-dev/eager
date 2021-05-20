@@ -1,7 +1,7 @@
 # ROS packages required
 import rospy
 from ros_gym_core.ros_env import RosEnv
-from ros_gym_robot_ur5e.ur5e import UR5e
+from ros_gym_core.objects import Robot
 from ros_gym_core.wrappers.flatten import Flatten
 
 from stable_baselines3 import PPO
@@ -17,13 +17,13 @@ if __name__ == '__main__':
     #  Environment specific parameters must be supplied as arguments when the parameters are initialized.
     wb_params = dict()
     wb_params['bridge_type'] = 'webots'
-    wb_params['launch_file'] = '/home/akeijzer/ros_gym_ws/src/ros-gym/ros_gym_core/launch/%s.launch' % wb_params['bridge_type']
+    wb_params['launch_file'] = '$(find ros_gym_bridge_%s)/launch/%s.launch' % (wb_params['bridge_type'], wb_params['bridge_type'])
     wb_params['mode'] = 'fast'
     wb_params['no_gui'] = 'false'
     wb_params['world'] = '$(find ur5e_example)/worlds/ur5e'
 
     # Initialize environment
-    env = RosEnv(robots=[UR5e("ur5e1")], name='ros_env', engine_params=wb_params)
+    env = RosEnv(robots=[Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e')], name='ros_env', engine_params=wb_params)
     env = Flatten(env)
     check_env(env)
 

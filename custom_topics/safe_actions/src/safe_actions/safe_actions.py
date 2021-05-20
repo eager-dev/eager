@@ -21,8 +21,8 @@ class SafeActions():
         self.rs = RobotState()
         
         # Subscribe to joint joint states
-        rospy.Subscriber("/joint_states", JointState, self.jointStatesCB, queue_size=1)
-        joint_state = rospy.wait_for_message("/joint_states", JointState)
+        rospy.Subscriber("joint_states", JointState, self.jointStatesCB, queue_size=1)
+        joint_state = rospy.wait_for_message("joint_states", JointState)
         
         self.rs.joint_state.name = joint_state.name
         self.rs.joint_state.position = joint_state.position
@@ -32,7 +32,7 @@ class SafeActions():
         # wait for service to become available
         self.sv_srv.wait_for_service()
         
-        self._get_action_srv = rospy.ServiceProxy('/ros_env/objects/ur5e1/joints', BoxSpace)
+        self._get_action_srv = rospy.ServiceProxy('objects/ur5e1/joints', BoxSpace)
         self._get_action_srv.wait_for_service()
         
         # This is ugly, but seems to be necessary, see: https://answers.ros.org/question/209030/moveit-planningsceneinterface-addbox-not-showing-in-rviz/
@@ -43,7 +43,7 @@ class SafeActions():
         p.pose.orientation.w = 1 
         scene.add_cylinder('table', p, 0.1, 2.3)
         
-        self._set_act_srv = rospy.Service('/ros_env/objects/ur5e1/joints/preprocessed', BoxSpace, self._action_service)
+        self._set_act_srv = rospy.Service('objects/ur5e1/joints/preprocessed', BoxSpace, self._action_service)
 
     def _action_service(self, req):
         action = self._get_action_srv()

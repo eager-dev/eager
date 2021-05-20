@@ -1,6 +1,7 @@
 import abc
-import rospy, rosparam, rospkg
+import rospy
 from ros_gym_core.srv import Register, StepEnv, ResetEnv, CloseEnv
+from ros_gym_core.utils.file_utils import load_yaml
 
 # Abstract Base Class compatible with Python 2 and 3
 ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
@@ -32,12 +33,10 @@ class PhysicsBridge(ABC):
 
     def __register_handler(self, req):
         for object in req.objects:
-            pp = rospkg.RosPack().get_path("ros_gym_robot_" + object.type)
-            filename = pp + "/config/" + object.type + ".yaml"
-
-            #todo: what does [0][0] do?
-            params = rosparam.load_file(filename)[0][0]
+            object_type = object.type.split('/')
+            params = load_yaml(object_type[0], object_type[1])
             self._register_object("objects/" + object.name, object.name, params[self._bridge_type])
+
         return () # Success
 
     def __step_handler(self, req):
