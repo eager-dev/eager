@@ -37,7 +37,7 @@ class PhysicsBridge(ABC):
             object_type = object.type.split('/')
             args = ast.literal_eval(object.args)
             params = load_yaml(object_type[0], object_type[1])
-            self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], params[self._bridge_type], args)
+            self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], args, params[self._bridge_type])
 
         return () # Success
 
