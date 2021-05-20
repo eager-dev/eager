@@ -1,9 +1,19 @@
 <?xml version="1.0"?>
 <launch>
-	 <!-- Launch moveit for collision checking -->
-	 <include file="$(find ur5_e_moveit_config)/launch/ur5_e_moveit_planning_execution.launch">
-		  <arg name="sim" value="true"/>
-	 </include>
+	<arg name="ns" default="ros_env/ur5e1" doc="Namespace of the robot"/>
+	<arg name="rviz" default="true" doc="If true launch RVIZ"/>
 	
-    <node name="safe_actions" pkg="safe_actions" type="safe_actions_node.py" output="screen"/>
+	<group ns="$(arg ns)">
+	  <!-- Launch moveit for collision checking -->
+    <include file="$(find ur5_e_moveit_config)/launch/ur5_e_moveit_planning_execution.launch">
+		  <arg name="sim" value="true"/>
+	  </include>
+	  
+	  <include file="$(find ur5_e_moveit_config)/launch/moveit_rviz.launch">
+		  <arg name="config" value="$(arg rviz)"/>
+	  </include>
+	  
+	  <node name="safe_actions" pkg="safe_actions" type="safe_actions_node.py" output="screen"/>
+	</group>
+  
 </launch>

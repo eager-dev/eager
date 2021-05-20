@@ -39,12 +39,12 @@
  */
  
 #include <gazebo/common/Plugin.hh>
-#include "gazebo/physics/physics.hh"
-#include "gazebo/common/common.hh"
-#include "gazebo/gazebo.hh"
-#include <gazebo_step_world_plugin/step_world.h>
+#include <gazebo/physics/physics.hh>
+#include <gazebo/common/common.hh>
+#include <gazebo/gazebo.hh>
+#include <ros_gym_bridge_gazebo/step_world.h>
 #include <ros/ros.h>
-#include <gazebo_step_world_plugin/SetInt.h>
+#include <ros_gym_bridge_gazebo/SetInt.h>
 #include <std_srvs/Empty.h>
 #include <std_msgs/String.h>
 
@@ -86,11 +86,10 @@ void GazeboStepWorld::Load(physics::WorldPtr _world, sdf::ElementPtr _sdf )
   world_ = _world;
   
  	nh_ =  new ros::NodeHandle("~");
-  nh_->advertiseService<gazebo_step_world_plugin::SetInt::Request, gazebo_step_world_plugin::SetInt::Response>("step_world", boost::bind(&GazeboStepWorld::stepWorld, this, _1, _2));
   
   // Custom Callback Queue
   ros::AdvertiseServiceOptions aso =
-    ros::AdvertiseServiceOptions::create<gazebo_step_world_plugin::SetInt>("step_world", 
+    ros::AdvertiseServiceOptions::create<ros_gym_bridge_gazebo::SetInt>("step_world", 
     																																				boost::bind(&GazeboStepWorld::stepWorld,this, _1, _2), 
     																																				ros::VoidPtr(), 
     																																				&queue_);
@@ -100,7 +99,7 @@ void GazeboStepWorld::Load(physics::WorldPtr _world, sdf::ElementPtr _sdf )
   ROS_INFO_NAMED("step_world","Loaded gazebo_step_world_plugin.");
 }
 
-bool GazeboStepWorld::stepWorld(gazebo_step_world_plugin::SetInt::Request &req, gazebo_step_world_plugin::SetInt::Response &res)
+bool GazeboStepWorld::stepWorld(ros_gym_bridge_gazebo::SetInt::Request &req, ros_gym_bridge_gazebo::SetInt::Response &res)
 {
 	if (!world_->IsPaused())
 	{

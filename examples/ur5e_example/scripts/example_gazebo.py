@@ -26,8 +26,9 @@ if __name__ == '__main__':
     gb_params['max_update_rate'] = 0.0 # 0.0 means simulate gazebo fast as possible
 
     # Initialize environment
-    env = Flatten(RosEnv(robots=[UR5e("ur5e1")], name='ros_env', engine_params=gb_params))
-    env.robots[0].actuators[0].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), launch_path='/home/jelle/catkin_ws/src/ros-gym/custom_topics/safe_actions/launch/safe_actions.launch')
+    ur5e1 = UR5e("ur5e1")
+    ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-6.28, high=6.28, shape=(6,)), launch_path='$(find safe_actions)/launch/safe_actions.launch')
+    env = Flatten(RosEnv(robots=[ur5e1], name='ros_env', engine_params=gb_params))
     
     check_env(env)
 

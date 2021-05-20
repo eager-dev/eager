@@ -1,5 +1,5 @@
 import gym, gym.spaces
-from ros_gym_core.utils.file_utils import load_yaml
+from ros_gym_core.utils.file_utils import load_yaml, substitute_xml_args
 from ros_gym_core.utils.gym_utils import *
 from collections import OrderedDict
 from typing import List, Callable, Type, Tuple
@@ -56,6 +56,7 @@ class Actuator(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
         super().__init__(type, name)
         self.action_space = space
+        self.preprocess_launch = None
 
     def init_node(self, base_topic: str = ''):
         if self.action_space is None:
@@ -63,9 +64,13 @@ class Actuator(BaseRosObject):
 
         self._buffer = self.action_space.sample()
         
-        self._add_preprocess_service = rospy.ServiceProxy(self.get_topic(base_topic) + "/add_preprocess", SetBool)
         self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(type(self.action_space)), self._action_service)
-    
+        self._add_preprocess_service = rospy.ServiceProxy(self.get_topic(base_topic) + "/add_preprocess", SetBool)
+        
+        if self.preprocess_launch is not None:
+            self.preprocess_launch.start()
+            self._add_preprocess_service(self.preprocess_req)
+            
     def set_action(self, action: object) -> None:
         self._buffer = action
 
@@ -75,15 +80,16 @@ class Actuator(BaseRosObject):
         self.node_type = node_type
         self.stateless = stateless
         
+        cli_args = [substitute_xml_args(launch_path)]
+        roslaunch_args = cli_args[1:]
+        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])
-        launch.start()
+        self.preprocess_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         
+        self.preprocess_req = SetBoolRequest()
         if node_type.lower() == 'service':
-            req = SetBoolRequest(True)
-        self._add_preprocess_service(req)
-        
+            self.preprocess_req = SetBoolRequest(True)
         
     def reset(self) -> None:
         pass

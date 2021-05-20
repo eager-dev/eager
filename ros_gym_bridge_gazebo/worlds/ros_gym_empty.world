@@ -10,6 +10,6 @@
     </include>
 
     <!-- reference to your plugin -->
-    <plugin name="gazebo_step_world_plugin" filename="libgazebo_step_world_plugin.so"/>
+    <plugin name="ros_gym_bridge_gazebo" filename="libros_gym_bridge_gazebo.so"/>
   </world>
 </sdf>
