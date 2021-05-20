@@ -23,5 +23,13 @@
   <build_export_depend>rospy</build_export_depend>
   <exec_depend>ros_gym_core</exec_depend>
   <exec_depend>rospy</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>roslaunch</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+	<exec_depend>trajectory_msgs</exec_depend>
+	<exec_depend>action_lib</exec_depend>
+	<exec_depend>control_msgs</exec_depend>
 
 </package>
