@@ -1,12 +1,9 @@
 import rospy
-import roslaunch
-import rospkg
 import functools
 import sensor_msgs.msg
 from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
-
 
 class RealBridge(PhysicsBridge):
 
@@ -22,20 +19,6 @@ class RealBridge(PhysicsBridge):
         super(RealBridge, self).__init__("real")
 
     def _register_object(self, topic, name, params):
-        # Launch robot
-        # TODO: Replace hardcoded location of launchfile.
-        # TODO: physics bridge should know robot type to launch correct files
-        #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
-        pp = rospkg.RosPack().get_path("ros_gym_robot_ur5e")
-        cli_args = ['%s/launch/real/robot.launch' % pp,
-                    'ns:=%s' % name]
-        roslaunch_args = cli_args[1:]
-        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
-
         self._init_sensors(topic, name, params['sensors'])
         
         self._init_actuators(topic, name, params['actuators'])

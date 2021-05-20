@@ -27,6 +27,4 @@ Troubleshooting:
 - Make sure at least one robot has the supervisor flag set to true
 
 ## TEMPORARY HACKS TO MAKE CODE WORK :(
-- In `ur5e_example/scripts/example.py` line 20, change hardcoded launchfile path.
-- In `ur5e_example/scripts/dynamic_example.py` line 20, change hardcoded launchfile path.
-- In `physics_bridge/src/engines/webots/webots.py` in `_start_simulator(...)` function, change hardcoded launchfile path.
+- In `physics_bridge/src/engines/gazebo/gazebo.py` in `_register_object(...)` function, change hardcoded object type.

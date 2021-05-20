@@ -15,4 +15,4 @@ class Px150(Robot):
             Actuator(None, "gripper", space=gym.spaces.Box(low=-1.0, high=1.0, shape=(1,))),
         ]
 
-        super().__init__("px150", name, sensors, actuators)
+        super().__init__("ros_gym_robot_px150/px150", name, sensors, actuators)

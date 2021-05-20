@@ -1,10 +1,10 @@
 import rospy
 import roslaunch
-import rospkg
 import functools
 import sensor_msgs.msg
 from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
+from ros_gym_core.utils.file_utils import substitute_xml_args
 from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
@@ -27,8 +27,8 @@ class GazeboBridge(PhysicsBridge):
         physics_parameters = physics_parameters_service(GetPhysicsPropertiesRequest())
         
         new_physics_parameters = SetPhysicsPropertiesRequest()
-        new_physics_parameters.time_step = rospy.get_param('physics_bridge/time_step', 0.001)
-        new_physics_parameters.max_update_rate = rospy.get_param('physics_bridge/max_update_rate', 0.0)
+        new_physics_parameters.time_step = rospy.get_param('physics_bridge/solver_time_step', 0.001)
+        new_physics_parameters.max_update_rate = rospy.get_param('physics_bridge/solver_max_update_rate', 0.0)
         new_physics_parameters.gravity = physics_parameters.gravity
         new_physics_parameters.ode_config = physics_parameters.ode_config
 
@@ -49,10 +49,8 @@ class GazeboBridge(PhysicsBridge):
         super(GazeboBridge, self).__init__("gazebo")
         
     def _start_simulator(self):
-        # TODO: Replace hardcoded location of launchfile.
-        #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
-        pp = rospkg.RosPack().get_path("ros_gym_bridge_gazebo")
-        cli_args = ['%s/launch/gazebo_sim.launch' % pp,
+        str_launch_sim = '$(find ros_gym_bridge_gazebo)/launch/gazebo_sim.launch'
+        cli_args = [substitute_xml_args(str_launch_sim),
                     'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', 'false'),
                     'world:=%s' % rospy.get_param('physics_bridge/world')]
         roslaunch_args = cli_args[1:]
@@ -67,8 +65,8 @@ class GazeboBridge(PhysicsBridge):
         # TODO: Replace hardcoded location of launchfile.
         # TODO: physics bridge should know robot type to launch correct files
         #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
-        pp = rospkg.RosPack().get_path("ros_gym_robot_ur5e")
-        cli_args = ['%s/launch/gazebo/robot.launch' % pp,
+        str_launch_object = '$(find ros_gym_robot_%s)/launch/gazebo.launch' % 'ur5e' # This should be the object type
+        cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
