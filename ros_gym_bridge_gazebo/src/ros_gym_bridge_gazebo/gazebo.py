@@ -8,7 +8,7 @@ from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
-from gazebo_step_world_plugin.srv import SetInt, SetIntRequest
+from ros_gym_bridge_gazebo.srv import SetInt, SetIntRequest
 
 
 class GazeboBridge(PhysicsBridge):
