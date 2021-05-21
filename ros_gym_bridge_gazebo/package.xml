@@ -28,7 +28,7 @@
   <build_export_depend>gazebo_ros</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>message_generation</build_depend>
+  <build_export_depend>message_runtime</build_depend>
   <build_export_depend>std_msgs</build_depend>
   <build_export_depend>std_srvs</build_depend>
   <build_export_depend>ros_gym_core</build_depend>
