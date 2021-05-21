@@ -8,10 +8,10 @@ from ros_gym_core.utils.file_utils import substitute_xml_args
 from ros_gym_core.msg import Object
 
 class BaseRosEnv(gym.Env):
-    def __init__(self, name: str = 'ros_env', engine_params: dict = {}) -> None:
+    def __init__(self, name: str = 'ros_env', engine: dict = {}) -> None:
         super().__init__()
 
-        self._initialize_physics_bridge(engine_params=engine_params, name=name)
+        self._initialize_physics_bridge(engine=engine, name=name)
 
         self.name = name
 
@@ -59,7 +59,7 @@ class BaseRosEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces)
 
-    def _initialize_physics_bridge(self, engine_params: dict = {}, name: str = 'ros_env'):
+    def _initialize_physics_bridge(self, engine: dict = {}, name: str = 'ros_env'):
         # Delete all parameters parameter server (from a previous run) within namespace 'name'
         # todo: dangerous! could delete parameters if 'name' used by other ros nodes unrelated to this new env
         try:
@@ -69,10 +69,10 @@ class BaseRosEnv(gym.Env):
             pass
 
         # Upload dictionary with engine parameters to ROS parameter server
-        rosparam.upload_params('%s/physics_bridge' % name, engine_params)
+        rosparam.upload_params('%s/physics_bridge' % name, engine.__dict__)
 
         # Launch the physics bridge under the namespace 'name'
-        cli_args = [substitute_xml_args(engine_params['launch_file']),
+        cli_args = [substitute_xml_args(engine.launch_file),
                     'name:=' + name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
