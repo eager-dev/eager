@@ -5,7 +5,7 @@ import sensor_msgs.msg
 from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from ros_gym_core.utils.file_utils import substitute_xml_args
-from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
+from ros_gym_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
 from ros_gym_bridge_gazebo.srv import SetInt, SetIntRequest
