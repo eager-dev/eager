@@ -2,7 +2,12 @@
 <launch>
 	<arg name="ns" default="ros_env/ur5e1" doc="Namespace of the robot"/>
 	<arg name="limited" default="true" doc="Specifies whether the robot has joint limits"/>
-	
+  <arg name="group_name" default="manipulator" doc="Specifies the name of the move_group"/>
+  <arg name="checks_per_rad" default="25" doc="Specifies the number of collision checks per radians"/>
+  <arg name="vel_limit" default="3.14" doc="Specifies the joint velocity limit"/>
+  <arg name="step_time" default="0.1" doc="Specifies the step time of the physics bridge"/>
+  <arg name="duration" default="0.5" doc="Specifies the duration for the joint trajectory point action"/>
+	    
 	<group ns="$(arg ns)">
 		
 		<arg name="capabilities" default=""/>
@@ -46,7 +51,13 @@
 		  <param name="planning_scene_monitor/publish_transforms_updates" value="$(arg publish_monitored_planning_scene)" />
 		</node>
 			
-	  <node name="safe_actions" pkg="safe_actions" type="safe_actions_node.py" output="screen"/>
+	  <node name="safe_actions" pkg="safe_actions" type="safe_actions_node.py" output="screen">
+	    <param name="group_name" value="$(arg group_name)"/>
+	    <param name="checks_per_rad" value="$(arg checks_per_rad)"/>
+	    <param name="vel_limit" value="$(arg vel_limit)"/>
+	    <param name="step_time" value="$(arg step_time)"/>
+	    <param name="duration" value="$(arg duration)"/>
+	  </node>
 	</group>
   
 </launch>

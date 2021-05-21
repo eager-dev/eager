@@ -27,7 +27,16 @@ if __name__ == '__main__':
 
     # Initialize environment
     ur5e1 = UR5e("ur5e1")
-    ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-6.28, high=6.28, shape=(6,)), launch_path='$(find safe_actions)/launch/safe_actions.launch')
+    ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), 
+                                             launch_path='$(find safe_actions)/launch/safe_actions.launch',
+                                             node_type='service', 
+                                             stateless=True,
+                                             group_name='manipulator',
+                                             checks_per_rad=25,
+                                             vel_limit=3.14,
+                                             step_time=0.1,
+                                             duration=0.5)
+    
     env = Flatten(RosEnv(robots=[ur5e1], name='ros_env', engine_params=gb_params))
     
     check_env(env)

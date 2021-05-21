@@ -16,11 +16,11 @@ class SafeActions():
     def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
         
-        self.group_name='manipulator'
-        self.checks_per_rad=25 
-        self.max_vel=3.14
-        self.step_time=0.1
-        self.duration=0.5
+        self.group_name = rospy.get_param('~group_name', 'manipulator')
+        self.checks_per_rad = rospy.get_param('~checks_per_rad', 25) 
+        self.vel_limit = rospy.get_param('~vel_limit', 3.14)
+        self.step_time = rospy.get_param('~step_time', 0.1)
+        self.duration = rospy.get_param('~duration', 0.5)
         
         rospy.logdebug("[safe_actions] Connecting to planning scene interface")
         scene = moveit_commander.PlanningSceneInterface()
@@ -87,8 +87,8 @@ class SafeActions():
         
         # First we limit positions that violate max joint velocity
         angle_dif = goal - current
-        too_fast = np.abs(angle_dif)/self.duration > self.max_vel
-        goal[too_fast] = current[too_fast] + self.duration*self.max_vel*np.sign(angle_dif[too_fast])
+        too_fast = np.abs(angle_dif)/self.duration > self.vel_limit
+        goal[too_fast] = current[too_fast] + self.duration*self.vel_limit*np.sign(angle_dif[too_fast])
         
         # Next we check where the joints are at the next time step
         next_pos = self.step_time * (goal - current)/self.duration
