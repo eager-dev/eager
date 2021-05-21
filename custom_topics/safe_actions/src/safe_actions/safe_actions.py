@@ -13,8 +13,14 @@ import numpy as np
 
 
 class SafeActions():
-    def __init__(self, group_name='manipulator', checks_per_rad=25, max_vel=3.14, step_time=0.1, duration=0.5):
+    def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
+        
+        self.group_name='manipulator'
+        self.checks_per_rad=25 
+        self.max_vel=3.14
+        self.step_time=0.1
+        self.duration=0.5
         
         rospy.logdebug("[safe_actions] Connecting to planning scene interface")
         scene = moveit_commander.PlanningSceneInterface()
