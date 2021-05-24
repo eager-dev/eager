@@ -29,7 +29,7 @@ class BaseRosEnv(gym.Env):
 
         for el in (robots, sensors, observers):
             for object in el:
-                objects.append(Object(object.type, object.name))
+                objects.append(Object(object.type, object.name, object.args))
 
         register_service = rospy.ServiceProxy(self.name + '/register', Register)
         register_service.wait_for_service(20)
