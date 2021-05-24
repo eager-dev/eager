@@ -9,12 +9,12 @@ class WebotsEngine(EngineParams):
                  dt: float = 0.08,
                  no_gui: str = 'false',
                  mode: str = 'fast'):
-        # Only define parameters you wish to store locally (done in baseclass constructor)
+        # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'webots'
         launch_file = '$(find ros_gym_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)
 
         # Store parameters as properties in baseclass
-        # IMPORTANT! Do not define variables you do not want to store
+        # IMPORTANT! Do not define variables locally you do **not** want to store
         # on the parameter server anywhere before calling the baseclass' constructor.
         kwargs = locals().copy()
         kwargs.pop('self')
@@ -26,10 +26,10 @@ class WebotsEngine(EngineParams):
         val = world_parser.findNodeTypesIn(['WorldInfo'], wf, nodeClasses={})
         self.basicTimeStep = int(val[0][0].attrs['basicTimeStep'][0])
 
-        # Make assertions on parameters here
+        # Error check the parameters here.
         if self.step_time % self.basicTimeStep != 0:
             raise RuntimeError('The steptime (%d ms) is not a multiple of the basicTimeStep (%d ms).' % (self.step_time, self.basicTimeStep))
 
     @property
-    def step_time(self):
+    def step_time(self) -> int:
         return int(self.dt * 1000)

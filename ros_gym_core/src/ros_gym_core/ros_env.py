@@ -86,7 +86,7 @@ class RosEnv(BaseRosEnv):
 
     def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = [], **kwargs) -> None:
         # todo: Interface changes a lot, use **kwargs.
-        #  Make arguments of subclass explicit when interface is more-or-less fixed.
+        #  Make arguments of baseclass explicit when interface is more-or-less fixed.
         super().__init__(**kwargs)
         self.robots = robots
         self.sensors = sensors

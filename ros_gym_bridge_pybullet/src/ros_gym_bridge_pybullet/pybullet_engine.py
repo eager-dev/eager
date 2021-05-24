@@ -1,13 +1,16 @@
 from ros_gym_core.engine_params import EngineParams
+from ros_gym_core.utils.file_utils import substitute_xml_args
 
-class GazeboEngine(EngineParams):
+
+class PyBulletEngine(EngineParams):
     def __init__(self,
-                 world: str = '$(find ros_gym_bridge_gazebo)/worlds/ros_gym_empty.world',
+                 world: str,
                  dt: float = 0.08,
-                 max_update_rate: float = 0.0,  # 0.0 --> simulate as fast as possible
-                 no_gui: str = 'false'):
+                 no_gui: str = 'false',
+                 num_substeps: int = 1,
+                 num_solver_iterations: int = 5):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
-        bridge_type = 'gazebo'
+        bridge_type = 'pybullet'
         launch_file = '$(find ros_gym_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)
 
         # Store parameters as properties in baseclass
@@ -15,10 +18,12 @@ class GazeboEngine(EngineParams):
         # on the parameter server anywhere before calling the baseclass' constructor.
         kwargs = locals().copy()
         kwargs.pop('self')
-        super(GazeboEngine, self).__init__(**kwargs)
+        super(PyBulletEngine, self).__init__(**kwargs)
 
         # Error check the parameters here.
+        if self.num_substeps < 1:
+            raise RuntimeError('"num_substeps" must be an integer value larger than 1 (%d !> 1).' % self.num_substeps)
 
     @property
-    def time_step(self) -> int:
-        return self.dt
+    def dt_sim(self) -> float:
+        return self.dt / self.num_substeps
