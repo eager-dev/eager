@@ -17,7 +17,7 @@ class PhysicsBridge(ABC):
         self.__close_service = rospy.Service('close', CloseEnv, self.__close_handler)
 
     @abc.abstractmethod
-    def _register_object(self, topic, name, package, object_type, args, bridge_params):
+    def _register_object(self, topic, name, package, object_type, args, config):
         pass
 
     @abc.abstractmethod

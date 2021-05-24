@@ -60,7 +60,7 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-    def _register_object(self, topic, name, package, object_type, args, bridge_params):
+    def _register_object(self, topic, name, package, object_type, args, config):
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % name]
@@ -71,9 +71,9 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-        self._init_sensors(topic, name, bridge_params['sensors'])
+        self._init_sensors(topic, name, config['sensors'])
         
-        self._init_actuators(topic, name, bridge_params['actuators'])
+        self._init_actuators(topic, name, config['actuators'])
 
         return True
     
