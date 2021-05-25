@@ -18,10 +18,10 @@ class RealBridge(PhysicsBridge):
 
         super(RealBridge, self).__init__("real")
 
-    def _register_object(self, topic, name, params):
-        self._init_sensors(topic, name, params['sensors'])
+    def _register_object(self, topic, name, package, object_type, args, config):
+        self._init_sensors(topic, name, config['sensors'])
         
-        self._init_actuators(topic, name, params['actuators'])
+        self._init_actuators(topic, name, config['actuators'])
 
         return True
     
