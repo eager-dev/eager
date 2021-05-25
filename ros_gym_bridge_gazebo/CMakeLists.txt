@@ -29,6 +29,9 @@ find_package(catkin REQUIRED COMPONENTS
 # Depend on system install of Gazebo
 find_package(gazebo REQUIRED)
 
+# Depend on system install of Boost
+find_package(Boost REQUIRED COMPONENTS thread)
+
 catkin_python_setup()
 
 # Declare ROS service
@@ -36,21 +39,26 @@ add_service_files(FILES SetInt.srv)
 generate_messages(DEPENDENCIES std_msgs)
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
-include_directories(include ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
 
 catkin_package(
 	INCLUDE_DIRS include
-  DEPENDS
-    roscpp
-    gazebo_ros
-    message_runtime
-    std_msgs
+  CATKIN_DEPENDS
+  roscpp
+  rospy
+  gazebo_ros
+  message_runtime
+  std_msgs
 )
 
-install(DIRECTORY include/
-   DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
-   FILES_MATCHING PATTERN "*.h"
+include_directories(include ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
+
+# Mark cpp header files for installation
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
 )
 
 add_library(${PROJECT_NAME} src/ros_gym_bridge_gazebo/gazebo_plugin/step_world.cpp)
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
