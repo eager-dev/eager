@@ -17,8 +17,7 @@ class GazeboEngine(EngineParams):
         kwargs.pop('self')
         super(GazeboEngine, self).__init__(**kwargs)
 
-        # Error check the parameters here.
+        # Calculate other parameters based on previously defined attributes.
+        self.time_step = self.dt
 
-    @property
-    def time_step(self) -> int:
-        return self.dt
+        # Error check the parameters here.
