@@ -38,7 +38,7 @@ class PyBulletBridge(PhysicsBridge):
         self._p, self.physics_client_id = self._start_simulator()
 
         # Initialize world
-        world_file = '%s.urdf' % substitute_xml_args(rospy.get_param('physics_bridge/world'))
+        world_file = '%s' % substitute_xml_args(rospy.get_param('physics_bridge/world'))
         self._world = World(self._p, gravity=9.81,
                             world_file=world_file,
                             timestep=rospy.get_param('physics_bridge/dt_sim'),

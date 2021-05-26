@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     # Engine specific parameters
     # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
-    engine = PyBulletEngine(world='%s/%s' % (pybullet_data.getDataPath(), 'plane'), no_gui='true')
+    engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
     # engine = GazeboEngine()
 
     # Initialize environment
