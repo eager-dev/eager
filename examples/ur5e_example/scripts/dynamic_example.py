@@ -1,6 +1,7 @@
 # ROS packages required
 import rospy
 from ros_gym_core.ros_env import RosEnv
+from ur5e_example.ur5e_env import Ur5eEnv
 from ros_gym_core.objects import Robot
 from ros_gym_core.wrappers.flatten import Flatten
 from ros_gym_bridge_webots.webots_engine import WebotsEngine
@@ -22,6 +23,7 @@ if __name__ == '__main__':
 
     # Initialize environment
     env = RosEnv(robots=[Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e')], name='ros_env', engine=engine)
+    # env = Ur5eEnv(ur5e=Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e'), name='ros_env', engine=engine)
     env = Flatten(env)
     check_env(env)
 
