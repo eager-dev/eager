@@ -16,11 +16,11 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e')
-    engine = GazeboEngine()
+    engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
+    # engine = GazeboEngine()
 
     # Initialize environment
-    env = RosEnv(robots=[Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e')], name='ros_env', engine=engine)
+    env = RosEnv(engine=engine, robots=[Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e')], name='ros_env')
     env = Flatten(env)
     check_env(env)
 

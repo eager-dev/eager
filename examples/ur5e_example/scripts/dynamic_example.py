@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # engine = GazeboEngine()
 
     # Initialize environment
-    env = RosEnv(robots=[Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e')], name='ros_env', engine=engine)
+    env = RosEnv(engine=engine, robots=[Robot.create('ur5e1', 'ros_gym_robot_ur5e', 'ur5e')], name='ros_env')
     env = Flatten(env)
     check_env(env)
 

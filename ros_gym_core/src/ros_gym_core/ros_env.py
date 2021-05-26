@@ -6,9 +6,10 @@ from typing import List, Tuple, Callable
 from ros_gym_core.srv import StepEnv, ResetEnv, CloseEnv, Register
 from ros_gym_core.utils.file_utils import substitute_xml_args
 from ros_gym_core.msg import Object
+from ros_gym_core.engine_params import EngineParams
 
 class BaseRosEnv(gym.Env):
-    def __init__(self, name: str = 'ros_env', engine: dict = {}) -> None:
+    def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
         self._initialize_physics_bridge(engine=engine, name=name)
@@ -59,7 +60,7 @@ class BaseRosEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces)
 
-    def _initialize_physics_bridge(self, engine: dict = {}, name: str = 'ros_env'):
+    def _initialize_physics_bridge(self, engine: EngineParams, name: str = 'ros_env'):
         # Delete all parameters parameter server (from a previous run) within namespace 'name'
         # todo: dangerous! could delete parameters if 'name' used by other ros nodes unrelated to this new env
         try:
