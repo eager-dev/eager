@@ -41,14 +41,14 @@ class WeBotsBridge(PhysicsBridge):
 
     def _get_supervisor(cls):
         supervisor_checks = 0
-        supervisors = [x for x in rosservice.get_service_list() if 'supervisor' in x]
+        supervisors = [x for x in rosservice.get_service_list() if '/supervisor' in x]
         while not supervisors:
             if supervisor_checks > 20:
                 rospy.logfatal("Could not find WeBots supervisor.")
                 raise Exception
             supervisor_checks += 1
             rospy.sleep(1)
-            supervisors = [x for x in rosservice.get_service_list() if 'supervisor' in x]
+            supervisors = [x for x in rosservice.get_service_list() if '/supervisor' in x]
 
         return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
 
