@@ -87,7 +87,7 @@ class WeBotsBridge(PhysicsBridge):
 
     def _sensor_callback(self, data, name, sensor, pos):
         self._sensor_buffer[name][sensor][pos] = data.data
-    
+
     def _sensor_service(self, req, name, sensor):
         return BoxSpaceResponse(self._sensor_buffer[name][sensor])
 
@@ -104,7 +104,8 @@ class WeBotsBridge(PhysicsBridge):
                         rospy.logwarn("Not all actions for %s could be set", actuator)
     
         self._step_service(self._step_time)
-
+        # todo: Seems like after calling the step_service and returning the step service to RosEnv,
+        #  we are not sure that the observation buffers are updated.
         return True
 
     def _reset(self):

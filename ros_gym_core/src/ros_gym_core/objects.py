@@ -80,7 +80,7 @@ class Robot(BaseRosObject):
     def __init__(self, type: str, name: str, sensors: Union[List[Sensor], Dict[str, Sensor]], 
         actuators: Union[List[Actuator], Dict[str, Actuator]], reset: Callable[['Robot'],  None] = None,
         position: List[float] = [0, 0, 0],
-        orientation: List[float] = [0, 0, 0],
+        orientation: List[float] = [0, 0, 0, 1],
         fixed_base: bool = True,
         self_collision: bool = True,
         **kwargs
@@ -100,7 +100,7 @@ class Robot(BaseRosObject):
     @classmethod
     def create(cls, name: str, package_name: str, robot_type: str,
         position: List[float] = [0, 0, 0],
-        orientation: List[float] = [0, 0, 0],
+        orientation: List[float] = [0, 0, 0, 1],
         fixed_base: bool = True,
         self_collision: bool = True,
         **kwargs

@@ -5,16 +5,19 @@ from ros_gym_core.objects import Robot
 from ros_gym_core.wrappers.flatten import Flatten
 from ros_gym_bridge_webots.webots_engine import WebotsEngine
 from ros_gym_bridge_gazebo.gazebo_engine import GazeboEngine
+from ros_gym_bridge_pybullet.pybullet_engine import PyBulletEngine
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
+import pybullet_data
 
 if __name__ == '__main__':
 
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e')
+    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e')
+    engine = PyBulletEngine(world='%s/%s' % (pybullet_data.getDataPath(), 'plane'), no_gui='true')
     # engine = GazeboEngine()
 
     # Initialize environment
