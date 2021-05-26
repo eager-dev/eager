@@ -107,9 +107,9 @@ class PyBulletBridge(PhysicsBridge):
                     if 'force_torque' in sensors[sensor]['type']:
                         self._p.enableJointForceTorqueSensor(bodyUniqueId=bodyid, jointIndex=jointindex,
                                                              enableSensor=True, physicsClientId=self.physics_client_id)
-                    else:
-                        self._p.enableJointForceTorqueSensor(bodyUniqueId=bodyid, jointIndex=jointindex,
-                                                             enableSensor=False, physicsClientId=self.physics_client_id)
+                    # else:
+                    #     self._p.enableJointForceTorqueSensor(bodyUniqueId=bodyid, jointIndex=jointindex,
+                    #                                          enableSensor=False, physicsClientId=self.physics_client_id)
                 callback = functools.partial(self._joint_sensor_callback,
                                              name=name,
                                              sensor=sensor,
