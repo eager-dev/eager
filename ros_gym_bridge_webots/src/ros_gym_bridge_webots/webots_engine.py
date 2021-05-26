@@ -20,9 +20,10 @@ class WebotsEngine(EngineParams):
         kwargs.pop('self')
         super(WebotsEngine, self).__init__(**kwargs)
 
-        # Grab basicTimeStep from world file (.wbt).
+        # Calculate other parameters based on previously defined attributes.
+        self.step_time = int(self.dt * 1000)
         # todo: check if problem that world_parser import requires python version > 3.7
-        wf = world_parser.parse(substitute_xml_args('%s.wbt' % world))
+        wf = world_parser.parse(substitute_xml_args('%s.wbt' % world))  # Grab basicTimeStep from world file (.wbt).
         val = world_parser.findNodeTypesIn(['WorldInfo'], wf, nodeClasses={})
         self.basicTimeStep = int(val[0][0].attrs['basicTimeStep'][0])
 
@@ -30,6 +31,3 @@ class WebotsEngine(EngineParams):
         if self.step_time % self.basicTimeStep != 0:
             raise RuntimeError('The steptime (%d ms) is not a multiple of the basicTimeStep (%d ms).' % (self.step_time, self.basicTimeStep))
 
-    @property
-    def step_time(self) -> int:
-        return int(self.dt * 1000)
