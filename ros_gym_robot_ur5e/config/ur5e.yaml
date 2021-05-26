@@ -10,7 +10,7 @@ actuators:
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
     low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
 
-state:
+states:
   joint_pos:
     type: box
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
@@ -39,7 +39,7 @@ webots:
     - wrist_2_joint
     - wrist_3_joint
 
-  state:
+  states:
     joint_pos:
       -
     joint_vel:
@@ -98,7 +98,7 @@ pybullet:
       pos_gain: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       vel_gain: [0.11, 0.11, 0.11, 0.11, 0.11, 0.11]
 
-  state:
+  states:
     joint_pos:
       -
     joint_vel:
