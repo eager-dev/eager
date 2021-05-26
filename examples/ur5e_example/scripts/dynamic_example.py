@@ -16,7 +16,7 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e')
+    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
     engine = PyBulletEngine(world='%s/%s' % (pybullet_data.getDataPath(), 'plane'), no_gui='true')
     # engine = GazeboEngine()
 
