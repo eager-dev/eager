@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <arg name="name" default="ros_env" doc="Set the physics bridge name."/>
-    <group ns="$(arg name)">
-        <node name="ros_gym_bridge_gazebo" pkg="ros_gym_bridge_gazebo" type="gazebo_node.py" output="screen"/>
-    </group>
-</launch>

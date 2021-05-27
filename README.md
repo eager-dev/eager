@@ -1,5 +1,5 @@
-# ROS-GYM
-TODO: Everything.
+# EAGER
+Engine Agnostic Gym Environment using ROS.
 
 ## Toolkit's advantages (current implementation)
 - Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
@@ -16,7 +16,7 @@ TODO: Everything.
 
 ## Run python training script dynamically (e.g. via PyCharm debugger)
 - If you would like to start-up your python script without a launch file, make sure to source the `devel/setup.bash` (e.g. inside your `~/.bashrc`) right before you run your python script inside the IDE.
-- For PyCharm, add `source ~/ros_gym_ws/devel/setup.bash` to `~/.bashrc` and follow [this](http://wiki.ros.org/IDEs#PyCharm_.28community_edition.29).
+- For PyCharm, add `source ~/eager_ws/devel/setup.bash` to `~/.bashrc` and follow [this](http://wiki.ros.org/IDEs#PyCharm_.28community_edition.29).
 - Make sure to have the python package `defusedxml` installed. `pip install defusedxml`.
 - Before running the python script in your IDE, start up a roscore in a separate terminal.
 
