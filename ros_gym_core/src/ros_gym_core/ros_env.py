@@ -43,22 +43,24 @@ class BaseRosEnv(gym.Env):
             for object in el:
                 object.init_node(bt)
 
-    def _merge_spaces(cls, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict]:
+    def _merge_spaces(cls, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict]:
         
         obs_spaces = OrderedDict()
         act_spaces = OrderedDict()
+        state_spaces = OrderedDict()
 
         for robot in robots:
             obs_spaces[robot.name] = robot.observation_space
             act_spaces[robot.name] = robot.action_space
-        
+            state_spaces[robot.name] = robot.state_space
+
         for sensor in sensors:
             obs_spaces[sensor.name] = sensor.observation_space
         
         for observer in observers:
             obs_spaces[observer.name] = observer.observation_space
         
-        return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces)
+        return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces), gym.spaces.Dict(spaces=state_spaces)
 
     def _initialize_physics_bridge(self, engine: EngineParams, name: str = 'ros_env'):
         # Delete all parameters parameter server (from a previous run) within namespace 'name'
@@ -95,7 +97,7 @@ class RosEnv(BaseRosEnv):
 
         self._init_nodes(self.robots, self.sensors, self.observers)
 
-        self.observation_space, self.action_space = self._merge_spaces(self.robots, self.sensors, self.observers)
+        self.observation_space, self.action_space, self.state_space = self._merge_spaces(self.robots, self.sensors, self.observers)
     
     def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
 
@@ -104,10 +106,11 @@ class RosEnv(BaseRosEnv):
 
         self._step()
 
+        state = self._get_states()
         obs = self._get_obs()
         reward = self._get_reward(obs)
         done = self._is_done(obs)
-        return obs, reward, done, {}
+        return obs, reward, done, {'state': state}
     
     def reset(self) -> object:
 
@@ -145,8 +148,12 @@ class RosEnv(BaseRosEnv):
         return obs
     
     def _get_states(self) -> 'OrderedDict[str, object]':
-        # How / what is it??
-        pass
+        state = OrderedDict()
+
+        for robot in self.robots:
+            state[robot.name] = robot.get_state()
+
+        return state
 
     def _get_reward(self, obs: 'OrderedDict[str, object]') -> float:
         # if needed:
