@@ -7,6 +7,7 @@ from ros_gym_core.ros_env import RosEnv
 from ros_gym_robot_ur5e.ur5e import UR5e
 from ros_gym_core.wrappers.flatten import Flatten
 from gym.spaces import space
+from ros_gym_bridge_gazebo.gazebo_engine import GazeboEngine
 import gym, gym.spaces
 
 from stable_baselines3 import PPO
@@ -16,14 +17,7 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example',
                     anonymous=True, log_level=rospy.WARN)
 
-    # Engine specific parameters
-    gb_params = dict()
-    gb_params['bridge_type'] = 'gazebo'
-    gb_params['launch_file'] = '$(find ros_gym_bridge_gazebo)/launch/gazebo.launch'
-    gb_params['no_gui'] = 'false'
-    gb_params['world'] = '$(find ros_gym_bridge_gazebo)/worlds/ros_gym_empty.world'
-    gb_params['time_step']  = 0.001
-    gb_params['max_update_rate'] = 0.0 # 0.0 means simulate gazebo fast as possible
+    engine = GazeboEngine()
     
     # Initialize environment
     env_name = 'ros_env'
@@ -44,7 +38,7 @@ if __name__ == '__main__':
                                                           'wrist_3_joint'],
                                              group_name='manipulator')
     
-    env = Flatten(RosEnv(robots=[ur5e1], name=env_name, engine_params=gb_params))
+    env = Flatten(RosEnv(engine=engine, robots=[ur5e1], name=env_name))
     
     check_env(env)
 
