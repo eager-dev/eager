@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(safe_actions)
+project(ros_gym_process_safe_actions)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
