@@ -28,3 +28,12 @@ Troubleshooting:
 
 ## TEMPORARY HACKS TO MAKE CODE WORK :(
 - In `physics_bridge/src/engines/gazebo/gazebo.py` in `_register_object(...)` function, change hardcoded object type.
+
+
+## Python dependencies (listing them here, don't how to list in CMakeList if ros-<module> does not exist...)
+- defusedxml
+- stable-baselines3
+- scenic
+- future
+- gazebo (this probably does exist, check!)
+- opencv==4.3.0.36

@@ -4,18 +4,17 @@ from ros_gym_core.utils.gym_utils import *
 from collections import OrderedDict
 from typing import List, Callable, Type, Tuple
 from std_srvs.srv import SetBool, SetBoolRequest
-from typing import Dict, List, Callable, Type, Union
+from typing import Dict, List, Callable, Union
 import rospy
 import roslaunch
 import numpy as np
 
-from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
-
 class BaseRosObject():
 
-    def __init__(self, type: str, name: str) -> None:
+    def __init__(self, type: str, name: str, **kwargs) -> None:
         self.type = type
         self.name = name
+        self.args = str(kwargs)
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
         pass
@@ -27,7 +26,6 @@ class BaseRosObject():
         if base_topic == '':
             return self.name
         return base_topic + '/' + self.name
-
 
 class Sensor(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
@@ -98,8 +96,15 @@ class Actuator(BaseRosObject):
         return msg_class(self._buffer)
 
 class Robot(BaseRosObject):
-    def __init__(self, type: str, name: str, sensors: Union[List[Sensor], Dict[str, Sensor]], actuators: Union[List[Actuator], Dict[str, Actuator]], reset: Callable[['Robot'],  None] = None) -> None:
-        super().__init__(type, name)
+    def __init__(self, type: str, name: str, sensors: Union[List[Sensor], Dict[str, Sensor]], 
+        actuators: Union[List[Actuator], Dict[str, Actuator]], reset: Callable[['Robot'],  None] = None,
+        position: List[float] = [0, 0, 0],
+        orientation: List[float] = [0, 0, 0],
+        fixed_base: bool = True,
+        self_collision: bool = True,
+        **kwargs
+        ) -> None:
+        super().__init__(type, name, position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
         if isinstance(sensors, List):
             sensors = OrderedDict(zip([sensor.name for sensor in sensors], sensors))
@@ -112,7 +117,13 @@ class Robot(BaseRosObject):
         self.reset_func = reset
     
     @classmethod
-    def create(cls, name: str, package_name: str, robot_type: str) -> 'Robot':
+    def create(cls, name: str, package_name: str, robot_type: str,
+        position: List[float] = [0, 0, 0],
+        orientation: List[float] = [0, 0, 0],
+        fixed_base: bool = True,
+        self_collision: bool = True,
+        **kwargs
+        ) -> 'Robot':
 
         params = load_yaml(package_name, robot_type)
 
@@ -126,7 +137,8 @@ class Robot(BaseRosObject):
             act_space = get_space_from_def(actuator)
             actuators.append(Actuator(None, act_name, act_space))
 
-        return cls(package_name + '/' + robot_type, name, sensors, actuators)
+        return cls(package_name + '/' + robot_type, name, sensors, actuators,
+            position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
 

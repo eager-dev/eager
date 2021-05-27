@@ -1,5 +1,5 @@
 import rospy
-from action_server.action_server import ActionServer
+from ros_gym_bridge_gazebo.action_server.action_server import ActionServer
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from std_msgs.msg import Header

@@ -1,7 +1,7 @@
 import rospy
 import actionlib
 
-class ActionServer():
+class ActionServer(object):
     
     def __init__(self, action_server, action_type):
         self.client = actionlib.SimpleActionClient(action_server, action_type)

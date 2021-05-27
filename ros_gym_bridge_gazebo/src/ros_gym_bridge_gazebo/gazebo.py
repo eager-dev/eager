@@ -7,6 +7,7 @@ from ros_gym_core.physics_bridge import PhysicsBridge
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
 from ros_gym_core.utils.file_utils import substitute_xml_args
 from std_srvs.srv import Empty, SetBool, SetBoolResponse
+from ros_gym_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
 from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from ros_gym_bridge_gazebo.srv import SetInt, SetIntRequest
@@ -62,12 +63,8 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-    def _register_object(self, topic, name, params):
-        # Launch gazebo robot
-        # TODO: Replace hardcoded location of launchfile.
-        # TODO: physics bridge should know robot type to launch correct files
-        #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
-        str_launch_object = '$(find ros_gym_robot_%s)/launch/gazebo.launch' % 'ur5e' # This should be the object type
+    def _register_object(self, topic, name, package, object_type, args, config):
+        str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % topic]
         roslaunch_args = cli_args[1:]
@@ -76,10 +73,10 @@ class GazeboBridge(PhysicsBridge):
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
+
+        self._init_sensors(topic, name, config['sensors'])
         
-        self._init_sensors(topic, name, params['sensors'])
-        
-        self._init_actuators(topic, name, params['actuators'])
+        self._init_actuators(topic, name, config['actuators'])
 
         return True
     

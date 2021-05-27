@@ -6,12 +6,13 @@ from typing import List, Tuple, Callable
 from ros_gym_core.srv import StepEnv, ResetEnv, CloseEnv, Register
 from ros_gym_core.utils.file_utils import substitute_xml_args
 from ros_gym_core.msg import Object
+from ros_gym_core.engine_params import EngineParams
 
 class BaseRosEnv(gym.Env):
-    def __init__(self, name: str = 'ros_env', engine_params: dict = {}) -> None:
+    def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
-        self._initialize_physics_bridge(engine_params=engine_params, name=name)
+        self._initialize_physics_bridge(engine=engine, name=name)
 
         self.name = name
 
@@ -29,7 +30,7 @@ class BaseRosEnv(gym.Env):
 
         for el in (robots, sensors, observers):
             for object in el:
-                objects.append(Object(object.type, object.name))
+                objects.append(Object(object.type, object.name, object.args))
 
         register_service = rospy.ServiceProxy(self.name + '/register', Register)
         register_service.wait_for_service(20)
@@ -59,7 +60,7 @@ class BaseRosEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces)
 
-    def _initialize_physics_bridge(self, engine_params: dict = {}, name: str = 'ros_env'):
+    def _initialize_physics_bridge(self, engine: EngineParams, name: str = 'ros_env'):
         # Delete all parameters parameter server (from a previous run) within namespace 'name'
         # todo: dangerous! could delete parameters if 'name' used by other ros nodes unrelated to this new env
         try:
@@ -69,10 +70,10 @@ class BaseRosEnv(gym.Env):
             pass
 
         # Upload dictionary with engine parameters to ROS parameter server
-        rosparam.upload_params('%s/physics_bridge' % name, engine_params)
+        rosparam.upload_params('%s/physics_bridge' % name, engine.__dict__)
 
         # Launch the physics bridge under the namespace 'name'
-        cli_args = [substitute_xml_args(engine_params['launch_file']),
+        cli_args = [substitute_xml_args(engine.launch_file),
                     'name:=' + name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
@@ -86,7 +87,7 @@ class RosEnv(BaseRosEnv):
 
     def __init__(self, robots: List[Robot] = [], sensors: List[Sensor] = [], observers: List['Observer'] = [], **kwargs) -> None:
         # todo: Interface changes a lot, use **kwargs.
-        #  Make arguments of subclass explicit when interface is more-or-less fixed.
+        #  Make arguments of baseclass explicit when interface is more-or-less fixed.
         super().__init__(**kwargs)
         self.robots = robots
         self.sensors = sensors
