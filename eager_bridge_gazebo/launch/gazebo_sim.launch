@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="no_gui" default="false" doc="Starts gazebo gui" />
+	<arg name="world" default="$(find eager_bridge_gazebo)/worlds/eager_empty.world" doc="Gazebo world" />
+	
+  <include ns="/" file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg if="$(arg no_gui)" name="gui" value="false"/>
+  </include>
+</launch>
