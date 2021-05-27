@@ -24,20 +24,27 @@ if __name__ == '__main__':
     gb_params['world'] = '$(find ros_gym_bridge_gazebo)/worlds/ros_gym_empty.world'
     gb_params['time_step']  = 0.001
     gb_params['max_update_rate'] = 0.0 # 0.0 means simulate gazebo fast as possible
-
-    # Initialize environment
-    ur5e1 = UR5e("ur5e1")
-    ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), 
-                                             launch_path='$(find safe_actions)/launch/safe_actions.launch',
-                                             node_type='service', 
-                                             stateless=True,
-                                             group_name='manipulator',
-                                             checks_per_rad=25,
-                                             vel_limit=3.14,
-                                             step_time=0.1,
-                                             duration=0.5)
     
-    env = Flatten(RosEnv(robots=[ur5e1], name='ros_env', engine_params=gb_params))
+    # Initialize environment
+    env_name = 'ros_env'
+    robot_name= 'ur5e1'
+    ur5e1 = UR5e(robot_name)
+    ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), 
+                                             launch_path='$(find ros_gym_process_safe_actions)/launch/safe_actions.launch',
+                                             env_name=env_name,
+                                             robot_name=robot_name,
+                                             moveit_package='ur5_e_moveit_config',
+                                             sensor_topic='joint_sensors',
+                                             actuator_topic='joints',
+                                             joint_names=['shoulder_pan_joint',
+                                                          'shoulder_lift_joint',
+                                                          'elbow_joint',
+                                                          'wrist_1_joint',
+                                                          'wrist_2_joint',
+                                                          'wrist_3_joint'],
+                                             group_name='manipulator')
+    
+    env = Flatten(RosEnv(robots=[ur5e1], name=env_name, engine_params=gb_params))
     
     check_env(env)
 
