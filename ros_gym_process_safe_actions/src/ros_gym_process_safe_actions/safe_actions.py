@@ -1,6 +1,3 @@
-"""
-    Checking if action is safe, partially copy paste from https://answers.ros.org/question/203633/collision-detection-in-python/
-"""
 import sys
 import rospy
 import moveit_commander
@@ -79,8 +76,9 @@ class SafeActions():
 
     def _getSafeAction(self, goal_position):
         '''
-        Given a RobotState and a group name and an optional Constraints
-        return the validity of the State
+        Given a goal_position, check if this satisfies the velocity limit 
+        and whether the path is collision free
+        return a collision free action
         '''
         observation = self.get_observation_service()
         current_position = np.asarray(observation.value)
