@@ -2,6 +2,7 @@ import sys
 import rospy
 import moveit_commander
 from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
+from ros_gym_core.action_processor import ActionProcessor
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
@@ -10,14 +11,10 @@ from scipy.interpolate import CubicSpline
 import numpy as np
 
 
-class SafeActions():
+class SafeActions(ActionProcessor):
     def __init__(self):
-        moveit_commander.roscpp_initialize(sys.argv)
-
-        robot_topic = rospy.get_namespace()
-
-        sensor_topic = rospy.get_param('~sensor_topic', 'joint_sensors')
-        actuator_topic = rospy.get_param('~actuator_topic', 'joints')
+    		actuator_topic = rospy.get_param('~actuator_topic', 'joints')
+    		raw_actuator
         self.joint_names = rospy.get_param('~joint_names',
                                            ['shoulder_pan_joint',
                                             'shoulder_lift_joint',
@@ -31,9 +28,9 @@ class SafeActions():
         self.step_time = rospy.get_param('~step_time', 0.1)
         self.duration = rospy.get_param('~duration', 0.5)
 
-        rospy.logdebug("[safe_actions] Connecting to planning scene interface")
+    		
+        moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface()
-        rospy.logdebug("[safe_actions] Connected to planning scene interface")
 
         self.get_observation_service = rospy.ServiceProxy(
             robot_topic + sensor_topic, BoxSpace)
@@ -46,20 +43,11 @@ class SafeActions():
         self.rs.joint_state.name = self.joint_names
         self.rs.joint_state.position = np.asarray(observation.value)
 
-        rospy.logdebug("[safe_actions] Waiting for state_validity service")
-
-        # prepare service for collision check
-        self.sv_srv = rospy.ServiceProxy(
-            'check_state_validity', GetStateValidity)
-        # wait for service to become available
-        self.sv_srv.wait_for_service()
-
-        self._get_action_srv = rospy.ServiceProxy(
-            robot_topic + actuator_topic, BoxSpace)
-        self._get_action_srv.wait_for_service()
-
-        rospy.logdebug("[safe_actions] Adding collision object")
-
+        self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
+        self.state_validity_service.wait_for_service()
+				
+				# Add a collision object to the scene
+        
         # This is ugly, but seems to be necessary, see: https://answers.ros.org/question/209030/moveit-planningsceneinterface-addbox-not-showing-in-rviz/
         rospy.sleep(5)
 
@@ -68,14 +56,12 @@ class SafeActions():
         p.pose.position.z = -0.05
         p.pose.orientation.w = 1
         scene.add_cylinder('table', p, 0.1, 1.5)
+        
+        super(ActionProcessor, self).__init__(actuator_topic, raw_actuator_topic)
 
-        self._set_act_srv = rospy.Service(
-            robot_topic + actuator_topic + '/preprocessed', BoxSpace, self._action_service)
-
-    def _action_service(self, req):
-        action = self._get_action_srv()
-        safe_action = self._getSafeAction(np.asarray(action.value))
-        rospy.logdebug("Processed action: {}".format(action))
+		def _process_action(self, action):
+				action = self._get_action_srv()
+        safe_action = self._getSafeAction(np.asarray(action))
         return BoxSpaceResponse(safe_action)
 
     def _getSafeAction(self, goal_position):
@@ -117,6 +103,6 @@ class SafeActions():
         way_points = cs(np.linspace(0, 1.2*self.duration, n_checks))
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]
-            if not self.sv_srv.call(gsvr).valid:
+            if not self.state_validity_service.call(gsvr).valid:
                 return way_points[max(i-1, 0)]
         return goal_position
