@@ -37,3 +37,4 @@ Troubleshooting:
 - future
 - gazebo (this probably does exist, check!)
 - opencv==4.3.0.36
+- pybullet==3.1.7
