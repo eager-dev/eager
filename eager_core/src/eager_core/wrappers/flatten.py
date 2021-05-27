@@ -12,6 +12,7 @@ class FlattenAction(ActionWrapper):
     def action(self, action: object) -> object:
         return gym.spaces.unflatten(self.env.action_space, action)
 
+
 class Flatten(gym.Wrapper):
     def __init__(self, env: gym.Env) -> None:
         super().__init__(FlattenObservation(FlattenAction(env)))

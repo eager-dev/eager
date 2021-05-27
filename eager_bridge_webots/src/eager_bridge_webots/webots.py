@@ -24,6 +24,10 @@ class WeBotsBridge(PhysicsBridge):
 
         self._actuator_services = dict()
 
+        self._state_buffer = dict()
+        self._state_subscribers = []
+        self._state_services = []
+
         super(WeBotsBridge, self).__init__("webots")
 
     def _start_simulator(self):
@@ -52,11 +56,11 @@ class WeBotsBridge(PhysicsBridge):
 
         return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
 
-
     def _register_object(self, topic, name, package, object_type, args, config):
 
         self._init_sensors(topic, name, config['sensors'])
         self._init_actuators(topic, name, config['actuators'])
+        self._init_states(topic, name, config['states'])
         return True
     
     def _init_sensors(self, topic, name, sensors):
@@ -70,7 +74,7 @@ class WeBotsBridge(PhysicsBridge):
                 if success:
                     self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
                         Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor, pos=idx)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._sensor_service, name=name, sensor=sensor)))
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor)))
         self._sensor_buffer[name] = robot_sensors
     
     def _init_actuators(self, topic, name, actuators):
@@ -85,11 +89,30 @@ class WeBotsBridge(PhysicsBridge):
             robot_actuators[actuator] = (get_action_srv, set_action_srvs)
         self._actuator_services[name] = robot_actuators
 
+    def _init_states(self, topic, name, states):
+        robot_states = dict()
+        for state in states:
+            topic_list = states[state]
+            robot_states[state] = [0.0]*len(topic_list)
+            # for idx, webots_sensor_name in enumerate(topic_list):
+            #     enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
+            #     success = enable_sensor(self._step_time)
+            #     if success:
+            #         self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
+            #             Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor, pos=idx)))
+            self._sensor_services.append(rospy.Service(topic + "/" + state, BoxSpace, functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state)))
+        self._state_buffer[name] = robot_states
+
     def _sensor_callback(self, data, name, sensor, pos):
         self._sensor_buffer[name][sensor][pos] = data.data
 
-    def _sensor_service(self, req, name, sensor):
-        return BoxSpaceResponse(self._sensor_buffer[name][sensor])
+    def _state_callback(self, data, name, state, pos):
+        # todo: implement routine to update state buffer.
+        # self._state_buffer[name][state][pos] = data.data
+        pass
+
+    def _service(self, req, buffer,  name, obs_name):
+        return BoxSpaceResponse(buffer[name][obs_name])
 
     def _step(self):
 
