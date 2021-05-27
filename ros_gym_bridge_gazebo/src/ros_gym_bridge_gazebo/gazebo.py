@@ -69,7 +69,7 @@ class GazeboBridge(PhysicsBridge):
         #  Use roslaunch.core.Node(package=physics_bridge, executable=webots_node.py) instead.
         str_launch_object = '$(find ros_gym_robot_%s)/launch/gazebo.launch' % 'ur5e' # This should be the object type
         cli_args = [substitute_xml_args(str_launch_object),
-                    'ns:=%s' % name]
+                    'ns:=%s' % topic]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -88,7 +88,7 @@ class GazeboBridge(PhysicsBridge):
             rospy.logdebug("Initializing sensor {}".format(sensor))
             self._sensor_buffer[sensor] = []
             sensor_params = sensors[sensor]
-            msg_topic = name + "/" + sensor_params["topic"]
+            msg_topic = topic + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
             msg_type = getattr(sensor_msgs.msg, msg_name)
             rospy.logdebug("Waiting for message topic {}".format(msg_topic))
@@ -110,7 +110,7 @@ class GazeboBridge(PhysicsBridge):
       for actuator in actuators:
           rospy.logdebug("Initializing actuator {}".format(actuator))
           joint_names = actuators[actuator]["joint_names"]
-          server_name = name + "/" + actuators[actuator]["server_name"]
+          server_name = topic + "/" + actuators[actuator]["server_name"]
           get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
           set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
           preprocess_srv = rospy.Service(topic + "/" + actuator + "/add_preprocess", 
