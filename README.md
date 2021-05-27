@@ -1,5 +1,5 @@
-# ROS-GYM
-TODO: Everything.
+# EAGER
+Engine Agnostic Gym Environment using ROS.
 
 ## Toolkit's advantages (current implementation)
 - Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
