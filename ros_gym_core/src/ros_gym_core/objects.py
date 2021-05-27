@@ -74,11 +74,11 @@ class Actuator(BaseRosObject):
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', node_type='service', stateless=True, **launch_kwargs):
+    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', node_type='service', stateless=True, **kwargs):
         self.action_space = processed_space
         
         cli_args = [substitute_xml_args(launch_path)]
-        for key, value in launch_kwargs.items():
+        for key, value in kwargs.items():
             cli_args.append('{}:={}'.format(key, value))
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
