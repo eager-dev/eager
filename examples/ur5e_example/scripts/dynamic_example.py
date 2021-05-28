@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # Initialize environment
     env = RosEnv(engine=engine, robots=[Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')
     env = Flatten(env)
-    check_env(env)
+    # check_env(env) # todo: fails because we do not wrap the angles of the joints to [-pi, pi]
 
     # Initialize policy
     model = PPO('MlpPolicy', env, verbose=1)

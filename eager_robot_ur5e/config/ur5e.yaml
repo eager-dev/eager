@@ -19,6 +19,22 @@ states:
     type: box
     high: [1, 1, 1, 1, 1, 1]
     low: [-1, -1, -1, -1, -1, -1]
+#  pos:
+#    type: box
+#    high: [1, 1, 0]
+#    low: [-1, -1, 0]
+#  orientation:
+#    type: box
+#    high: [0, 0, 0, 1]
+#    low: [0, 0, 0, 1]
+#  vel:
+#    type: box
+#    high: [1, 1, 1]
+#    low: [-1, -1, -1]
+#  angular_vel:
+#    type: box
+#    high: [1, 1, 1]
+#    low: [-1, -1, -1]
 
 webots:
   sensors:
@@ -39,7 +55,7 @@ webots:
     - wrist_2_joint
     - wrist_3_joint
 
-  states:
+  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
     joint_pos:
       -
     joint_vel:
@@ -79,7 +95,7 @@ gazebo:
       - wrist_2_joint
       - wrist_3_joint
 
-  states:
+  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
     joint_pos:
       -
     joint_vel:
@@ -104,10 +120,24 @@ pybullet:
       pos_gain: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       vel_gain: [0.11, 0.11, 0.11, 0.11, 0.11, 0.11]
 
-  states:  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints
+  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
+  # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, base_vel, joint_pos, joint_vel)
+  states:
     joint_pos:
-      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}, base_{pos, orientation, vel, angular_vel}
       name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
     joint_vel:
-      type: joint_vel # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      type: joint_vel
       name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+#    pos: # [x, y, z]
+#      type: base_pos
+#      name: [base_x, base_y, base_z]
+#    orientation: # [qx, qy, qz, qw]
+#      type: base_orientation
+#      name: [base_qx, base_qy, base_qz, base_qw]
+#    vel: # [vx, vy, vz]
+#      type: base_vel
+#      name: [base_vx, base_vy, base_vz]
+#    angular_vel: # [wx, wy, wz]
+#      type: base_angular_vel
+#      name: [base_wx, base_wy, base_wz]
