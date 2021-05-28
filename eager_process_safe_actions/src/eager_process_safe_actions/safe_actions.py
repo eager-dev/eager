@@ -13,8 +13,6 @@ import numpy as np
 
 class SafeActions(ActionProcessor):
     def __init__(self):
-    		actuator_topic = rospy.get_param('~actuator_topic', 'joints')
-    		raw_actuator
         self.joint_names = rospy.get_param('~joint_names',
                                            ['shoulder_pan_joint',
                                             'shoulder_lift_joint',
@@ -57,10 +55,10 @@ class SafeActions(ActionProcessor):
         p.pose.orientation.w = 1
         scene.add_cylinder('table', p, 0.1, 1.5)
         
-        super(ActionProcessor, self).__init__(actuator_topic, raw_actuator_topic)
+        super(ActionProcessor, self).__init__(processor)
 
-		def _process_action(self, action):
-				action = self._get_action_srv()
+    def _process_action(self, action):
+		action = self._get_action_srv()
         safe_action = self._getSafeAction(np.asarray(action))
         return BoxSpaceResponse(safe_action)
 
