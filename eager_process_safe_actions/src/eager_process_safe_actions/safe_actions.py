@@ -1,11 +1,10 @@
 import sys
 import rospy
 import moveit_commander
-from ros_gym_core.srv import BoxSpace, BoxSpaceResponse
+from ros_gym_core.srv import BoxSpaceResponse
 from ros_gym_core.action_processor import ActionProcessor
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
-from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseStamped
 from scipy.interpolate import CubicSpline
 import numpy as np
@@ -30,21 +29,10 @@ class SafeActions(ActionProcessor):
         moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface()
 
-        self.get_observation_service = rospy.ServiceProxy(
-            robot_topic + sensor_topic, BoxSpace)
-        self.get_observation_service.wait_for_service()
-
-        observation = self.get_observation_service()
-
-        # prepare msg to interface with moveit
-        self.rs = RobotState()
-        self.rs.joint_state.name = self.joint_names
-        self.rs.joint_state.position = np.asarray(observation.value)
-
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
         self.state_validity_service.wait_for_service()
 				
-				# Add a collision object to the scene
+		# Add a collision object to the scene
         
         # This is ugly, but seems to be necessary, see: https://answers.ros.org/question/209030/moveit-planningsceneinterface-addbox-not-showing-in-rviz/
         rospy.sleep(5)
@@ -55,14 +43,21 @@ class SafeActions(ActionProcessor):
         p.pose.orientation.w = 1
         scene.add_cylinder('table', p, 0.1, 1.5)
         
-        super(ActionProcessor, self).__init__(processor)
+        super(ActionProcessor, self).__init__('safe_actions')
 
-    def _process_action(self, action):
-		action = self._get_action_srv()
-        safe_action = self._getSafeAction(np.asarray(action))
+    def _process_action(self, action, observation):
+        if len(observation) > 1:
+            rospy.logwarn("[Safe Actions] Expected observation from only one robot")
+        for robot in observation:
+            if len(observation[robot]) > 1:
+                rospy.logwarn("[Safe Actions] Expected observation from only one sensor")
+            for sensor in observation[robot]:
+                current_position = observation[robot][sensor]
+
+        safe_action = self._getSafeAction(np.asarray(action), current_position)
         return BoxSpaceResponse(safe_action)
 
-    def _getSafeAction(self, goal_position):
+    def _getSafeAction(self, goal_position, current_position):
         '''
         Given a goal_position, check if this satisfies the velocity limit 
         and whether the path is collision free
@@ -70,11 +65,14 @@ class SafeActions(ActionProcessor):
         '''
         observation = self.get_observation_service()
         current_position = np.asarray(observation.value)
-        self.rs.joint_state.position = current_position
+        
+        rs = RobotState
+        rs.joint_state.name = self.joint_names
+        rs.joint_state.position = current_position
 
         gsvr = GetStateValidityRequest()
         gsvr.group_name = self.group_name
-        gsvr.robot_state = self.rs
+        gsvr.robot_state = rs
 
         # We interpolate using a cubic spline between the current joint state and the goal state
         # For now, we are not using velocity information, so it is actually linear interpolation
