@@ -104,8 +104,10 @@ pybullet:
       pos_gain: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       vel_gain: [0.11, 0.11, 0.11, 0.11, 0.11, 0.11]
 
-  states:
+  states:  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints
     joint_pos:
-      -
+      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
     joint_vel:
-      -
+      type: joint_vel # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
