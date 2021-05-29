@@ -1,10 +1,10 @@
 # ROS packages required
 import rospy, rosservice
 from eager_core.physics_bridge import PhysicsBridge
-from eager_core.srv import BoxSpace, BoxSpaceResponse
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
 from eager_bridge_pybullet.pybullet_robot import URDFBasedRobot
+from eager_core.utils.message_utils import get_value_from_message
 
 import numpy as np
 import functools
@@ -97,7 +97,8 @@ class PyBulletBridge(PhysicsBridge):
         sensor_cb = dict()
         for sensor in sensors:
             topic_list = sensors[sensor]['name']
-            robot_sensors[sensor] = [0.0] * len(topic_list)
+            messages = sensors[sensor]['messages']
+            robot_sensors[sensor] = [get_value_from_message(messages[0])] * len(topic_list)
             bodyUniqueId = []
             if 'joint' in sensors[sensor]['type']:
                 jointIndices = []
@@ -132,9 +133,9 @@ class PyBulletBridge(PhysicsBridge):
             else:
                 raise ValueError('Sensor_type ("%s") must contain either "joint" or "link".' % sensors[sensor]['type'])
             sensor_cb[sensor] = callback
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace,
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0],
                                                        functools.partial(self._sensor_service, name=name,
-                                                                         sensor=sensor)))
+                                                                         sensor=sensor, message_type=messages[1])))
         self._sensor_cbs[name] = sensor_cb
         self._sensor_buffer[name] = robot_sensors
 
@@ -142,6 +143,7 @@ class PyBulletBridge(PhysicsBridge):
         robot_actuators = dict()
         for actuator in actuators:
             topic_list = actuators[actuator]['name']
+            messages = actuators[actuator]['messages']
             bodyUniqueId = []
             if 'joint' in actuators[actuator]['type']:
                 jointIndices = []
@@ -195,7 +197,7 @@ class PyBulletBridge(PhysicsBridge):
             # for webots_actuator_name in topic_list:
             #     set_action_srvs.append(
             #         rospy.ServiceProxy(name + "/" + webots_actuator_name + "/set_position", set_float))
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
             robot_actuators[actuator] = (get_action_srv, set_action_srvs)
         self._actuator_services[name] = robot_actuators
 
@@ -257,8 +259,8 @@ class PyBulletBridge(PhysicsBridge):
         else:
             raise ValueError('Control_mode ("%s") not recognized.' % control_mode)
 
-    def _sensor_service(self, req, name, sensor):
-        return BoxSpaceResponse(self._sensor_buffer[name][sensor])
+    def _sensor_service(self, req, name, sensor, message_type):
+        return message_type(self._sensor_buffer[name][sensor])
 
     def _step(self):
 
