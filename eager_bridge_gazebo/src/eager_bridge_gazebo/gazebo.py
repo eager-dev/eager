@@ -1,3 +1,4 @@
+from eager_core.utils.message_utils import get_value_from_message
 import rospy
 import roslaunch
 import functools
@@ -12,7 +13,7 @@ from eager_bridge_gazebo.srv import SetInt, SetIntRequest
 
 class GazeboBridge(PhysicsBridge):
 
-    def __init__(self, name = 'physics_bridge'):
+    def __init__(self):
         self._start_simulator()
         
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
@@ -43,7 +44,12 @@ class GazeboBridge(PhysicsBridge):
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
         self._sensor_services = []
+
         self._actuator_services = dict()
+
+        self._state_buffer = dict()
+        self._state_subscribers = []
+        self._state_services = []
 
         super(GazeboBridge, self).__init__("gazebo")
         
@@ -74,6 +80,8 @@ class GazeboBridge(PhysicsBridge):
         
         self._init_actuators(topic, name, config['actuators'])
 
+        self._init_states(topic, name, config['states'])
+
         return True
     
     def _init_sensors(self, topic, name, sensors):
@@ -92,7 +100,8 @@ class GazeboBridge(PhysicsBridge):
                 msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0], functools.partial(self._sensor_service, sensor=sensor, message_type=messages[1])))
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0], functools.partial(self._service, buffer=self._sensor_buffer, obs_name=sensor, message_type=messages[1])))
+
     
     def _init_actuators(self, topic, name, actuators):
       for actuator in actuators:
@@ -103,13 +112,37 @@ class GazeboBridge(PhysicsBridge):
           get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
           set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
           self._actuator_services[actuator] = (get_action_srv, set_action_srv)
+
+    def _init_states(self, topic, name, states):
+        for state in states:
+            rospy.logdebug("Initializing state {}".format(state))
+            state_params = states[state]
+            messages = state_params['messages']
+            self._state_buffer[state] = [get_value_from_message(messages[0])]*len(states[state])
+            # msg_topic = name + "/" + state_params["topic"]
+            # msg_name = state_params["msg_name"]
+            # msg_type = getattr(state_msgs.msg, msg_name)
+            # rospy.logdebug("Waiting for message topic {}".format(msg_topic))
+            # rospy.wait_for_message(msg_topic, msg_type)
+            # rospy.logdebug("Sensor {} received message from topic {}".format(state, msg_topic))
+            # self._state_subscribers.append(rospy.Subscriber(
+            #     msg_topic,
+            #     msg_type,
+            #     functools.partial(self._state_callback, state=state)))
+            self._sensor_services.append(rospy.Service(topic + "/" + state, messages[0], functools.partial(self._service, buffer=self._state_buffer, obs_name=state, message_type=messages[1])))
         
     def _sensor_callback(self, data, sensor):
         data_list = data.position
         self._sensor_buffer[sensor] = data_list
-    
-    def _sensor_service(self, req, sensor, message_type):
-        return message_type(self._sensor_buffer[sensor])
+
+    def _state_callback(self, data, state):
+        # todo: implement routine to update state buffer.
+        # data_list = data.position
+        # self._state_buffer[state] = data_list
+        pass
+
+    def _service(self, req, buffer, obs_name, message_type):
+        return message_type(buffer[obs_name])
 
     def _step(self):
         if not self.paused:

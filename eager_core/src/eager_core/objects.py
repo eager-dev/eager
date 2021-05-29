@@ -47,6 +47,23 @@ class Sensor(BaseRosObject):
         self.stateless = stateless
 
 
+class State(BaseRosObject):
+    def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
+        super().__init__(type, name)
+        self.state_space = space
+
+    def init_node(self, base_topic: str = '') -> None:
+        if self.state_space is None:
+            self.state_space = self._infer_space(base_topic)
+
+        self._state_service = rospy.ServiceProxy(self.get_topic(base_topic),
+                                                 get_message_from_space(self.state_space))
+
+    def get_state(self) -> object:  # Type depends on space
+        response = self._state_service()
+        return np.array(response.value)
+
+
 class Actuator(BaseRosObject):
 
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
@@ -82,7 +99,7 @@ class Robot(BaseRosObject):
     def __init__(self, type: str, name: str, 
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
                  actuators: Union[List[Actuator], Dict[str, Actuator]], 
-                 state_spaces: Dict[str, object],
+                 states: Union[List[State], Dict[str, State]],
                  reset: Callable[['Robot'], None] = None,
                  position: List[float] = [0, 0, 0],
                  orientation: List[float] = [0, 0, 0, 1],
@@ -100,7 +117,9 @@ class Robot(BaseRosObject):
             actuators = OrderedDict(zip([actuator.name for actuator in actuators], actuators))
         self.actuators = actuators if isinstance(actuators, OrderedDict) else OrderedDict(actuators)
 
-        self.state_spaces = state_spaces
+        if isinstance(states, List):
+            states = OrderedDict(zip([state.name for state in states], states))
+        self.states = states if isinstance(states, OrderedDict) else OrderedDict(states)
 
         self.reset_func = reset
     
@@ -125,12 +144,12 @@ class Robot(BaseRosObject):
             act_space = get_space_from_def(actuator)
             actuators.append(Actuator(None, act_name, act_space))
 
-        state_spaces = OrderedDict()
+        states = []
         for state_name, state in params['states'].items():
-            state_spaces[state_name] = get_space_from_def(state)
-        state_spaces = gym.spaces.Dict(spaces=state_spaces)
+            state_space = get_space_from_def(state)
+            states.append(State(None, state_name, state_space))
 
-        return cls(package_name + '/' + robot_type, name, sensors, actuators, state_spaces,
+        return cls(package_name + '/' + robot_type, name, sensors, actuators, states,
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
@@ -140,6 +159,9 @@ class Robot(BaseRosObject):
         
         for actuator in self.actuators.values():
             actuator.init_node(self.get_topic(base_topic))
+
+        for state in self.states.values():
+            state.init_node(self.get_topic(base_topic))
 
     def set_action(self, action: 'OrderedDict[str, object]') -> None: # Error return?
 
@@ -151,6 +173,13 @@ class Robot(BaseRosObject):
             obs = OrderedDict([(sensor, self.sensors[sensor].get_obs()) for sensor in sensors])
         else:
             obs = OrderedDict([(sens_name, sensor.get_obs()) for sens_name, sensor in self.sensors.items()])
+        return obs
+
+    def get_state(self, states: List[str] = None) -> 'OrderedDict[str, object]':
+        if states is not None:
+            obs = OrderedDict([(state, self.states[state].get_state()) for state in states])
+        else:
+            obs = OrderedDict([(state_name, state.get_state()) for state_name, state in self.states.items()])
         return obs
     
     @property
@@ -166,6 +195,14 @@ class Robot(BaseRosObject):
         spaces = OrderedDict()
         for sens_name, sensor in self.sensors.items():
             spaces[sens_name] = sensor.observation_space
+
+        return gym.spaces.Dict(spaces=spaces)
+
+    @property
+    def state_space(self) -> gym.spaces.Dict:
+        spaces = OrderedDict()
+        for state_name, state in self.states.items():
+            spaces[state_name] = state.state_space
 
         return gym.spaces.Dict(spaces=spaces)
 

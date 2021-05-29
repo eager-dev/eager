@@ -47,6 +47,10 @@ class PhysicsBridge(ABC):
                 for actuator in br_params['actuators']:
                     act_def = params['actuators'][actuator]
                     br_params['actuators'][actuator]['messages'] = (get_message_from_def(act_def), get_response_from_def(act_def))
+            if 'states' in br_params:
+                for state in br_params['states']:
+                    state_def = params['states'][state]
+                    br_params['states'][state]['messages'] = (get_message_from_def(state_def), get_response_from_def(state_def))
                     
             self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], args, br_params)
 
