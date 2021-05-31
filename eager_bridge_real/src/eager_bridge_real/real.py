@@ -2,7 +2,6 @@ import rospy
 import functools
 import sensor_msgs.msg
 from eager_core.physics_bridge import PhysicsBridge
-from eager_core.srv import BoxSpace, BoxSpaceResponse
 from action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 
 class RealBridge(PhysicsBridge):
@@ -32,6 +31,7 @@ class RealBridge(PhysicsBridge):
             sensor_params = sensors[sensor]
             msg_topic = name + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
+            messages = sensor_params['messages']
             msg_type = getattr(sensor_msgs.msg, msg_name)
             rospy.logdebug("Waiting for message topic {}".format(msg_topic))
             rospy.wait_for_message(msg_topic, msg_type)
@@ -40,14 +40,15 @@ class RealBridge(PhysicsBridge):
                 msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._sensor_service, sensor=sensor)))
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0], functools.partial(self._sensor_service, sensor=sensor, message_type=messages[1])))
     
     def _init_actuators(self, topic, name, actuators):
       for actuator in actuators:
           rospy.logdebug("Initializing actuator {}".format(actuator))
-          joint_names = actuators[actuator]["joint_names"]
+          joint_names = actuators[actuator]["names"]
+          messages = actuators[actuator]['messages']
           server_name = name + "/" + actuators[actuator]["server_name"]
-          get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
+          get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
           set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
           self._actuator_services[actuator] = (get_action_srv, set_action_srv)
         
@@ -55,8 +56,8 @@ class RealBridge(PhysicsBridge):
         data_list = data.position
         self._sensor_buffer[sensor] = data_list
     
-    def _sensor_service(self, req, sensor):
-        return BoxSpaceResponse(self._sensor_buffer[sensor])
+    def _sensor_service(self, req, sensor, message_type):
+        return message_type(self._sensor_buffer[sensor])
 
     def _step(self):
         rospy.logdebug("Stepping")
