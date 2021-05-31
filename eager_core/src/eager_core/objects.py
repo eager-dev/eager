@@ -135,19 +135,22 @@ class Robot(BaseRosObject):
         params = load_yaml(package_name, robot_type)
 
         sensors = []
-        for sens_name, sensor in params['sensors'].items():
-            sensor_space = get_space_from_def(sensor)
-            sensors.append(Sensor(None, sens_name, sensor_space))
+        if 'sensors' in params:
+            for sens_name, sensor in params['sensors'].items():
+                sensor_space = get_space_from_def(sensor)
+                sensors.append(Sensor(None, sens_name, sensor_space))
 
         actuators = []
-        for act_name, actuator in params['actuators'].items():
-            act_space = get_space_from_def(actuator)
-            actuators.append(Actuator(None, act_name, act_space))
+        if 'actuators' in params:
+            for act_name, actuator in params['actuators'].items():
+                act_space = get_space_from_def(actuator)
+                actuators.append(Actuator(None, act_name, act_space))
 
         states = []
-        for state_name, state in params['states'].items():
-            state_space = get_space_from_def(state)
-            states.append(State(None, state_name, state_space))
+        if 'states' in params:
+            for state_name, state in params['states'].items():
+                state_space = get_space_from_def(state)
+                states.append(State(None, state_name, state_space))
 
         return cls(package_name + '/' + robot_type, name, sensors, actuators, states,
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
@@ -184,6 +187,8 @@ class Robot(BaseRosObject):
     
     @property
     def action_space(self) -> gym.spaces.Dict:
+        if not self.actuators:
+            return None
         spaces = OrderedDict()
         for act_name, actuator in self.actuators.items():
             spaces[act_name] = actuator.action_space
@@ -192,6 +197,8 @@ class Robot(BaseRosObject):
 
     @property
     def observation_space(self) -> gym.spaces.Dict:
+        if not self.sensors:
+            return None
         spaces = OrderedDict()
         for sens_name, sensor in self.sensors.items():
             spaces[sens_name] = sensor.observation_space
@@ -200,6 +207,8 @@ class Robot(BaseRosObject):
 
     @property
     def state_space(self) -> gym.spaces.Dict:
+        if not self.states:
+            return None
         spaces = OrderedDict()
         for state_name, state in self.states.items():
             spaces[state_name] = state.state_space

@@ -1,0 +1,22 @@
+sensors:
+  camera_right:
+    type: boxu8
+    high: 255
+    low: 0
+    shape: 100000
+  camera_left:
+    type: boxu8
+    high: 255
+    low: 0
+    shape: 100000
+
+webots:
+  sensors:
+    camera_right:
+      type: camera
+      names:
+        - MultiSense_S21_right_camera
+    camera_left:
+      type: camera
+      names:
+        - MultiSense_S21_left_camera

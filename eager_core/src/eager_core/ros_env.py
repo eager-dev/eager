@@ -50,9 +50,12 @@ class BaseRosEnv(gym.Env):
         state_spaces = OrderedDict()
 
         for robot in robots:
-            obs_spaces[robot.name] = robot.observation_space
-            act_spaces[robot.name] = robot.action_space
-            state_spaces[robot.name] = robot.state_space
+            if robot.observation_space:
+                obs_spaces[robot.name] = robot.observation_space
+            if robot.action_space:
+                act_spaces[robot.name] = robot.action_space
+            if robot.state_space:
+                state_spaces[robot.name] = robot.state_space
 
         for sensor in sensors:
             obs_spaces[sensor.name] = sensor.observation_space

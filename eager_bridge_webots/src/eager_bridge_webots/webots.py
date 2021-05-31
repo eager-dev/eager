@@ -6,6 +6,7 @@ from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.utils.message_utils import get_value_from_message
 from webots_ros.msg import Float64Stamped
 from webots_ros.srv import set_int, set_float
+from sensor_msgs.msg import Image
 
 class WeBotsBridge(PhysicsBridge):
 
@@ -57,10 +58,17 @@ class WeBotsBridge(PhysicsBridge):
         return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
 
     def _register_object(self, topic, name, package, object_type, args, config):
+        print(name)
+        if 'sensors' in config:
+            self._init_sensors(topic, name, config['sensors'])
+        if 'actuators' in config:
+            self._init_actuators(topic, name, config['actuators'])
+        if 'states' in config:
+            self._init_states(topic, name, config['states'])
+        
+        #Temporary hack:
+        self._step_service(self._step_time)
 
-        self._init_sensors(topic, name, config['sensors'])
-        self._init_actuators(topic, name, config['actuators'])
-        self._init_states(topic, name, config['states'])
         return True
     
     def _init_sensors(self, topic, name, sensors):
@@ -74,8 +82,15 @@ class WeBotsBridge(PhysicsBridge):
                 enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
                 success = enable_sensor(self._step_time)
                 if success:
-                    self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
-                        Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor_name, pos=idx)))
+                    if 'type' in sensor:
+                        sens_type = sensor['type']
+                        if sens_type == 'camera':
+                            assert len(topic_list) is 1 # Temp check
+                            self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/image",
+                                Image, functools.partial(self._camera_callback, name=name, sensor=sensor_name)))
+                    else:
+                        self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
+                            Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor_name, pos=idx)))
             self._sensor_services.append(rospy.Service(topic + "/" + sensor_name, messages[0], functools.partial(self._service,
                                                                                                 buffer=self._sensor_buffer,
                                                                                                 name=name,
@@ -119,6 +134,10 @@ class WeBotsBridge(PhysicsBridge):
 
     def _sensor_callback(self, data, name, sensor, pos):
         self._sensor_buffer[name][sensor][pos] = data.data
+    
+    def _camera_callback(self, data, name, sensor):
+        #TODO: Standardize image encoding
+        self._sensor_buffer[name][sensor] = data.data
 
     def _state_callback(self, data, name, state, pos):
         # todo: implement routine to update state buffer.
