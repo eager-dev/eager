@@ -55,7 +55,8 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  BoxSpace.srv
+  BoxFloat32Data.srv
+  BoxUInt8Data.srv
   StepEnv.srv
   ResetEnv.srv
   CloseEnv.srv

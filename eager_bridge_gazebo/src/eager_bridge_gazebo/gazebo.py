@@ -1,9 +1,9 @@
+from eager_core.utils.message_utils import get_value_from_message
 import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
 from eager_core.physics_bridge import PhysicsBridge
-from eager_core.srv import BoxSpace, BoxSpaceResponse
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from std_srvs.srv import Empty
@@ -97,6 +97,7 @@ class GazeboBridge(PhysicsBridge):
             sensor_params = sensors[sensor]
             msg_topic = name + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
+            messages = sensor_params['messages']
             msg_type = getattr(sensor_msgs.msg, msg_name)
             rospy.logdebug("Waiting for message topic {}".format(msg_topic))
             rospy.logdebug("Sensor {} received message from topic {}".format(sensor, msg_topic))
@@ -104,18 +105,17 @@ class GazeboBridge(PhysicsBridge):
                 msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, name=name, sensor=sensor)))
-            rospy.wait_for_message(msg_topic, msg_type)
-            
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor)))
-        
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0], functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor, message_type=messages[1])))
+
     
     def _init_actuators(self, topic, name, actuators):
         actuator_services = dict()
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
-            joint_names = actuators[actuator]["joint_names"]
+            joint_names = actuators[actuator]["names"]
+            messages = actuators[actuator]['messages']
             server_name = name + "/" + actuators[actuator]["server_name"]
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
             set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
             actuator_services[actuator] = (get_action_srv, set_action_srv)
         self._actuator_services[name] = actuator_services
@@ -124,9 +124,9 @@ class GazeboBridge(PhysicsBridge):
         robot_states = dict()
         for state in states:
             rospy.logdebug("Initializing state {}".format(state))
-            topic_list = states[state]
-            robot_states[state] = [0.0]*len(topic_list)
-            # state_params = states[state]
+            state_params = states[state]
+            messages = state_params['messages']
+            robot_states[state] = [get_value_from_message(messages[0])]*len(states[state])
             # msg_topic = name + "/" + state_params["topic"]
             # msg_name = state_params["msg_name"]
             # msg_type = getattr(state_msgs.msg, msg_name)
@@ -137,7 +137,7 @@ class GazeboBridge(PhysicsBridge):
             #     msg_topic,
             #     msg_type,
             #     functools.partial(self._state_callback, state=state)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state, BoxSpace, functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state)))
+            self._sensor_services.append(rospy.Service(topic + "/" + state, messages[0], functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state, message_type=messages[1])))
         self._state_buffer[name] = robot_states
         
     def _sensor_callback(self, data, name, sensor):
@@ -150,8 +150,8 @@ class GazeboBridge(PhysicsBridge):
         # self._state_buffer[state] = data_list
         pass
 
-    def _service(self, req, buffer, name, obs_name):
-        return BoxSpaceResponse(buffer[name][obs_name])
+    def _service(self, req, buffer, name, obs_name, message_type):
+        return message_type(buffer[name][obs_name])
 
     def _step(self):
         rospy.logdebug("Stepping")
