@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="ur5e_example" pkg="ur5e_example" type="example.py" output="screen"/>
+    <node name="ur5e_example" pkg="ur5e_example" type="example_cam.py" output="screen"/>
 </launch>

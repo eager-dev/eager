@@ -58,7 +58,6 @@ class WeBotsBridge(PhysicsBridge):
         return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
 
     def _register_object(self, topic, name, package, object_type, args, config):
-        print(name)
         if 'sensors' in config:
             self._init_sensors(topic, name, config['sensors'])
         if 'actuators' in config:

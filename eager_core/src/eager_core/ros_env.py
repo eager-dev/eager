@@ -105,7 +105,8 @@ class RosEnv(BaseRosEnv):
     def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
 
         for robot in self.robots:
-            robot.set_action(action[robot.name])
+            if robot.action_space:
+                robot.set_action(action[robot.name])
 
         self._step()
 
