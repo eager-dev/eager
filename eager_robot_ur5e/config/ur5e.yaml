@@ -58,7 +58,7 @@ real:
   actuators:
     joints:
       server_name: follow_joint_trajectory
-      joint_names: 
+      names: 
       - shoulder_pan_joint
       - shoulder_lift_joint
       - elbow_joint
@@ -75,7 +75,7 @@ gazebo:
   actuators:
     joints:
       server_name: arm_controller/follow_joint_trajectory
-      joint_names: 
+      names: 
       - shoulder_pan_joint
       - shoulder_lift_joint
       - elbow_joint
@@ -96,7 +96,7 @@ pybullet:
   sensors:  # IMPORTANT! Currently, not possible to mix sensor measurements of links & joints
     joint_sensors:
       type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
-      name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
 #    link_sensors:
 #      type: link_pos # OPTIONS: link_{pos, orientation, vel, angular_vel}
 #      name: [shoulder_link, upper_arm_link, forearm_link, wrist_1_link, wrist_2_link, wrist_3_link]
@@ -104,7 +104,7 @@ pybullet:
   actuators:
     joints:
       type: joint
-      name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
       control_mode: position_control # position_control, velocity_control, torque_control, pd_control
       vel_target: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
       pos_gain: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
@@ -113,7 +113,7 @@ pybullet:
   states:  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints
     joint_pos:
       type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
-      name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
     joint_vel:
       type: joint_vel # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
-      name: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]

@@ -101,7 +101,7 @@ class PyBulletBridge(PhysicsBridge):
         robot_sensors = dict()
         sensor_cb = dict()
         for sensor in sensors:
-            topic_list = sensors[sensor]['name']
+            topic_list = sensors[sensor]['names']
             messages = sensors[sensor]['messages']
             robot_sensors[sensor] = [get_value_from_message(messages[0])] * len(topic_list)
             bodyUniqueId = []
@@ -149,7 +149,7 @@ class PyBulletBridge(PhysicsBridge):
     def _init_actuators(self, topic, name, actuators, robot):
         robot_actuators = dict()
         for actuator in actuators:
-            topic_list = actuators[actuator]['name']
+            topic_list = actuators[actuator]['names']
             messages = actuators[actuator]['messages']
             bodyUniqueId = []
             if 'joint' in actuators[actuator]['type']:
@@ -209,7 +209,7 @@ class PyBulletBridge(PhysicsBridge):
         robot_states = dict()
         state_cb = dict()
         for state in states:
-            topic_list = states[state]['name']
+            topic_list = states[state]['names']
             messages = states[state]['messages']
             robot_states[state] = [get_value_from_message(messages[0])] * len(topic_list)
             bodyUniqueId = []

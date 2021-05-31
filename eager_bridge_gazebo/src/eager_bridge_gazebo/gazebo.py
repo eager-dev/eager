@@ -112,7 +112,7 @@ class GazeboBridge(PhysicsBridge):
         actuator_services = dict()
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
-            joint_names = actuators[actuator]["joint_names"]
+            joint_names = actuators[actuator]["names"]
             messages = actuators[actuator]['messages']
             server_name = name + "/" + actuators[actuator]["server_name"]
             get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
