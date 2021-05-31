@@ -125,12 +125,10 @@ class GazeboBridge(PhysicsBridge):
         if not self.paused:
             self.pause_physics_service()
             self.paused = True
-        rospy.logdebug("Stepping")
         for actuator in self._actuator_services:
             get_action_srv = self._actuator_services[actuator]["get"]
             set_action_srv = self._actuator_services[actuator]["set"]      
             actions = get_action_srv()
-            rospy.logdebug("Actuator {} received action: {}".format(actuator, actions.value))
             set_action_srv(actions.value)
         self.step_world(self.step_request)
         return True

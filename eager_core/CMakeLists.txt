@@ -50,6 +50,7 @@ catkin_python_setup()
 add_message_files(
   FILES
   Object.msg
+  Observation.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -60,6 +61,7 @@ add_service_files(
   ResetEnv.srv
   CloseEnv.srv
   Register.srv
+  RegisterActionProcessor.srv
 )
 
 ## Generate actions in the 'action' folder

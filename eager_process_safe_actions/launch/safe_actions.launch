@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-	<arg name="env_name" default="ros_env" doc="Name of the RosEnv"/>
-	<arg name="robot_name" default="ur5e1" doc="Name of the robot"/>
+	<arg name="ns" doc="Namespace of the robot."/>
+	
+	<!-- Custom arguments -->
 	<arg name="moveit_package" default="ur5_e_moveit_config" doc="Moveit package name"/>
-	<arg name="sensor_topic" default="joint_sensors" doc="Name of the sensor topic"/>
-	<arg name="actuator_topic" default="joints" doc="Name of the actuator topic"/>
 	<arg name="joint_names" default="[shoulder_pan_joint,
                                     shoulder_lift_joint,
                                     elbow_joint,
@@ -23,7 +22,7 @@
 	<arg name="publish_monitored_planning_scene" default="false"/>
   <arg name="fake_execution" default="false"/>
   
-	<group ns="$(arg env_name)/objects/$(arg robot_name)">
+	<group ns="$(arg ns)">
 	
 	  <!-- Launch moveit for collision checking -->
 		  <!-- Remap follow_joint_trajectory -->
@@ -35,9 +34,7 @@
 			<arg name="fake_execution" value="$(arg fake_execution)"/>
 		</include>
 
-	  <node name="safe_actions" pkg="ros_gym_process_safe_actions" type="safe_actions_node.py">
-	  	<param name="sensor_topic" value="$(arg sensor_topic)"/>
-	  	<param name="actuator_topic" value="$(arg actuator_topic)"/>
+	  <node name="safe_actions" pkg="eager_process_safe_actions" type="safe_actions_node.py">
 	  	<rosparam param="joint_names" subst_value="True">$(arg joint_names)</rosparam> 
 	    <param name="group_name" value="$(arg group_name)"/>
 	    <param name="checks_per_rad" value="$(arg checks_per_rad)"/>

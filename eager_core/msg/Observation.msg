@@ -1,0 +1,2 @@
+string robot
+string[] sensors

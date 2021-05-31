@@ -1,9 +1,10 @@
 import gym, gym.spaces
 from eager_core.utils.file_utils import load_yaml, substitute_xml_args
 from eager_core.utils.gym_utils import *
+from eager_core.srv import RegisterActionProcessor, RegisterActionProcessorRequest
+from eager_core.msg import Observation
 from collections import OrderedDict
 from typing import List, Callable, Type, Tuple
-from std_srvs.srv import SetBool, SetBoolRequest
 from typing import Dict, List, Callable, Union
 import rospy
 import roslaunch
@@ -63,31 +64,50 @@ class Actuator(BaseRosObject):
 
         self._buffer = self.action_space.sample()
         
-        self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(type(self.action_space)), self._action_service)
-        self._add_preprocess_service = rospy.ServiceProxy(self.get_topic(base_topic) + "/add_preprocess", SetBool)
+        self._add_preprocess_service = rospy.ServiceProxy(base_topic + "/register_action_processor", RegisterActionProcessor)
         
         if self.preprocess_launch is not None:
+            cli_args = self.preprocess_launch
+            cli_args.append('ns:={}'.format(base_topic))
+            roslaunch_args = cli_args[1:]
+            roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+            uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+            roslaunch.configure_logging(uuid)
+            self.preprocess_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
             self.preprocess_launch.start()
+            
+            self._act_service = rospy.Service(self.get_topic(base_topic) + '/raw', get_message_from_space(type(self.action_space)), self._action_service)
+
+            self._add_preprocess_service.wait_for_service()
             self._add_preprocess_service(self.preprocess_req)
+        else:
+            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(type(self.action_space)), self._action_service)
             
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', node_type='service', stateless=True, **kwargs):
+    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', observations={}, **kwargs):
         self.action_space = processed_space
         
         cli_args = [substitute_xml_args(launch_path)]
         for key, value in kwargs.items():
             cli_args.append('{}:={}'.format(key, value))
-        roslaunch_args = cli_args[1:]
-        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        roslaunch.configure_logging(uuid)
-        self.preprocess_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self.preprocess_launch = cli_args
         
-        self.preprocess_req = SetBoolRequest()
-        if node_type.lower() == 'service':
-            self.preprocess_req = SetBoolRequest(True)
+        
+        observation_msg = []
+        for robot in observations:
+            msg = Observation()
+            msg.robot = robot
+            if type(observations[robot]) is str:
+                observations[robot] = [observations[robot]] 
+            msg.sensors = observations[robot]
+            observation_msg.append(msg)
+         
+        req = RegisterActionProcessorRequest()
+        req.actuator = self.name
+        req.observations = observation_msg
+        self.preprocess_req = req
         
     def reset(self) -> None:
         pass

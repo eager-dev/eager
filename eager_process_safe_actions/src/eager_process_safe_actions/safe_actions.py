@@ -1,8 +1,8 @@
 import sys
 import rospy
 import moveit_commander
-from ros_gym_core.srv import BoxSpaceResponse
-from ros_gym_core.action_processor import ActionProcessor
+from eager_core.srv import BoxSpaceResponse
+from eager_core.action_processor import ActionProcessor
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
 from geometry_msgs.msg import PoseStamped
@@ -12,6 +12,8 @@ import numpy as np
 
 class SafeActions(ActionProcessor):
     def __init__(self):
+        super(SafeActions, self).__init__()
+        
         self.joint_names = rospy.get_param('~joint_names',
                                            ['shoulder_pan_joint',
                                             'shoulder_lift_joint',
@@ -43,7 +45,11 @@ class SafeActions(ActionProcessor):
         p.pose.orientation.w = 1
         scene.add_cylinder('table', p, 0.1, 1.5)
         
-        super(ActionProcessor, self).__init__('safe_actions')
+    def _close(self):
+        pass
+    
+    def _reset(self):
+        pass
 
     def _process_action(self, action, observation):
         if len(observation) > 1:
@@ -53,9 +59,8 @@ class SafeActions(ActionProcessor):
                 rospy.logwarn("[Safe Actions] Expected observation from only one sensor")
             for sensor in observation[robot]:
                 current_position = observation[robot][sensor]
-
-        safe_action = self._getSafeAction(np.asarray(action), current_position)
-        return BoxSpaceResponse(safe_action)
+        safe_action = self._getSafeAction(np.asarray(action), np.asarray(current_position))
+        return safe_action
 
     def _getSafeAction(self, goal_position, current_position):
         '''
@@ -63,10 +68,7 @@ class SafeActions(ActionProcessor):
         and whether the path is collision free
         return a collision free action
         '''
-        observation = self.get_observation_service()
-        current_position = np.asarray(observation.value)
-        
-        rs = RobotState
+        rs = RobotState()
         rs.joint_state.name = self.joint_names
         rs.joint_state.position = current_position
 
@@ -97,6 +99,7 @@ class SafeActions(ActionProcessor):
 
         n_checks = int(np.ceil(self.checks_per_rad * max_angle_dif))
         way_points = cs(np.linspace(0, 1.2*self.duration, n_checks))
+        
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]
             if not self.state_validity_service.call(gsvr).valid:
