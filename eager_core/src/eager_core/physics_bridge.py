@@ -3,6 +3,7 @@ import rospy
 import ast
 from eager_core.srv import Register, StepEnv, ResetEnv, CloseEnv
 from eager_core.utils.file_utils import load_yaml
+from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
 
 # Abstract Base Class compatible with Python 2 and 3
 ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
@@ -37,7 +38,21 @@ class PhysicsBridge(ABC):
             object_type = object.type.split('/')
             args = ast.literal_eval(object.args)
             params = load_yaml(object_type[0], object_type[1])
-            self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], args, params[self._bridge_type])
+            br_params = params[self._bridge_type]
+            if 'sensors' in br_params:
+                for sensor in br_params['sensors']:
+                    sens_def = params['sensors'][sensor]
+                    br_params['sensors'][sensor]['messages'] = (get_message_from_def(sens_def), get_response_from_def(sens_def))
+            if 'actuators' in br_params:
+                for actuator in br_params['actuators']:
+                    act_def = params['actuators'][actuator]
+                    br_params['actuators'][actuator]['messages'] = (get_message_from_def(act_def), get_response_from_def(act_def))
+            if 'states' in br_params:
+                for state in br_params['states']:
+                    state_def = params['states'][state]
+                    br_params['states'][state]['messages'] = (get_message_from_def(state_def), get_response_from_def(state_def))
+                    
+            self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], args, br_params)
 
         return () # Success
 

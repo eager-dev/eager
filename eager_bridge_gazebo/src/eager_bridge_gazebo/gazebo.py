@@ -1,9 +1,9 @@
+from eager_core.utils.message_utils import get_value_from_message
 import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
 from eager_core.physics_bridge import PhysicsBridge
-from eager_core.srv import BoxSpace, BoxSpaceResponse
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from std_srvs.srv import Empty
@@ -17,10 +17,12 @@ class GazeboBridge(PhysicsBridge):
         self._start_simulator()
         
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
-        self.paused = False
+        
+        rospy.wait_for_service('/gazebo/unpause_physics')
+        self._unpause_physics_service = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         
         rospy.wait_for_service('/gazebo/pause_physics')
-        self.pause_physics_service = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        self._pause_physics_service = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
         
         rospy.wait_for_service('/gazebo/get_physics_properties')
         physics_parameters_service = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
@@ -37,7 +39,7 @@ class GazeboBridge(PhysicsBridge):
         set_physics_properties_service(new_physics_parameters)
         
         rospy.wait_for_service('/gazebo/step_world')
-        self.step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
+        self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         
         self.step_request = SetIntRequest(int(round(step_time/physics_parameters.time_step)))
         
@@ -66,6 +68,8 @@ class GazeboBridge(PhysicsBridge):
         launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
+        self._unpause_physics_service()
+        
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % name]
@@ -75,47 +79,54 @@ class GazeboBridge(PhysicsBridge):
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
-
+        
         self._init_sensors(topic, name, config['sensors'])
         
         self._init_actuators(topic, name, config['actuators'])
 
         self._init_states(topic, name, config['states'])
-
+        
+        self._pause_physics_service()
         return True
     
     def _init_sensors(self, topic, name, sensors):
+        self._sensor_buffer[name] = {}
         for sensor in sensors:
             rospy.logdebug("Initializing sensor {}".format(sensor))
-            self._sensor_buffer[sensor] = []
+            self._sensor_buffer[name][sensor] = []
             sensor_params = sensors[sensor]
             msg_topic = name + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
+            messages = sensor_params['messages']
             msg_type = getattr(sensor_msgs.msg, msg_name)
             rospy.logdebug("Waiting for message topic {}".format(msg_topic))
-            rospy.wait_for_message(msg_topic, msg_type)
             rospy.logdebug("Sensor {} received message from topic {}".format(sensor, msg_topic))
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type, 
-                functools.partial(self._sensor_callback, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, BoxSpace, functools.partial(self._service, buffer=self._sensor_buffer, obs_name=sensor)))
+                functools.partial(self._sensor_callback, name=name, sensor=sensor)))
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0], functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor, message_type=messages[1])))
 
     
     def _init_actuators(self, topic, name, actuators):
-      for actuator in actuators:
-          rospy.logdebug("Initializing actuator {}".format(actuator))
-          joint_names = actuators[actuator]["joint_names"]
-          server_name = name + "/" + actuators[actuator]["server_name"]
-          get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, BoxSpace)
-          set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
-          self._actuator_services[actuator] = (get_action_srv, set_action_srv)
+        actuator_services = dict()
+        for actuator in actuators:
+            rospy.logdebug("Initializing actuator {}".format(actuator))
+            joint_names = actuators[actuator]["names"]
+            messages = actuators[actuator]['messages']
+            server_name = name + "/" + actuators[actuator]["server_name"]
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
+            set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
+            actuator_services[actuator] = (get_action_srv, set_action_srv)
+        self._actuator_services[name] = actuator_services
 
     def _init_states(self, topic, name, states):
+        robot_states = dict()
         for state in states:
             rospy.logdebug("Initializing state {}".format(state))
-            self._state_buffer[state] = [0.0]*len(states[state])
-            # state_params = states[state]
+            state_params = states[state]
+            messages = state_params['messages']
+            robot_states[state] = [get_value_from_message(messages[0])]*len(states[state])
             # msg_topic = name + "/" + state_params["topic"]
             # msg_name = state_params["msg_name"]
             # msg_type = getattr(state_msgs.msg, msg_name)
@@ -126,11 +137,12 @@ class GazeboBridge(PhysicsBridge):
             #     msg_topic,
             #     msg_type,
             #     functools.partial(self._state_callback, state=state)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state, BoxSpace, functools.partial(self._service, buffer=self._state_buffer, obs_name=state)))
+            self._sensor_services.append(rospy.Service(topic + "/" + state, messages[0], functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state, message_type=messages[1])))
+        self._state_buffer[name] = robot_states
         
-    def _sensor_callback(self, data, sensor):
+    def _sensor_callback(self, data, name, sensor):
         data_list = data.position
-        self._sensor_buffer[sensor] = data_list
+        self._sensor_buffer[name][sensor] = data_list
 
     def _state_callback(self, data, state):
         # todo: implement routine to update state buffer.
@@ -138,20 +150,18 @@ class GazeboBridge(PhysicsBridge):
         # self._state_buffer[state] = data_list
         pass
 
-    def _service(self, req, buffer, obs_name):
-        return BoxSpaceResponse(buffer[obs_name])
+    def _service(self, req, buffer, name, obs_name, message_type):
+        return message_type(buffer[name][obs_name])
 
     def _step(self):
-        if not self.paused:
-            self.pause_physics_service()
-            self.paused = True
         rospy.logdebug("Stepping")
-        for actuator in self._actuator_services:
-            (get_action_srv, set_action_srv) = self._actuator_services[actuator]
-            actions = get_action_srv()
-            rospy.logdebug("Actuator {} received action: {}".format(actuator, actions.value))
-            set_action_srv(actions.value)
-        self.step_world(self.step_request)
+        for robot in self._actuator_services:
+            for actuator in self._actuator_services[robot]:
+                (get_action_srv, set_action_srv) = self._actuator_services[robot][actuator]
+                actions = get_action_srv()
+                rospy.logdebug("Actuator {} received action: {}".format(actuator, actions.value))
+                set_action_srv(actions.value)
+        self._step_world(self.step_request)
         return True
 
     def _reset(self):
