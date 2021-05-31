@@ -65,10 +65,6 @@ class WeBotsBridge(PhysicsBridge):
             self._init_actuators(topic, name, config['actuators'])
         if 'states' in config:
             self._init_states(topic, name, config['states'])
-        
-        #Temporary hack:
-        self._step_service(self._step_time)
-
         return True
     
     def _init_sensors(self, topic, name, sensors):
@@ -80,7 +76,11 @@ class WeBotsBridge(PhysicsBridge):
             robot_sensors[sensor_name] = [get_value_from_message(messages[0])]*len(topic_list)
             for idx, webots_sensor_name in enumerate(topic_list):
                 enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
-                success = enable_sensor(self._step_time)
+
+                success = enable_sensor(self._step_time) # For the second robot WeBots gets stuck here.
+                # To continue handing this service it needs a step in the synchronized robot.
+                # Which we cannot do at the same time as we are stuck in this service call.
+                # Seems unfixable without major multi-process hacky things.
                 if success:
                     if 'type' in sensor:
                         sens_type = sensor['type']
