@@ -6,5 +6,6 @@
   <include ns="/" file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(arg world)"/>
     <arg if="$(arg no_gui)" name="gui" value="false"/>
+    <arg name="paused" value="true"/>
   </include>
 </launch>
