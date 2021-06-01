@@ -127,7 +127,7 @@ class Object(BaseRosObject):
         self.reset_func = reset
     
     @classmethod
-    def create(cls, name: str, package_name: str, robot_type: str,
+    def create(cls, name: str, package_name: str, object_type: str,
                position: List[float] = [0, 0, 0],
                orientation: List[float] = [0, 0, 0, 1],
                fixed_base: bool = True,
@@ -135,7 +135,7 @@ class Object(BaseRosObject):
                **kwargs
                ) -> 'Object':
 
-        params = load_yaml(package_name, robot_type)
+        params = load_yaml(package_name, object_type)
 
         sensors = []
         if 'sensors' in params:
@@ -155,7 +155,7 @@ class Object(BaseRosObject):
                 state_space = get_space_from_def(state)
                 states.append(State(None, state_name, state_space))
 
-        return cls(package_name + '/' + robot_type, name, sensors, actuators, states,
+        return cls(package_name + '/' + object_type, name, sensors, actuators, states,
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
@@ -224,3 +224,4 @@ class Object(BaseRosObject):
         
         if self.reset_func is not None:
             self.reset_func(self)
+                    
