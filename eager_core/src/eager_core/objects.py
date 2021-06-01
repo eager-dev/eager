@@ -98,12 +98,12 @@ class Actuator(BaseRosObject):
         return msg_class(self._buffer)
 
 
-class Robot(BaseRosObject):
+class Object(BaseRosObject):
     def __init__(self, type: str, name: str, 
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
                  actuators: Union[List[Actuator], Dict[str, Actuator]], 
                  states: Union[List[State], Dict[str, State]],
-                 reset: Callable[['Robot'], None] = None,
+                 reset: Callable[['Object'], None] = None,
                  position: List[float] = [0, 0, 0],
                  orientation: List[float] = [0, 0, 0, 1],
                  fixed_base: bool = True,
@@ -133,7 +133,7 @@ class Robot(BaseRosObject):
                fixed_base: bool = True,
                self_collision: bool = True,
                **kwargs
-               ) -> 'Robot':
+               ) -> 'Object':
 
         params = load_yaml(package_name, robot_type)
 

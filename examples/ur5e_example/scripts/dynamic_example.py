@@ -1,7 +1,7 @@
 # ROS packages required
 import rospy
 from eager_core.ros_env import RosEnv
-from eager_core.objects import Robot
+from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
 from eager_bridge_gazebo.gazebo_engine import GazeboEngine
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # engine = GazeboEngine()
 
     # Initialize environment
-    env = RosEnv(engine=engine, robots=[Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')
+    env = RosEnv(engine=engine, objects=[Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')
     env = Flatten(env)
     check_env(env)
 
