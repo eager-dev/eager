@@ -2,13 +2,14 @@
 
 # ROS packages required
 import rospy
-import time
 from eager_core.ros_env import RosEnv
 from eager_core.objects import Robot
 from eager_core.wrappers.flatten import Flatten
-from gym.spaces import space
+from eager_bridge_webots.webots_engine import WebotsEngine
 from eager_bridge_gazebo.gazebo_engine import GazeboEngine
+from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
 import gym, gym.spaces
+import pybullet_data
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -16,11 +17,14 @@ from stable_baselines3.common.env_checker import check_env
 if __name__ == '__main__':
     rospy.init_node('ur5e_example',
                     anonymous=True, log_level=rospy.WARN)
-
-    engine = GazeboEngine()
+    
+    dt = 0.08
+    engine = WebotsEngine(dt=dt, world='$(find ur5e_example)/worlds/ur5e.wbt')
+    # engine = GazeboEngine(dt=dt)
+    # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
     
     # Initialize environment
-    env_name = 'eager_env'
+    env_name = 'ros_env'
     robot_name= 'ur5e1'
     
     ur5e1 = Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
@@ -34,7 +38,9 @@ if __name__ == '__main__':
                                                           'wrist_1_joint',
                                                           'wrist_2_joint',
                                                           'wrist_3_joint'],
-                                             group_name='manipulator')
+                                             group_name='manipulator',
+                                             duration=0.1,
+                                             dt=dt)
     
     env = Flatten(RosEnv(engine=engine, robots=[ur5e1], name=env_name))
     

@@ -18,11 +18,11 @@ class GazeboBridge(PhysicsBridge):
         
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
         
-        rospy.wait_for_service('/gazebo/unpause_physics')
         self._unpause_physics_service = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        self._unpause_physics_service.wait_for_service()
         
-        rospy.wait_for_service('/gazebo/pause_physics')
         self._pause_physics_service = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        self._pause_physics_service.wait_for_service()
         
         physics_parameters_service = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
         physics_parameters_service.wait_for_service()
@@ -40,8 +40,8 @@ class GazeboBridge(PhysicsBridge):
         
         set_physics_properties_service(new_physics_parameters)
         
-        rospy.wait_for_service('/gazebo/step_world')
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
+        self._step_world.wait_for_service()
         
         self.step_request = SetIntRequest(int(round(step_time/physics_parameters.time_step)))
         
@@ -50,7 +50,6 @@ class GazeboBridge(PhysicsBridge):
         self._sensor_services = []
 
         self._actuator_services = dict()
-        self._actuator_preprocess_buffers = dict()
 
         self._state_buffer = dict()
         self._state_subscribers = []
@@ -71,8 +70,6 @@ class GazeboBridge(PhysicsBridge):
         launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
-        self._unpause_physics_service()
-        
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % topic]
@@ -82,6 +79,8 @@ class GazeboBridge(PhysicsBridge):
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
+        
+        self._unpause_physics_service()
         
         self._init_sensors(topic, name, config['sensors'])
         
@@ -96,13 +95,13 @@ class GazeboBridge(PhysicsBridge):
         self._sensor_buffer[name] = {}
         for sensor in sensors:
             rospy.logdebug("Initializing sensor {}".format(sensor))
-            self._sensor_buffer[name][sensor] = []
             sensor_params = sensors[sensor]
             msg_topic = topic + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
             messages = sensor_params['messages']
             msg_type = getattr(sensor_msgs.msg, msg_name)
             rospy.logdebug("Waiting for message topic {}".format(msg_topic))
+            self._sensor_buffer[name][sensor] = rospy.wait_for_message(msg_topic, msg_type)
             rospy.logdebug("Sensor {} received message from topic {}".format(sensor, msg_topic))
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
@@ -117,7 +116,7 @@ class GazeboBridge(PhysicsBridge):
             rospy.logdebug("Initializing actuator {}".format(actuator))
             joint_names = actuators[actuator]["names"]
             messages = actuators[actuator]['messages']
-            server_name = name + "/" + actuators[actuator]["server_name"]
+            server_name = topic + "/" + actuators[actuator]["server_name"]
             get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
             set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
             actuator_services[actuator] = (get_action_srv, set_action_srv)

@@ -4,7 +4,6 @@ from eager_core.utils.gym_utils import *
 from eager_core.srv import RegisterActionProcessor, RegisterActionProcessorRequest
 from eager_core.msg import Observation
 from collections import OrderedDict
-from typing import List, Callable, Type, Tuple
 from typing import Dict, List, Callable, Union
 import rospy
 import roslaunch
@@ -81,7 +80,24 @@ class Actuator(BaseRosObject):
 
         self._buffer = self.action_space.sample()
         
-        self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._action_service)
+        if self.preprocess_launch is not None:
+            cli_args = self.preprocess_launch
+            cli_args.append('ns:={}'.format(base_topic))
+            roslaunch_args = cli_args[1:]
+            roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+            uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+            roslaunch.configure_logging(uuid)
+            launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+            launch.start()
+            
+            self._act_service = rospy.Service(self.get_topic(base_topic) + "/raw", get_message_from_space(self.action_space), self._action_service)
+            
+            self._register_action_processor_service = rospy.ServiceProxy(base_topic + "/register_action_processor", RegisterActionProcessor)
+            self._register_action_processor_service.wait_for_service()
+            
+            self._register_action_processor_service(self.preprocess_req)
+        else:
+            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._action_service)
     
     def set_action(self, action: object) -> None:
         self._buffer = action

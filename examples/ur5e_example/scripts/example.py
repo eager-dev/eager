@@ -19,8 +19,8 @@ if __name__ == '__main__':
 
     # Engine specific parameters
     # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
-    # engine = GazeboEngine()
-    engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
+    engine = GazeboEngine()
+    # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
 
     # Initialize environment
     env = RosEnv(engine=engine, robots=[Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')

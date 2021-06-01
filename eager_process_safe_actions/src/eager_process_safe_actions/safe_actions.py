@@ -1,7 +1,6 @@
 import sys
 import rospy
 import moveit_commander
-from eager_core.srv import BoxSpaceResponse
 from eager_core.action_processor import ActionProcessor
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
@@ -12,8 +11,7 @@ import numpy as np
 
 class SafeActions(ActionProcessor):
     def __init__(self):
-        super(SafeActions, self).__init__()
-        
+        object_frame = rospy.get_param('~object_frame', 'base_link')
         self.joint_names = rospy.get_param('~joint_names',
                                            ['shoulder_pan_joint',
                                             'shoulder_lift_joint',
@@ -24,26 +22,23 @@ class SafeActions(ActionProcessor):
         self.group_name = rospy.get_param('~group_name', 'manipulator')
         self.checks_per_rad = rospy.get_param('~checks_per_rad', 25)
         self.vel_limit = rospy.get_param('~vel_limit', 3.0)
-        self.step_time = rospy.get_param('~step_time', 0.1)
+        self.dt = rospy.get_param('~dt', 0.1)
         self.duration = rospy.get_param('~duration', 0.5)
-
-    		
+    	
         moveit_commander.roscpp_initialize(sys.argv)
-        scene = moveit_commander.PlanningSceneInterface()
+        scene = moveit_commander.PlanningSceneInterface(synchronous=True)
+        
+        # Add a collision object to the scenes
+        p = PoseStamped()
+        p.header.frame_id = object_frame
+        p.pose.position.z = -0.1
+        p.pose.orientation.w = 1
+        scene.add_cylinder('table', p, 0.05, 1.5)
 
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
         self.state_validity_service.wait_for_service()
-				
-		# Add a collision object to the scene
         
-        # This is ugly, but seems to be necessary, see: https://answers.ros.org/question/209030/moveit-planningsceneinterface-addbox-not-showing-in-rviz/
-        rospy.sleep(5)
-
-        p = PoseStamped()
-        p.header.frame_id = 'base_link'
-        p.pose.position.z = -0.05
-        p.pose.orientation.w = 1
-        scene.add_cylinder('table', p, 0.1, 1.5)
+        super(SafeActions, self).__init__()
         
     def _close(self):
         pass
@@ -53,10 +48,10 @@ class SafeActions(ActionProcessor):
 
     def _process_action(self, action, observation):
         if len(observation) > 1:
-            rospy.logwarn("[Safe Actions] Expected observation from only one robot")
+            rospy.logwarn("[{}] Expected observation from only one robot".format(rospy.get_name()))
         for robot in observation:
             if len(observation[robot]) > 1:
-                rospy.logwarn("[Safe Actions] Expected observation from only one sensor")
+                rospy.logwarn("[{}] Expected observation from only one sensor".format(rospy.get_name()))
             for sensor in observation[robot]:
                 current_position = observation[robot][sensor]
         safe_action = self._getSafeAction(np.asarray(action), np.asarray(current_position))
@@ -94,11 +89,11 @@ class SafeActions(ActionProcessor):
 
         # We calculate where the robot is at the next time step
         # We use this to calculate the number of checks we will perform
-        next_pos = cs(1.2*self.step_time)
+        next_pos = cs(2*self.dt)
         max_angle_dif = np.max(np.abs(next_pos - current_position))
 
         n_checks = int(np.ceil(self.checks_per_rad * max_angle_dif))
-        way_points = cs(np.linspace(0, 1.2*self.duration, n_checks))
+        way_points = cs(np.linspace(0, self.duration, n_checks))
         
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]
