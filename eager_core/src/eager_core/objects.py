@@ -34,10 +34,10 @@ class Sensor(BaseRosObject):
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
         
-        self._obs_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(self.observation_space))
+        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(self.observation_space))
 
     def get_obs(self) -> object: #Type depends on space
-        response = self._obs_service()
+        response = self._get_sensor_service()
         return np.array(response.value)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
@@ -56,12 +56,24 @@ class State(BaseRosObject):
         if self.state_space is None:
             self.state_space = self._infer_space(base_topic)
 
-        self._state_service = rospy.ServiceProxy(self.get_topic(base_topic),
+        self._buffer = self.state_space.sample()
+
+        self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic),
                                                  get_message_from_space(self.state_space))
 
+        self._send_state_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.state_space),
+                                                  self._send_state)
+
     def get_state(self) -> object:  # Type depends on space
-        response = self._state_service()
+        response = self._get_state_service()
         return np.array(response.value)
+
+    def set_state(self, state: object) -> None:
+        self._buffer = state
+
+    def _send_state(self, request: object) -> object:
+        msg_class = get_response_from_space(self.state_space)
+        return msg_class(self._buffer)
 
 
 class Actuator(BaseRosObject):
@@ -75,8 +87,8 @@ class Actuator(BaseRosObject):
             self.action_space = self._infer_space(base_topic)
 
         self._buffer = self.action_space.sample()
-        
-        self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._action_service)
+
+        self._send_action_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._send_action)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
@@ -90,7 +102,7 @@ class Actuator(BaseRosObject):
     def reset(self) -> None:
         pass
 
-    def _action_service(self, request: object) -> object:
+    def _send_action(self, request: object) -> object:
         msg_class = get_response_from_space(self.action_space)
         return msg_class(self._buffer)
 
@@ -163,10 +175,10 @@ class Robot(BaseRosObject):
         for state in self.states.values():
             state.init_node(self.get_topic(base_topic))
 
-    def set_action(self, action: 'OrderedDict[str, object]') -> None: # Error return?
+    def set_action(self, actions: 'OrderedDict[str, object]') -> None: # Error return?
 
         for act_name, actuator in self.actuators.items():
-            actuator.set_action(action[act_name])
+            actuator.set_action(actions[act_name])
     
     def get_obs(self, sensors: List[str] = None) -> 'OrderedDict[str, object]':
         if sensors is not None:
@@ -206,9 +218,12 @@ class Robot(BaseRosObject):
 
         return gym.spaces.Dict(spaces=spaces)
 
-    def reset(self) -> None: # Error return?
+    def reset(self, states: 'OrderedDict[str, object]') -> None: # Error return?
         for actuator in self.actuators.values():
             actuator.reset()
-        
+
+        for state_name, state in self.states.items():
+            state.set_state(states[state_name])
+
         if self.reset_func is not None:
             self.reset_func(self)

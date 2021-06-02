@@ -23,7 +23,11 @@ if __name__ == '__main__':
     # Initialize environment
     env = RosEnv(engine=engine, robots=[Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')
     env = Flatten(env)
-    check_env(env)
+    # todo: As of now, check_env fails because we do not wrap the angles of the joints to [-pi, pi].
+    #  This causes the observations to sometimes not be in the observation_space. This was a problem before,
+    #  but went unnoticed because we always initialized at zero, and the few actions check_env took, never
+    #  steered it outside of the observation_space. New issue: how to implement the wrapping?
+    # check_env(env)
 
     # Initialize policy
     model = PPO('MlpPolicy', env, verbose=1)

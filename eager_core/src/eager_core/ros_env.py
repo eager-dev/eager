@@ -115,7 +115,7 @@ class RosEnv(BaseRosEnv):
     def reset(self) -> object:
 
         for robot in self.robots:
-            robot.reset()
+            robot.reset(states=robot.state_space.sample())
 
         self._reset()
 
