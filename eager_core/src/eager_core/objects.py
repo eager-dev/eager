@@ -2,9 +2,10 @@ import gym, gym.spaces
 from eager_core.utils.file_utils import load_yaml, substitute_xml_args
 from eager_core.utils.gym_utils import *
 from eager_core.srv import RegisterActionProcessor, RegisterActionProcessorRequest
-from eager_core.msg import Observation
+from eager_core.msg import Object
 from collections import OrderedDict
 from typing import Dict, List, Callable, Union
+from copy import deepcopy
 import rospy
 import roslaunch
 import numpy as np
@@ -102,28 +103,27 @@ class Actuator(BaseRosObject):
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', observations={}, **kwargs):
-        self.action_space = processed_space
-        
+    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', observations_from_objects=[], **kwargs):
         cli_args = [substitute_xml_args(launch_path)]
         for key, value in kwargs.items():
             cli_args.append('{}:={}'.format(key, value))
         self.preprocess_launch = cli_args
         
+        observation_objects = []
+        for object in observations_from_objects:
+            object_msg = Object()
+            object_msg.type = object.type
+            object_msg.name = object.name
+            observation_objects.append(object_msg)
         
-        observation_msg = []
-        for robot in observations:
-            msg = Observation()
-            msg.robot = robot
-            if type(observations[robot]) is str:
-                observations[robot] = [observations[robot]] 
-            msg.sensors = observations[robot]
-            observation_msg.append(msg)
-         
         req = RegisterActionProcessorRequest()
         req.actuator = self.name
-        req.observations = observation_msg
+        req.raw_action_type = get_def_from_space(processed_space)['type']
+        req.action_type = get_def_from_space(self.action_space)['type']
+        req.observation_objects = observation_objects
         self.preprocess_req = req
+
+        self.action_space = processed_space
         
     def reset(self) -> None:
         pass

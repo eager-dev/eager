@@ -17,6 +17,22 @@ def get_space_from_def(object: dict) -> gym.Space:
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
+def get_def_from_space(space: gym.Space) -> dict:
+    if type(space) is Box:
+        object = dict()
+        object['high'] = space.high
+        object['low'] = space.low
+        if space.dtype is np.dtype(np.float32):
+            object['type'] = 'boxf32'
+            return object
+        elif space.dtype is np.dtype(np.uint8):
+            object['type'] = 'boxu8'
+            return object
+        else:
+            raise NotImplementedError('Unknown space type:', space.dtype)
+    else:
+        raise NotImplementedError('Unknown space type:', type(space))
+
 def get_message_from_space(space: gym.Space) -> Type:
     if type(space) is Box:
         if space.dtype is np.dtype(np.float32):

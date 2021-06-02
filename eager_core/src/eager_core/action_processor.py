@@ -1,6 +1,8 @@
 import abc
 import rospy
-from eager_core.srv import RegisterActionProcessor, ResetEnv, CloseEnv, BoxFloat32Data, BoxFloat32DataResponse
+from eager_core.srv import RegisterActionProcessor, ResetEnv, CloseEnv
+from eager_core.utils.file_utils import load_yaml
+from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
 
 # Abstract Base Class compatible with Python 2 and 3
 ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
@@ -31,13 +33,25 @@ class ActionProcessor(ABC):
         ns = rospy.get_namespace()
         env = ns[:ns.find('/',1)+1]
         actuator = req.actuator
-        for idx, observation in enumerate(req.observations):
-            robot = observation.robot
-            self._get_observation_services[robot] = {}
-            for sensor in  req.observations[idx].sensors:
-                self._get_observation_services[robot][sensor] = rospy.ServiceProxy(env + 'objects/' + robot + '/' + sensor, BoxFloat32Data)
-        self._get_action_service = rospy.ServiceProxy(actuator + '/raw', BoxFloat32Data)
-        self.__process_action_service = rospy.Service(actuator, BoxFloat32Data, self.__process_action_handler)
+        
+        raw_action_object = {'type' : req.raw_action_type}
+        raw_action_msg = get_message_from_def(raw_action_object)
+        
+        action_object = {'type' : req.action_type}
+        action_msg = get_message_from_def(action_object)
+        self.response = get_response_from_def(action_object)
+        
+        for idx, observation_object in enumerate(req.observation_objects):
+            object_name = observation_object.name
+            object_type = observation_object.type.split('/')
+            object_params = load_yaml(object_type[0], object_type[1])
+            self._get_observation_services[object_name] = {}
+            for sensor in object_params['sensors']:
+                sens_def = object_params['sensors'][sensor]
+                msg_type = get_message_from_def(sens_def)
+                self._get_observation_services[object_name][sensor] = rospy.ServiceProxy(env + 'objects/' + object_name + '/' + sensor, msg_type)
+        self._get_action_service = rospy.ServiceProxy(actuator + '/raw', raw_action_msg)
+        self.__process_action_service = rospy.Service(actuator, action_msg, self.__process_action_handler)
         return () # Success
         
     def __process_action_handler(self, req):
@@ -52,7 +66,7 @@ class ActionProcessor(ABC):
                 obs = get_observation_service()
                 observation[robot][sensor] = obs.value
         action_processed = self._process_action(action, observation)
-        return BoxFloat32DataResponse(action_processed)
+        return self.response(action_processed)
 
     def __reset_handler(self, req):
         if self._reset():

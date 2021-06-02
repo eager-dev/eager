@@ -1,4 +1,6 @@
 string actuator
-eager_core/Observation[] observations
+string raw_action_type
+string action_type
+eager_core/Object[] observation_objects
 ---
 bool done

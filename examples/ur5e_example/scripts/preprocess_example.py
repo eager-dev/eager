@@ -8,6 +8,7 @@ from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
 from eager_bridge_gazebo.gazebo_engine import GazeboEngine
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
+from eager_core.msg import Object
 import gym, gym.spaces
 import pybullet_data
 
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     ur5e1 = Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
     ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), 
                                              launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
-                                             observations={robot_name : 'joint_sensors'},
+                                             observations_from_objects=[ur5e1],
                                              moveit_package='ur5_e_moveit_config',
                                              joint_names=['shoulder_pan_joint',
                                                           'shoulder_lift_joint',

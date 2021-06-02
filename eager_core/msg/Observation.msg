@@ -1,2 +1,0 @@
-string robot
-string[] sensors
