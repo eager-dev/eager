@@ -262,8 +262,6 @@ class PyBulletBridge(PhysicsBridge):
         self._state_buffer[name] = robot_states
 
     def _init_resets(self, topic, name, states, robot):
-        # todo: define a reset_state_srvs callback that sets the state to a given value
-        # todo: couple get_state_srvs with reset_state_srvs.
         robot_resets = dict()
         for state in states:
             topic_list = states[state]['names']
@@ -291,9 +289,7 @@ class PyBulletBridge(PhysicsBridge):
             else:
                 raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
             get_state_srv = rospy.ServiceProxy(topic + "/" + state, messages[0])
-            # get_state_srv = rospy.ServiceProxy(topic + "/" + state, BoxSpace) # todo: fix
             robot_resets[state] = (get_state_srv, set_reset_srv)
-            # set_reset_srv(list(get_state_srv().value))
         self._reset_services[name] = robot_resets
 
     def _joint_callback(self, buffer, name, obs_name, obs_type, bodyUniqueId, jointIndices, physicsClientId):

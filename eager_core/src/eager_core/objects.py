@@ -35,7 +35,6 @@ class Sensor(BaseRosObject):
             self.observation_space = self._infer_space(base_topic)
         
         self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(self.observation_space))
-        # self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(type(self.observation_space)))
 
     def get_obs(self) -> object: #Type depends on space
         response = self._get_sensor_service()
