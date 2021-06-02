@@ -18,8 +18,8 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
-    engine = GazeboEngine()
+    engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
+    # engine = GazeboEngine()
     # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
 
     # Initialize environment
@@ -33,6 +33,8 @@ if __name__ == '__main__':
 
     rospy.loginfo("Training starts")
 
+    env.close()
+    """
     model = PPO('MlpPolicy', env, verbose=1)
     
     model.learn(total_timesteps=100000)
@@ -47,3 +49,4 @@ if __name__ == '__main__':
             obs = env.reset()
     
     env.close()
+    """

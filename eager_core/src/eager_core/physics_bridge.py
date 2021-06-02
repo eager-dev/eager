@@ -16,6 +16,7 @@ class PhysicsBridge(ABC):
         self.__step_service = rospy.Service('step', StepEnv, self.__step_handler)
         self.__reset_service = rospy.Service('reset', ResetEnv, self.__reset_handler)
         self.__close_service = rospy.Service('close', CloseEnv, self.__close_handler)
+        rospy.on_shutdown(self._close)
 
     @abc.abstractmethod
     def _register_object(self, topic, name, package, object_type, args, config):
@@ -69,7 +70,6 @@ class PhysicsBridge(ABC):
             return None # Error
 
     def __close_handler(self, req):
-        if self._close():
-            return () # Success
-        else:
-            return None # Error
+        rospy.signal_shutdown('Shutdown requested from ros_env.')
+        print('test')
+        return ()

@@ -17,6 +17,7 @@ class WeBotsBridge(PhysicsBridge):
         self._supervisor_name = self._get_supervisor()
 
         self._step_service = rospy.ServiceProxy(self._supervisor_name + "/robot/time_step", set_int)
+        self._close_service = rospy.ServiceProxy(self._supervisor_name + "/supervisor/simulation_quit", set_int)
 
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
@@ -40,8 +41,8 @@ class WeBotsBridge(PhysicsBridge):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self._launch.start()
 
     def _get_supervisor(cls):
         supervisor_checks = 0
@@ -149,4 +150,8 @@ class WeBotsBridge(PhysicsBridge):
         return True
 
     def _close(self):
-        return True
+        #self._close_service()
+        self._launch.shutdown()
+        rospy.sleep(5)
+        print('close')
+        return 
