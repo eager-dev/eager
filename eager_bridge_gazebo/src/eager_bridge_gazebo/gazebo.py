@@ -64,8 +64,8 @@ class GazeboBridge(PhysicsBridge):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self._launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
         self._unpause_physics_service()
@@ -168,4 +168,5 @@ class GazeboBridge(PhysicsBridge):
         return True
 
     def _close(self):
+        self._launch.shutdown()
         return True

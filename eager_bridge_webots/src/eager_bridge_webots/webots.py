@@ -41,8 +41,8 @@ class WeBotsBridge(PhysicsBridge):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self._launch.start()
 
     def _get_supervisor(cls):
         supervisor_checks = 0
@@ -167,4 +167,5 @@ class WeBotsBridge(PhysicsBridge):
         return True
 
     def _close(self):
+        self._launch.shutdown()
         return True
