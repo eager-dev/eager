@@ -41,16 +41,13 @@ class PhysicsBridge(ABC):
             br_params = params[self._bridge_type]
             if 'sensors' in br_params:
                 for sensor in br_params['sensors']:
-                    sens_def = params['sensors'][sensor]
-                    br_params['sensors'][sensor]['messages'] = (get_message_from_def(sens_def), get_response_from_def(sens_def))
+                    br_params['sensors'][sensor]['space'] = params['sensors'][sensor]
             if 'actuators' in br_params:
                 for actuator in br_params['actuators']:
-                    act_def = params['actuators'][actuator]
-                    br_params['actuators'][actuator]['messages'] = (get_message_from_def(act_def), get_response_from_def(act_def))
+                    br_params['actuators'][actuator]['space'] = params['actuators'][actuator]
             if 'states' in br_params:
                 for state in br_params['states']:
-                    state_def = params['states'][state]
-                    br_params['states'][state]['messages'] = (get_message_from_def(state_def), get_response_from_def(state_def))
+                    br_params['states'][state]['space'] = params['states'][state]
                     
             self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], args, br_params)
 

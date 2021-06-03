@@ -3,7 +3,7 @@ import functools
 import re
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
-from eager_core.utils.message_utils import get_value_from_message
+from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def
 from webots_ros.msg import Float64Stamped
 from webots_ros.srv import set_int, set_float
 from sensor_msgs.msg import Image
@@ -71,8 +71,8 @@ class WeBotsBridge(PhysicsBridge):
         for sensor_name in sensors:
             sensor = sensors[sensor_name]
             topic_list = sensor['names']
-            messages = sensor['messages']
-            robot_sensors[sensor_name] = [get_value_from_message(messages[0])]*len(topic_list)
+            space = sensor['space']
+            robot_sensors[sensor_name] = [get_value_from_def(space)]*len(topic_list)
             for idx, webots_sensor_name in enumerate(topic_list):
                 enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
 
@@ -90,11 +90,11 @@ class WeBotsBridge(PhysicsBridge):
                     else:
                         self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
                             Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor_name, pos=idx)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor_name, messages[0], functools.partial(self._service,
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor_name, get_message_from_def(space), functools.partial(self._service,
                                                                                                 buffer=self._sensor_buffer,
                                                                                                 name=name,
                                                                                                 obs_name=sensor_name,
-                                                                                                message_type=messages[1])))
+                                                                                                message_type=get_response_from_def(space))))
         self._sensor_buffer[name] = robot_sensors
     
     def _init_actuators(self, topic, name, actuators):
@@ -102,12 +102,12 @@ class WeBotsBridge(PhysicsBridge):
         for actuator_name in actuators:
             actuator = actuators[actuator_name]
             topic_list = actuator['names']
-            messages = actuator['messages']
+            space = actuator['space']
             set_action_srvs = []
             for webots_actuator_name in topic_list:
                 set_action_srvs.append(rospy.ServiceProxy(name + "/" + webots_actuator_name + "/set_position", set_float))
 
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator_name, messages[0])
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator_name, get_message_from_def(space))
             robot_actuators[actuator_name] = (get_action_srv, set_action_srvs)
         self._actuator_services[name] = robot_actuators
 
@@ -116,19 +116,19 @@ class WeBotsBridge(PhysicsBridge):
         for state_name in states:
             state = states[state_name]
             topic_list = state['names']
-            messages = state['messages']
-            robot_states[state_name] = [get_value_from_message(messages[0])]*len(topic_list)
+            space = state['space']
+            robot_states[state_name] = [get_value_from_def(space)]*len(topic_list)
             # for idx, webots_sensor_name in enumerate(topic_list):
             #     enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
             #     success = enable_sensor(self._step_time)
             #     if success:
             #         self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
             #             Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor, pos=idx)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state_name, messages[0], functools.partial(self._service,
+            self._sensor_services.append(rospy.Service(topic + "/" + state_name, get_message_from_def(space), functools.partial(self._service,
                                                                                                 buffer=self._state_buffer,
                                                                                                 name=name,
                                                                                                 obs_name=state_name,
-                                                                                                message_type=messages[1])))
+                                                                                                message_type=get_response_from_def(space))))
         self._state_buffer[name] = robot_states
 
     def _sensor_callback(self, data, name, sensor, pos):
