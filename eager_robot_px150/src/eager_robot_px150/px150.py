@@ -1,8 +1,8 @@
 import gym, gym.spaces
 from gym.spaces import space
-from eager_core.objects import Robot, Sensor, Actuator
+from eager_core.objects import Object, Sensor, Actuator
 
-class Px150(Robot):
+class Px150(Object):
 
     def __init__(self, name: str) -> None:
         sensors = [
