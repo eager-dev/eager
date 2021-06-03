@@ -1,11 +1,12 @@
 import gym, gym.spaces
 import rospy, roslaunch, rosparam
+from gym.utils import seeding
 from eager_core.objects import Object
 from collections import OrderedDict
 from typing import List, Tuple
 from eager_core.srv import StepEnv, ResetEnv, CloseEnv, Register
 from eager_core.utils.file_utils import substitute_xml_args
-from eager_core.msg import Object as ObjectMsg
+from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
 class BaseRosEnv(gym.Env):
@@ -18,6 +19,7 @@ class BaseRosEnv(gym.Env):
 
         self._step = rospy.ServiceProxy(name + '/step', StepEnv)
         self._reset = rospy.ServiceProxy(name + '/reset', ResetEnv)
+        self.__seed_publisher = rospy.Publisher(name + '/seed', Seed, queue_size=1)
 
     def _init_nodes(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
 
@@ -89,7 +91,10 @@ class BaseRosEnv(gym.Env):
             rospy.loginfo('Pre-existing parameters under namespace "/%s" deleted.' % self.name)
         except:
             pass
-
+    def seed(self, seed: int = None) -> List[int]:
+        seed = seeding.create_seed(seed)
+        self.__seed_publisher.publish(seed)
+        return [seed]
 
 
 class RosEnv(BaseRosEnv):
@@ -131,10 +136,6 @@ class RosEnv(BaseRosEnv):
 
     def render(self, mode: str = 'human') -> None:
         # Send render command
-        pass
-
-    def seed(self, seed=None) -> None:
-        # How to implement?
         pass
     
     def _get_obs(self) -> 'OrderedDict[str, object]':
