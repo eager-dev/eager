@@ -32,9 +32,7 @@ if __name__ == '__main__':
     # check_env(env)
 
     rospy.loginfo("Training starts")
-
-    env.close()
-    """
+    
     model = PPO('MlpPolicy', env, verbose=1)
     
     model.learn(total_timesteps=100000)
@@ -49,4 +47,3 @@ if __name__ == '__main__':
             obs = env.reset()
     
     env.close()
-    """
