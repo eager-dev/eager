@@ -38,7 +38,10 @@ class Sensor(BaseRosObject):
 
     def get_obs(self) -> object: #Type depends on space
         response = self._get_sensor_service()
-        return np.array(response.value)
+        if self.observation_space.dtype == np.dtype(np.uint8):
+            buf = np.frombuffer(response.value, np.uint8).reshape(self.observation_space.shape)
+            return buf
+        return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
         self.observation_space = processed_space
@@ -66,7 +69,10 @@ class State(BaseRosObject):
 
     def get_state(self) -> object:  # Type depends on space
         response = self._get_state_service()
-        return np.array(response.value)
+        if self.state_space.dtype == np.dtype(np.uint8):
+            buf = np.frombuffer(response.value, np.uint8).reshape(self.state_space.shape)
+            return buf
+        return np.array(response.value, dtype=self.state_space.dtype).reshape(self.state_space.shape)
 
     def set_state(self, state: object) -> None:
         self._buffer = state
@@ -107,12 +113,12 @@ class Actuator(BaseRosObject):
         return msg_class(self._buffer)
 
 
-class Robot(BaseRosObject):
+class Object(BaseRosObject):
     def __init__(self, type: str, name: str, 
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
                  actuators: Union[List[Actuator], Dict[str, Actuator]], 
                  states: Union[List[State], Dict[str, State]],
-                 reset: Callable[['Robot'], None] = None,
+                 reset: Callable[['Object'], None] = None,
                  position: List[float] = [0, 0, 0],
                  orientation: List[float] = [0, 0, 0, 1],
                  fixed_base: bool = True,
@@ -136,32 +142,35 @@ class Robot(BaseRosObject):
         self.reset_func = reset
     
     @classmethod
-    def create(cls, name: str, package_name: str, robot_type: str,
+    def create(cls, name: str, package_name: str, object_type: str,
                position: List[float] = [0, 0, 0],
                orientation: List[float] = [0, 0, 0, 1],
                fixed_base: bool = True,
                self_collision: bool = True,
                **kwargs
-               ) -> 'Robot':
+               ) -> 'Object':
 
-        params = load_yaml(package_name, robot_type)
+        params = load_yaml(package_name, object_type)
 
         sensors = []
-        for sens_name, sensor in params['sensors'].items():
-            sensor_space = get_space_from_def(sensor)
-            sensors.append(Sensor(None, sens_name, sensor_space))
+        if 'sensors' in params:
+            for sens_name, sensor in params['sensors'].items():
+                sensor_space = get_space_from_def(sensor)
+                sensors.append(Sensor(None, sens_name, sensor_space))
 
         actuators = []
-        for act_name, actuator in params['actuators'].items():
-            act_space = get_space_from_def(actuator)
-            actuators.append(Actuator(None, act_name, act_space))
+        if 'actuators' in params:
+            for act_name, actuator in params['actuators'].items():
+                act_space = get_space_from_def(actuator)
+                actuators.append(Actuator(None, act_name, act_space))
 
         states = []
-        for state_name, state in params['states'].items():
-            state_space = get_space_from_def(state)
-            states.append(State(None, state_name, state_space))
+        if 'states' in params:
+            for state_name, state in params['states'].items():
+                state_space = get_space_from_def(state)
+                states.append(State(None, state_name, state_space))
 
-        return cls(package_name + '/' + robot_type, name, sensors, actuators, states,
+        return cls(package_name + '/' + object_type, name, sensors, actuators, states,
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
@@ -196,6 +205,8 @@ class Robot(BaseRosObject):
     
     @property
     def action_space(self) -> gym.spaces.Dict:
+        if not self.actuators:
+            return None
         spaces = OrderedDict()
         for act_name, actuator in self.actuators.items():
             spaces[act_name] = actuator.action_space
@@ -204,6 +215,8 @@ class Robot(BaseRosObject):
 
     @property
     def observation_space(self) -> gym.spaces.Dict:
+        if not self.sensors:
+            return None
         spaces = OrderedDict()
         for sens_name, sensor in self.sensors.items():
             spaces[sens_name] = sensor.observation_space
@@ -212,6 +225,8 @@ class Robot(BaseRosObject):
 
     @property
     def state_space(self) -> gym.spaces.Dict:
+        if not self.states:
+            return None
         spaces = OrderedDict()
         for state_name, state in self.states.items():
             spaces[state_name] = state.state_space
@@ -227,3 +242,4 @@ class Robot(BaseRosObject):
 
         if self.reset_func is not None:
             self.reset_func(self)
+                    
