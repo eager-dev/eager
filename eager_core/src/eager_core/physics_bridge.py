@@ -2,6 +2,7 @@ import abc
 import rospy
 import ast
 from eager_core.srv import Register, StepEnv, ResetEnv, CloseEnv
+from eager_core.msg import Seed
 from eager_core.utils.file_utils import load_yaml
 from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
 
@@ -16,6 +17,7 @@ class PhysicsBridge(ABC):
         self.__step_service = rospy.Service('step', StepEnv, self.__step_handler)
         self.__reset_service = rospy.Service('reset', ResetEnv, self.__reset_handler)
         self.__close_service = rospy.Service('close', CloseEnv, self.__close_handler)
+        self.__seed_subscriber = rospy.Subscriber('seed', Seed, self.__seed_handler)
 
     @abc.abstractmethod
     def _register_object(self, topic, name, package, object_type, args, config):
@@ -31,6 +33,10 @@ class PhysicsBridge(ABC):
 
     @abc.abstractmethod
     def _close(self):
+        pass
+
+    @abc.abstractmethod
+    def _seed(self, seed):
         pass
 
     def __register_handler(self, req):
@@ -73,3 +79,6 @@ class PhysicsBridge(ABC):
             return () # Success
         else:
             return None # Error
+    
+    def __seed_handler(self, data):
+        self._seed(data.seed)

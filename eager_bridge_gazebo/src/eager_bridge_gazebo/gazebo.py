@@ -169,3 +169,6 @@ class GazeboBridge(PhysicsBridge):
 
     def _close(self):
         return True
+    
+    def _seed(self, seed):
+        pass
