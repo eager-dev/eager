@@ -13,13 +13,12 @@ class BaseRosEnv(gym.Env):
     def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
-        self._initialize_physics_bridge(engine=engine, name=name)
+        self._initialize_physics_bridge(engine, name)
 
         self.name = name
 
         self._step = rospy.ServiceProxy(name + '/step', StepEnv)
         self._reset = rospy.ServiceProxy(name + '/reset', ResetEnv)
-        self._close = rospy.ServiceProxy(name + '/close', CloseEnv)
         self.__seed_publisher = rospy.Publisher(name + '/seed', Seed, queue_size=1)
 
     def _init_nodes(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
@@ -64,14 +63,8 @@ class BaseRosEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces), gym.spaces.Dict(spaces=state_spaces)
 
-    def _initialize_physics_bridge(self, engine: EngineParams, name: str = 'ros_env'):
+    def _initialize_physics_bridge(self, engine: EngineParams, name: str):
         # Delete all parameters parameter server (from a previous run) within namespace 'name'
-        # todo: dangerous! could delete parameters if 'name' used by other ros nodes unrelated to this new env
-        try:
-            rosparam.delete_param('/%s' % name)
-            rospy.loginfo('Pre-existing parameters under namespace "/%s" deleted.' % name)
-        except:
-            pass
 
         # Upload dictionary with engine parameters to ROS parameter server
         rosparam.upload_params('%s/physics_bridge' % name, engine.__dict__)
@@ -83,9 +76,21 @@ class BaseRosEnv(gym.Env):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self._launch.start()
     
+    def close(self, objects=[], observers=[]):
+        self._launch.shutdown()
+
+        for el in (objects, observers):
+            for object in el:
+                object.close()
+        
+        try:
+            rosparam.delete_param('/%s' % self.name)
+            rospy.loginfo('Pre-existing parameters under namespace "/%s" deleted.' % self.name)
+        except:
+            pass
     def seed(self, seed: int = None) -> List[int]:
         seed = seeding.create_seed(seed)
         self.__seed_publisher.publish(seed)
@@ -132,9 +137,6 @@ class RosEnv(BaseRosEnv):
     def render(self, mode: str = 'human') -> None:
         # Send render command
         pass
-
-    def close(self) -> None:
-        self._close()
     
     def _get_obs(self) -> 'OrderedDict[str, object]':
 
@@ -165,3 +167,6 @@ class RosEnv(BaseRosEnv):
     
     def _is_done(self, obs: 'OrderedDict[str, object]') -> bool:
         return False
+    
+    def close(self):
+        super().close(objects=self.objects, observers=self.observers)

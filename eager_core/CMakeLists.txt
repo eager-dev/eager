@@ -60,7 +60,6 @@ add_service_files(
   BoxUInt8Data.srv
   StepEnv.srv
   ResetEnv.srv
-  CloseEnv.srv
   Register.srv
 )
 
