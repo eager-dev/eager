@@ -39,9 +39,9 @@ class Sensor(BaseRosObject):
     def get_obs(self) -> object: #Type depends on space
         response = self._get_sensor_service()
         if self.observation_space.dtype == np.dtype(np.uint8):
-            buf = np.frombuffer(response.value, np.uint8)
+            buf = np.frombuffer(response.value, np.uint8).reshape(self.observation_space.shape)
             return buf
-        return np.array(response.value)
+        return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
         self.observation_space = processed_space
@@ -69,7 +69,10 @@ class State(BaseRosObject):
 
     def get_state(self) -> object:  # Type depends on space
         response = self._get_state_service()
-        return np.array(response.value)
+        if self.state_space.dtype == np.dtype(np.uint8):
+            buf = np.frombuffer(response.value, np.uint8).reshape(self.state_space.shape)
+            return buf
+        return np.array(response.value, dtype=self.state_space.dtype).reshape(self.state_space.shape)
 
     def set_state(self, state: object) -> None:
         self._buffer = state

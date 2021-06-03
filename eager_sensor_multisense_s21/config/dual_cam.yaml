@@ -3,12 +3,12 @@ sensors:
     type: boxu8
     high: 255
     low: 0
-    shape: [2228224]
+    shape: [1024, 544, 4]
   camera_left:
     type: boxu8
     high: 255
     low: 0
-    shape: [2228224]
+    shape: [1024, 544, 4]
 
 webots:
   sensors:
