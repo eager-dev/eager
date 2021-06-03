@@ -48,6 +48,9 @@ class Sensor(BaseRosObject):
         self.launch_path = launch_path
         self.node_type = node_type
         self.stateless = stateless
+    
+    def close(self):
+        self._get_sensor_service.close()
 
 
 class State(BaseRosObject):
@@ -80,6 +83,10 @@ class State(BaseRosObject):
     def _send_state(self, request: object) -> object:
         msg_class = get_response_from_space(self.state_space)
         return msg_class(self._buffer)
+    
+    def close(self):
+        self._get_state_service.close()
+        self._send_state_service.shutdown()
 
 
 class Actuator(BaseRosObject):
@@ -111,6 +118,9 @@ class Actuator(BaseRosObject):
     def _send_action(self, request: object) -> object:
         msg_class = get_response_from_space(self.action_space)
         return msg_class(self._buffer)
+
+    def close(self):
+        self._send_action_service.shutdown()
 
 
 class Object(BaseRosObject):
@@ -242,4 +252,12 @@ class Object(BaseRosObject):
 
         if self.reset_func is not None:
             self.reset_func(self)
+    
+    def close(self):
+        for sensor in self.sensors.values():
+            sensor.close()
+        for actuator in self.actuators.values():
+            actuator.close()
+        for state in self.states.values():
+            state.close()
                     

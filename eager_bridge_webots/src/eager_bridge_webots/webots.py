@@ -18,7 +18,6 @@ class WeBotsBridge(PhysicsBridge):
         self._supervisor_name = self._get_supervisor()
 
         self._step_service = rospy.ServiceProxy(self._supervisor_name + "/robot/time_step", set_int)
-        self._close_service = rospy.ServiceProxy(self._supervisor_name + "/supervisor/simulation_quit", set_int)
 
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
@@ -168,8 +167,5 @@ class WeBotsBridge(PhysicsBridge):
         return True
 
     def _close(self):
-        #self._close_service()
         self._launch.shutdown()
-        rospy.sleep(5)
-        print('close')
-        return 
+        return True
