@@ -115,7 +115,8 @@ class RosEnv(BaseRosEnv):
     def reset(self) -> object:
 
         for object in self.objects:
-            object.reset()
+            if object.state_space:
+                object.reset(states=object.state_space.sample())
 
         self._reset()
 
@@ -137,7 +138,8 @@ class RosEnv(BaseRosEnv):
         obs = OrderedDict()
 
         for object in self.objects:
-            obs[object.name] = object.get_obs()
+            if object.observation_space:
+                obs[object.name] = object.get_obs()
 
         for observer in self.observers:
             obs[observer.name] = observer.get_obs()
@@ -148,7 +150,8 @@ class RosEnv(BaseRosEnv):
         state = OrderedDict()
 
         for object in self.objects:
-            state[object.name] = object.get_state()
+            if object.state_space:
+                state[object.name] = object.get_state()
 
         return state
 
