@@ -4,7 +4,7 @@ from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_fr
                                         get_def_from_space, get_response_from_space,
                                         get_space_from_def)
 from eager_core.srv import RegisterActionProcessor, RegisterActionProcessorRequest
-from eager_core.msg import Object
+from eager_core.msg import Object as Object_msg
 from collections import OrderedDict
 from typing import Dict, List, Callable, Union
 import rospy
@@ -131,11 +131,11 @@ class Actuator(BaseRosObject):
             self._buffer = self.action_space.sample()
             
             # Create act service
-            self._act_service = rospy.Service(self.get_topic(base_topic) + "/raw", get_message_from_space(self.action_space), self._action_service)
+            self._act_service = rospy.Service(self.get_topic(base_topic) + "/raw", get_message_from_space(self.action_space), self._send_action)
         else:
             self._buffer = self.action_space.sample()
             
-            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._action_service)
+            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._send_action)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
@@ -149,7 +149,7 @@ class Actuator(BaseRosObject):
         
         observation_objects = []
         for object in observations_from_objects:
-            object_msg = Object()
+            object_msg = Object_msg()
             object_msg.type = object.type
             object_msg.name = object.name
             observation_objects.append(object_msg)
