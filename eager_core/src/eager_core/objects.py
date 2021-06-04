@@ -304,8 +304,6 @@ class Object(BaseRosObject):
 
         if self.reset_func is not None:
             self.reset_func(self)
-<<<<<<< HEAD
-=======
     
     def close(self):
         for sensor in self.sensors.values():
@@ -314,5 +312,3 @@ class Object(BaseRosObject):
             actuator.close()
         for state in self.states.values():
             state.close()
-                    
->>>>>>> origin/master
