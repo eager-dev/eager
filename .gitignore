@@ -1,2 +1,4 @@
 *.pyc
 *.idea
+/examples/ur5e_example/scripts/testrender.py
+/eager_robot_px150/assets/

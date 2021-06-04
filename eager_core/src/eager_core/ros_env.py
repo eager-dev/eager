@@ -10,12 +10,13 @@ from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
 class BaseRosEnv(gym.Env):
-    def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
+    def __init__(self, engine: EngineParams, name: str = 'ros_env', render_obs=None) -> None:
         super().__init__()
 
         self._initialize_physics_bridge(engine, name)
 
         self.name = name
+        self.render_obs = render_obs
 
         self._step = rospy.ServiceProxy(name + '/step', StepEnv)
         self._reset = rospy.ServiceProxy(name + '/reset', ResetEnv)
@@ -34,7 +35,7 @@ class BaseRosEnv(gym.Env):
                 objects_reg.append(ObjectMsg(object.type, object.name, object.args))
 
         register_service = rospy.ServiceProxy(self.name + '/register', Register)
-        register_service.wait_for_service(20)
+        register_service.wait_for_service(200000)
         register_service(objects_reg)
 
     def _init_listeners(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
@@ -127,17 +128,27 @@ class RosEnv(BaseRosEnv):
     def reset(self) -> object:
 
         for object in self.objects:
-            if object.state_space:
-                object.reset(states=object.state_space.sample())
+            if object.state_space:  # Check if object has state that we can reset
+                reset_states = object.state_space.sample()
+
+                # currently resetting to zero state.
+                for state in reset_states:
+                    reset_states[state] *= 0
+
+                if object.state_space:
+                    object.reset(states=reset_states)
 
         self._reset()
 
         return self._get_obs()
 
     def render(self, mode: str = 'human') -> None:
-        # Send render command
-        pass
-    
+        if self.render_obs:
+            obs = self.render_obs()
+            return obs
+        else:
+            return None
+
     def _get_obs(self) -> 'OrderedDict[str, object]':
 
         obs = OrderedDict()

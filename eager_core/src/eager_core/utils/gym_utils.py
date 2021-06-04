@@ -13,8 +13,8 @@ def get_space_from_def(object: dict) -> gym.Space:
             shape = object['shape']
             return Box(low, high, shape, dtype=np.float32)
         else:
-            high = np.array(object['high'])
-            low = np.array(object['low'])
+            high = np.array(object['high'], dtype=np.float32)
+            low = np.array(object['low'], dtype=np.float32)
             return Box(low, high, dtype=np.float32)
     elif object['type'] == 'boxu8':
         if 'shape' in object:
@@ -23,8 +23,8 @@ def get_space_from_def(object: dict) -> gym.Space:
             shape = object['shape']
             return Box(low, high, shape, dtype=np.uint8)
         else:
-            high = np.array(object['high'])
-            low = np.array(object['low'])
+            high = np.array(object['high'], dtype=np.uint8)
+            low = np.array(object['low'], dtype=np.uint8)
             return Box(low, high, dtype=np.uint8)
     else:
         raise NotImplementedError('Unknown space type:', object['type'])

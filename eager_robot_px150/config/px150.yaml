@@ -1,46 +1,65 @@
 sensors:
   joint_sensors:
-    type: box
-    order: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
-    high: [2*pi, 2*pi, 2*pi, 2*pi, 2*pi]
-    low: [-2*pi, -2*pi, -2*pi, -2*pi, -2*pi]
-  gripper:
-    type: box
-    order: [gripper]
-    high: [2*pi]
-    low: [-2*pi]
+    type: boxf32
+    high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
+    low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
+#  gripper_sensor:
+#    type: boxf32
+#    high: [0.037, -0.015]
+#    low: [0.015, -0.037]
 
 actuators:
   joints:
-    type: box
-    order: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
-    high: [2*pi, 2*pi, 2*pi, 2*pi, 2*pi, 2*pi]
-    low: [-2*pi, -2*pi, -2*pi, -2*pi, -2*pi, -2*pi]
+    type: boxf32
+    high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
+    low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
   gripper:
-    type: box
-    order: [gripper]
-    high: [2*pi]
-    low: [-2*pi]
+    type: boxf32
+    high: [0.037, -0.015]
+    low: [0.015, -0.037]
+
+states:
+  joint_pos:
+    type: boxf32
+    high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
+    low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
+  joint_vel:
+    type: boxf32
+    high: [1, 1, 1, 1, 1]
+    low: [-1, -1, -1, -1, -1]
 
 pybullet:
-  urdf:
-  fixed_base: True
-  sensors:
+  urdf: $(find eager_robot_px150)/assets/px150.urdf  # todo: Generate urdf on the fly with xacro?
+  sensors:  # IMPORTANT! Currently, not possible to mix sensor measurements of links & joints
     joint_sensors:
-      - waist
-      - shoulder
-      - elbow
-      - wrist_angle
-      - wrist_rotate
-    gripper:
-      - gripper
+      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      names: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+#    gripper_sensor:
+#      type: joint_pos # OPTIONS: link_{pos, orientation, vel, angular_vel}
+#      names: [left_finger, right_finger]
 
   actuators:
     joints:
-      - waist
-      - shoulder
-      - elbow
-      - wrist_angle
-      - wrist_rotate
+      type: joint
+      names: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+      control_mode: position_control # position_control, velocity_control, torque_control, pd_control
+      vel_target: [0.0, 0.0, 0.0, 0.0, 0.0]
+      pos_gain: [.3, .3, .3, .3, .3]
+      vel_gain: [.7, .7, .7, .7, .7]
     gripper:
-      - gripper
+      type: joint
+      names: [left_finger, right_finger]
+      control_mode: position_control # position_control, velocity_control, torque_control, pd_control
+      vel_target: [0.0, 0.0]
+      pos_gain: [1.5, 1.5]
+      vel_gain: [0.7, 0.7]
+
+  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
+  # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, base_vel, joint_pos, joint_vel)
+  states:
+    joint_pos:
+      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      names: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+    joint_vel:
+      type: joint_vel # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      names: [waist, shoulder, elbow, wrist_angle, wrist_rotate]
