@@ -26,22 +26,31 @@ if __name__ == '__main__':
     
     # Initialize environment
     env_name = 'ros_env'
-    robot_name= 'ur5e1'
+    robot_name = 'ur5e1'
+    robot_type = 'ur5e'
+    
+    process_args = {}
+    process_args['moveit_package'] = 'ur5_e_moveit_config'
+    process_args['joint_names'] = ['shoulder_pan_joint',
+                                     'shoulder_lift_joint',
+                                     'elbow_joint',
+                                     'wrist_1_joint',
+                                     'wrist_2_joint',
+                                     'wrist_3_joint'
+                                     ]
+    process_args['group_name'] = 'manipulator'
+    process_args['duration'] = 0.1
+    process_args['dt'] = dt
+    process_args['object_frame'] = 'base_link'
+    process_args['checks_per_rad'] = 25
+    process_args['vel_limit'] = 3.0
+    process_args['robot_type'] = robot_type
     
     ur5e1 = Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
-    ur5e1.actuators["joints"].add_preprocess(processed_space=gym.spaces.Box(low=-3.14, high=3.14, shape=(6,)), 
-                                             launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
-                                             observations_from_objects=[ur5e1],
-                                             moveit_package='ur5_e_moveit_config',
-                                             joint_names=['shoulder_pan_joint',
-                                                          'shoulder_lift_joint',
-                                                          'elbow_joint',
-                                                          'wrist_1_joint',
-                                                          'wrist_2_joint',
-                                                          'wrist_3_joint'],
-                                             group_name='manipulator',
-                                             duration=0.1,
-                                             dt=dt)
+    ur5e1.actuators["joints"].add_preprocess(launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
+                                             launch_args=process_args,
+                                             observations_from_objects=[ur5e1]
+                                             )
     
     env = Flatten(RosEnv(engine=engine, robots=[ur5e1], name=env_name))
     

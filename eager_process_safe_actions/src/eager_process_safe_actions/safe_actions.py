@@ -1,6 +1,7 @@
 import sys
 import rospy
 import moveit_commander
+import gym
 from eager_core.action_processor import ActionProcessor
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
@@ -10,35 +11,47 @@ import numpy as np
 
 
 class SafeActions(ActionProcessor):
+    '''
+    Custom action processing node for manipulators that are not allowed to move below a certain height.
+    Can be used for collision avoidance, for example for manipulators that are mounted on a table or other sort of base surface.
+    Checks velocity limits, prevents self-collision and collision with the base surface.
+    
+    !!!
+    Be careful! Implementation assumes constant velocity based on the difference between the start and goal position and the duration parameter.
+    If this assumption does not hold, velocity limit checking and collision avoidance will not work!
+    !!!
+    
+    '''
     def __init__(self):
-        object_frame = rospy.get_param('~object_frame', 'base_link')
-        self.joint_names = rospy.get_param('~joint_names',
-                                           ['shoulder_pan_joint',
-                                            'shoulder_lift_joint',
-                                            'elbow_joint',
-                                            'wrist_1_joint',
-                                            'wrist_2_joint',
-                                            'wrist_3_joint'])
-        self.group_name = rospy.get_param('~group_name', 'manipulator')
-        self.checks_per_rad = rospy.get_param('~checks_per_rad', 25)
-        self.vel_limit = rospy.get_param('~vel_limit', 3.0)
-        self.dt = rospy.get_param('~dt', 0.1)
-        self.duration = rospy.get_param('~duration', 0.5)
+        # Get params
+        object_frame = rospy.get_param('~object_frame')
+        self.joint_names = rospy.get_param('~joint_names')
+        self.group_name = rospy.get_param('~group_name')
+        self.checks_per_rad = rospy.get_param('~checks_per_rad')
+        self.vel_limit = rospy.get_param('~vel_limit')
+        self.dt = rospy.get_param('~dt')
+        self.duration = rospy.get_param('~duration')
     	
+        # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface(synchronous=True)
         
         # Add a collision object to the scenes
         p = PoseStamped()
         p.header.frame_id = object_frame
-        p.pose.position.z = -0.1
+        p.pose.position.z = -0.05
         p.pose.orientation.w = 1
-        scene.add_cylinder('table', p, 0.05, 1.5)
-
+        scene.add_cylinder('table', p, 0.1, 1.5)
+        
+        # Initialize state validity check service
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
         self.state_validity_service.wait_for_service()
         
         super(SafeActions, self).__init__()
+    
+    def _get_space(self):
+        space = gym.spaces.Box(low=-3.14, high=3.14, shape=(len(self.joint_names),))
+        return space
         
     def _close(self):
         pass
@@ -87,13 +100,13 @@ class SafeActions(ActionProcessor):
             x = [current_position, goal_position]
             cs = CubicSpline(t, x)
 
-        # We calculate where the robot is at the next time step
+        # We calculate where the robot is at twice (safety factor of 2) the next time step
         # We use this to calculate the number of checks we will perform
         next_pos = cs(2*self.dt)
         max_angle_dif = np.max(np.abs(next_pos - current_position))
 
         n_checks = int(np.ceil(self.checks_per_rad * max_angle_dif))
-        way_points = cs(np.linspace(0, self.duration, n_checks))
+        way_points = cs(np.linspace(0, 2*self.dt, n_checks))
         
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]

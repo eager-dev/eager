@@ -3,6 +3,8 @@ import rospy
 from eager_core.srv import RegisterActionProcessor, ResetEnv, CloseEnv
 from eager_core.utils.file_utils import load_yaml
 from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
+from eager_core.utils.gym_utils import get_message_from_space, get_space_msg_from_space
+from eager_core.msg import Space
 
 # Abstract Base Class compatible with Python 2 and 3
 ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
@@ -10,11 +12,11 @@ ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
 class ActionProcessor(ABC):
     
     def __init__(self):
-        rospy.logdebug("[{}] Initializing action processor".format(rospy.get_name()))
+        rospy.logdebug("[{}] Initializing processor".format(rospy.get_name()))
         self._get_observation_services = {}        
-        self.__register_service = rospy.Service('register_action_processor', RegisterActionProcessor, self.__register_handler)
-        self.__reset_service = rospy.Service('reset_action_processor', ResetEnv, self.__reset_handler)
-        self.__close_service = rospy.Service('close_action_processor', CloseEnv, self.__close_handler)
+        self.__register_service = rospy.Service('register_processor', RegisterActionProcessor, self.__register_handler)
+        self.__reset_service = rospy.Service('reset_processor', ResetEnv, self.__reset_handler)
+        self.__close_service = rospy.Service('close_processor', CloseEnv, self.__close_handler)
            
     @abc.abstractmethod
     def _process_action(self, action, observation):
@@ -27,15 +29,34 @@ class ActionProcessor(ABC):
     @abc.abstractmethod
     def _close(self):
         pass
+    
+    @abc.abstractmethod
+    def _get_space(self):
+        space = None
+        return space
         
     def __register_handler(self, req):
         rospy.logdebug("[{}] Handling register request".format(rospy.get_name()))
+        
+        # Get the name of the environment
         ns = rospy.get_namespace()
         env = ns[:ns.find('/',1)+1]
-        actuator = req.actuator
         
-        raw_action_object = {'type' : req.raw_action_type}
-        raw_action_msg = get_message_from_def(raw_action_object)
+        # The environment action space can change because of the processor
+        # There are two ways to define the new action space:
+        # (1) As an argument in actuator.add_preprocess()
+        # (2) By implementing the self._get_space() method
+        # (1) overrules (2)
+        space = self._get_space()
+        space_msg = Space()
+        if req.raw_action_type:
+            raw_action_object = {'type' : req.raw_action_type}
+            raw_action_msg = get_message_from_def(raw_action_object)
+        else:
+            if space is None:
+                rospy.logerr('[{}] Action space of the processor is unknown!'.format(rospy.get_name()))
+            raw_action_msg = get_message_from_space(space)
+            space_msg = get_space_msg_from_space(space)
         
         action_object = {'type' : req.action_type}
         action_msg = get_message_from_def(action_object)
@@ -50,9 +71,9 @@ class ActionProcessor(ABC):
                 sens_def = object_params['sensors'][sensor]
                 msg_type = get_message_from_def(sens_def)
                 self._get_observation_services[object_name][sensor] = rospy.ServiceProxy(env + 'objects/' + object_name + '/' + sensor, msg_type)
-        self._get_action_service = rospy.ServiceProxy(actuator + '/raw', raw_action_msg)
-        self.__process_action_service = rospy.Service(actuator, action_msg, self.__process_action_handler)
-        return () # Success
+        self._get_action_service = rospy.ServiceProxy(ns + '/raw', raw_action_msg)
+        self.__process_action_service = rospy.Service(ns, action_msg, self.__process_action_handler)
+        return space_msg # The new environment action space
         
     def __process_action_handler(self, req):
         rospy.logdebug("[{}] Handling action request".format(rospy.get_name()))

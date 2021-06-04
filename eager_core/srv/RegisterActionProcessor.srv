@@ -1,6 +1,5 @@
-string actuator
 string raw_action_type
 string action_type
 eager_core/Object[] observation_objects
 ---
-bool done
+eager_core/Space action_space
