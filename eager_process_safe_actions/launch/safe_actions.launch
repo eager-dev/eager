@@ -5,6 +5,7 @@
 	<!-- Custom arguments for action processor -->
 	<arg name="robot_type" doc="Robot type"/>
 	<arg name="moveit_package" doc="Moveit package name"/>
+	<arg name="urdf_path" doc="Path to robot description"/>
 	<arg name="object_frame" doc="Frame in which the collision object is placed."/>
 	<arg name="joint_names" doc="Joint names"/>
   <arg name="group_name" doc="Specifies the name of the move_group"/>
@@ -22,7 +23,7 @@
 	  <!-- Launch moveit for collision checking -->
 
 	  <!-- Load universal robot description format (URDF) -->
-		<param name="robot_description" textfile="$(eval find('eager_robot_' + arg('robot_type')) + '/assets/' + arg('robot_type') + '_moveit.urdf')" />
+		<param name="robot_description" command="$(find xacro)/xacro --inorder '$(arg urdf_path)'" />
 
 		<include file="$(eval find(arg('moveit_package')) + '/launch/move_group.launch')">
 			<arg name="allow_trajectory_execution" value="$(arg allow_trajectory_execution)"/>

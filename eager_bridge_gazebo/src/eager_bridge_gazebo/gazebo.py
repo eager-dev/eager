@@ -107,8 +107,14 @@ class GazeboBridge(PhysicsBridge):
                 msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, name=name, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space), functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor, message_type=get_response_from_def(space))))
-
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space), 
+                                                       functools.partial(self._service, 
+                                                                         buffer=self._sensor_buffer, 
+                                                                         name=name, obs_name=sensor, 
+                                                                         message_type=get_response_from_def(space)
+                                                                         )
+                                                       )
+                                         )
     
     def _init_actuators(self, topic, name, actuators):
         actuator_services = dict()
@@ -139,7 +145,15 @@ class GazeboBridge(PhysicsBridge):
             #     msg_topic,
             #     msg_type,
             #     functools.partial(self._state_callback, state=state)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state, message_type=get_response_from_def(space))))
+            self._sensor_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), 
+                                                       functools.partial(self._service, 
+                                                                         buffer=self._state_buffer, 
+                                                                         name=name, 
+                                                                         obs_name=state, 
+                                                                         message_type=get_response_from_def(space)
+                                                                         )
+                                                       )
+                                         )
         self._state_buffer[name] = robot_states
         
     def _sensor_callback(self, data, name, sensor):

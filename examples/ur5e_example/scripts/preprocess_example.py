@@ -30,6 +30,7 @@ if __name__ == '__main__':
     robot_type = 'ur5e'
     
     process_args = SafeActionsProcessor(moveit_package = 'ur5_e_moveit_config',
+                                        urdf_path = '$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro',
                                         joint_names = ['shoulder_pan_joint',
                                                        'shoulder_lift_joint',
                                                        'elbow_joint',
@@ -41,12 +42,13 @@ if __name__ == '__main__':
                                         object_frame = 'base_link',
                                         checks_per_rad = 15,
                                         vel_limit = 3.0,
-                                        robot_type = robot_type)
+                                        robot_type = robot_type,
+                                        )
     
     ur5e1 = Object.create(robot_name, 'eager_robot_ur5e', robot_type)
     ur5e1.actuators['joints'].add_preprocess(launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
                                              launch_args=process_args.__dict__,
-                                             observations_from_objects=[ur5e1]
+                                             observations_from_objects=[ur5e1],
                                              )
     
     env = RosEnv(engine=engine, objects=[ur5e1], name=env_name)

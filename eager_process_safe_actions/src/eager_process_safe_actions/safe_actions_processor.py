@@ -3,6 +3,7 @@ from eager_core.engine_params import EngineParams
 class SafeActionsProcessor(EngineParams):
     def __init__(self,
                  moveit_package: str,
+                 urdf_path: str,
                  joint_names: list,
                  robot_type: str,
                  group_name: str,

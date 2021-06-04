@@ -76,7 +76,7 @@ class ActionProcessor(ABC):
         return space_msg # The new environment action space
         
     def __process_action_handler(self, req):
-        rospy.logdebug("[{}] Handling action request".format(rospy.get_name()))
+        rospy.logdebug("[{}] Handling process request".format(rospy.get_name()))
         observation = {}
         action = self._get_action_service()
         action = action.value

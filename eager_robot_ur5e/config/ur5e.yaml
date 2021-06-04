@@ -108,7 +108,7 @@ gazebo:
       -
 
 pybullet:
-  urdf: $(find eager_robot_ur5e)/assets/ur5e.urdf  # todo: Generate urdf on the fly with xacro?
+  urdf: $(find ur_e_description)/urdf/ur5e.urdf  # todo: Generate urdf on the fly with xacro?
   sensors:  # IMPORTANT! Currently, not possible to mix sensor measurements of links & joints
     joint_sensors:
       type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}

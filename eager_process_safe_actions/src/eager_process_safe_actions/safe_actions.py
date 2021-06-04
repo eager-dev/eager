@@ -40,7 +40,7 @@ class SafeActions(ActionProcessor):
         p.header.frame_id = object_frame
         p.pose.position.z = -0.05
         p.pose.orientation.w = 1
-        scene.add_cylinder('table', p, 0.1, 1.5)
+        scene.add_cylinder('base', p, 0.1, 1.5)
         
         # Initialize state validity check service
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
