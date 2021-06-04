@@ -1,4 +1,4 @@
-from eager_core.utils.message_utils import get_value_from_message
+from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def
 import rospy
 import roslaunch
 import functools
@@ -66,8 +66,8 @@ class GazeboBridge(PhysicsBridge):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self._launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
@@ -98,7 +98,7 @@ class GazeboBridge(PhysicsBridge):
             sensor_params = sensors[sensor]
             msg_topic = topic + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
-            messages = sensor_params['messages']
+            space = sensor_params['space']
             msg_type = getattr(sensor_msgs.msg, msg_name)
             rospy.logdebug("Waiting for message topic {}".format(msg_topic))
             self._sensor_buffer[name][sensor] = rospy.wait_for_message(msg_topic, msg_type)
@@ -107,7 +107,7 @@ class GazeboBridge(PhysicsBridge):
                 msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, name=name, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0], functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor, message_type=messages[1])))
+            self._sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space), functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor, message_type=get_response_from_def(space))))
 
     
     def _init_actuators(self, topic, name, actuators):
@@ -115,9 +115,9 @@ class GazeboBridge(PhysicsBridge):
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
             joint_names = actuators[actuator]["names"]
-            messages = actuators[actuator]['messages']
-            server_name = topic + "/" + actuators[actuator]["server_name"]
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
+            space = actuators[actuator]['space']
+            server_name = name + "/" + actuators[actuator]["server_name"]
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, get_message_from_def(space))
             set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
             actuator_services[actuator] = (get_action_srv, set_action_srv)
         self._actuator_services[name] = actuator_services
@@ -127,8 +127,8 @@ class GazeboBridge(PhysicsBridge):
         for state in states:
             rospy.logdebug("Initializing state {}".format(state))
             state_params = states[state]
-            messages = state_params['messages']
-            robot_states[state] = [get_value_from_message(messages[0])]*len(states[state])
+            space = state_params['space']
+            robot_states[state] = [get_value_from_def(space)]*len(states[state])
             # msg_topic = name + "/" + state_params["topic"]
             # msg_name = state_params["msg_name"]
             # msg_type = getattr(state_msgs.msg, msg_name)
@@ -139,7 +139,7 @@ class GazeboBridge(PhysicsBridge):
             #     msg_topic,
             #     msg_type,
             #     functools.partial(self._state_callback, state=state)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state, messages[0], functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state, message_type=messages[1])))
+            self._sensor_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state, message_type=get_response_from_def(space))))
         self._state_buffer[name] = robot_states
         
     def _sensor_callback(self, data, name, sensor):
@@ -170,4 +170,8 @@ class GazeboBridge(PhysicsBridge):
         return True
 
     def _close(self):
+        self._launch.shutdown()
         return True
+    
+    def _seed(self, seed):
+        pass

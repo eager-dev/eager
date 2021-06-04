@@ -5,7 +5,7 @@ from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
 from eager_bridge_pybullet.pybullet_robot import URDFBasedRobot
-from eager_core.utils.message_utils import get_value_from_message
+from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def
 
 import numpy as np
 import functools
@@ -26,6 +26,7 @@ except ImportError as e:
     from gym import error
     raise error.DependencyNotInstalled("{}. (HINT: you need to install PyBullet)".format(e))
 
+# todo: change string checks with dict checks similar to control_modes
 control_modes = {'position_control': pybullet.POSITION_CONTROL,
                  'velocity_control': pybullet.VELOCITY_CONTROL,
                  'torque_control': pybullet.TORQUE_CONTROL,
@@ -51,13 +52,15 @@ class PyBulletBridge(PhysicsBridge):
 
         self._sensor_cbs = dict()
         self._sensor_buffer = dict()
-        self._sensor_services = []
+        self._set_sensor_services = []
 
-        self._actuator_services = dict()
+        self._get_actuator_services = dict()
 
         self._state_cbs = dict()
         self._state_buffer = dict()
-        self._state_services = []
+        self._set_state_services = []
+
+        self._reset_services = dict()
 
         super(PyBulletBridge, self).__init__("pybullet")
 
@@ -95,6 +98,7 @@ class PyBulletBridge(PhysicsBridge):
         self._init_sensors(topic, name, config['sensors'], self._robots[name])
         self._init_actuators(topic, name, config['actuators'], self._robots[name])
         self._init_states(topic, name, config['states'], self._robots[name])
+        self._init_resets(topic, name, config['states'], self._robots[name])
         return True
 
     def _init_sensors(self, topic, name, sensors, robot):
@@ -102,8 +106,8 @@ class PyBulletBridge(PhysicsBridge):
         sensor_cb = dict()
         for sensor in sensors:
             topic_list = sensors[sensor]['names']
-            messages = sensors[sensor]['messages']
-            robot_sensors[sensor] = [get_value_from_message(messages[0])] * len(topic_list)
+            space = sensors[sensor]['space']
+            robot_sensors[sensor] = [get_value_from_def(space)] * len(topic_list)
             bodyUniqueId = []
             if 'joint' in sensors[sensor]['type']:
                 jointIndices = []
@@ -137,12 +141,12 @@ class PyBulletBridge(PhysicsBridge):
             else:
                 raise ValueError('Sensor_type ("%s") must contain either "joint" or "link".' % sensors[sensor]['type'])
             sensor_cb[sensor] = callback
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, messages[0],
-                                                       functools.partial(self._service,
-                                                                            buffer=self._sensor_buffer,
-                                                                            name=name,
-                                                                            obs_name=sensor,
-                                                                            message_type=messages[1])))
+            self._set_sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space),
+                                                           functools.partial(self._service,
+                                                                             buffer=self._sensor_buffer,
+                                                                             name=name,
+                                                                             obs_name=sensor,
+                                                                             message_type=get_response_from_def(space))))
         self._sensor_cbs[name] = sensor_cb
         self._sensor_buffer[name] = robot_sensors
 
@@ -150,7 +154,7 @@ class PyBulletBridge(PhysicsBridge):
         robot_actuators = dict()
         for actuator in actuators:
             topic_list = actuators[actuator]['names']
-            messages = actuators[actuator]['messages']
+            space = actuators[actuator]['space']
             bodyUniqueId = []
             if 'joint' in actuators[actuator]['type']:
                 jointIndices = []
@@ -201,17 +205,17 @@ class PyBulletBridge(PhysicsBridge):
                                                     callback=cb)
             else:
                 raise ValueError('Actuator_type ("%s") must contain "joint".' % actuators[actuator]['type'])
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, messages[0])
+            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, get_message_from_def(space))
             robot_actuators[actuator] = (get_action_srv, set_action_srvs)
-        self._actuator_services[name] = robot_actuators
+        self._get_actuator_services[name] = robot_actuators
 
     def _init_states(self, topic, name, states, robot):
         robot_states = dict()
         state_cb = dict()
         for state in states:
             topic_list = states[state]['names']
-            messages = states[state]['messages']
-            robot_states[state] = [get_value_from_message(messages[0])] * len(topic_list)
+            space = states[state]['space']
+            robot_states[state] = [get_value_from_def(space)] * len(topic_list)
             bodyUniqueId = []
             if 'joint' in states[state]['type']:
                 jointIndices = []
@@ -242,24 +246,59 @@ class PyBulletBridge(PhysicsBridge):
                                              bodyUniqueId=bodyUniqueId[0],
                                              linkIndices=linkIndices,
                                              physicsClientId=self.physics_client_id)
+            elif 'base' in states[state]['type']:
+                # todo: implement.
+                pass
             else:
-                raise ValueError('State type ("%s") must contain either "joint" or "link".' % states[state]['type'])
+                raise ValueError('State type ("%s") must contain either {joint, link, base}.' % states[state]['type'])
             state_cb[state] = callback
-            self._state_services.append(rospy.Service(topic + "/" + state, messages[0], functools.partial(self._service,
+            # self._set_state_services.append(rospy.Service(topic + "/" + state, BoxSpace, functools.partial(self._service,
+            self._set_state_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), functools.partial(self._service,
                                                                                                        buffer=self._state_buffer,
                                                                                                        name=name,
                                                                                                        obs_name=state,
-                                                                                                       message_type=messages[1])))
+                                                                                                       message_type=get_response_from_def(space))))
         self._state_cbs[name] = state_cb
         self._state_buffer[name] = robot_states
+
+    def _init_resets(self, topic, name, states, robot):
+        robot_resets = dict()
+        for state in states:
+            topic_list = states[state]['names']
+            space = states[state]['space']
+            bodyUniqueId = []
+            if 'joint' in states[state]['type']:
+                jointIndices = []
+                for idx, pybullet_name in enumerate(topic_list):
+                    bodyid, jointindex = robot.jdict[pybullet_name].get_bodyid_jointindex()
+                    bodyUniqueId.append(bodyid), jointIndices.append(jointindex)
+                set_reset_srv = functools.partial(self._reset_srvs,
+                                                  type=states[state]['type'],
+                                                  bodyUniqueId=bodyUniqueId[0],
+                                                  jointIndices=jointIndices,
+                                                  physicsClientId=self.physics_client_id)
+            elif 'link' in states[state]['type']:
+                raise ValueError('State type ("%s") cannot be reset in pybullet.' % states[state]['type'])
+            elif 'base' in states[state]['type']:
+                bodyUniqueId = robot.robot_objectid[0]
+                set_reset_srv = functools.partial(self._reset_srvs,
+                                                  type=states[state]['type'],
+                                                  bodyUniqueId=bodyUniqueId,
+                                                  jointIndices=None,
+                                                  physicsClientId=self.physics_client_id)
+            else:
+                raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
+            get_state_srv = rospy.ServiceProxy(topic + "/" + state, get_message_from_def(space))
+            robot_resets[state] = (get_state_srv, set_reset_srv)
+        self._reset_services[name] = robot_resets
 
     def _joint_callback(self, buffer, name, obs_name, obs_type, bodyUniqueId, jointIndices, physicsClientId):
         states = self._p.getJointStates(bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
         obs = []
-        if 'pos' in obs_type:  # (x, y, z)
+        if 'pos' in obs_type:  # (x)
             for i, (pos, vel, force_torque, applied_torque) in enumerate(states):
                 obs.append(pos)
-        elif 'vel' in obs_type:  # (vx, vy, vz)
+        elif 'vel' in obs_type:  # (v)
             for i, (pos, vel, force_torque, applied_torque) in enumerate(states):
                 obs.append(vel)
         elif 'force_torque' in obs_type:  # (Fx, Fy, Fz, Mx, My, Mz)
@@ -312,13 +351,42 @@ class PyBulletBridge(PhysicsBridge):
         else:
             raise ValueError('Control_mode ("%s") not recognized.' % control_mode)
 
+    def _reset_srvs(self, reset_state, type, bodyUniqueId, jointIndices, physicsClientId):
+        if type == 'joint_pos':  # Only 1-dof joints are supported here.
+            # https://github.com/bulletphysics/bullet3/issues/2803
+            velocities = []
+            states = self._p.getJointStates(bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+            for i, (pos, vel, _, _) in enumerate(states):
+                velocities.append([vel])
+            self._p.resetJointStatesMultiDof(targetValues=[[s] for s in reset_state], targetVelocities=velocities, bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+        elif type == 'joint_vel':
+            positions = []
+            states = self._p.getJointStates(bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+            for i, (pos, vel, _, _) in enumerate(states):
+                positions.append([pos])
+            self._p.resetJointStatesMultiDof(targetValues=positions, targetVelocities=[[s] for s in reset_state], bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+        elif type == 'base_pos':
+            _, base_orientation = self._p.getBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
+            self._p.resetBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, posObj=reset_state, ornObj=base_orientation, physicsClientId=physicsClientId)
+        elif type == 'base_orientation':
+            base_pos, _ = self._p.getBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
+            self._p.resetBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, posObj=base_pos, ornObj=reset_state, physicsClientId=physicsClientId)
+        elif type == 'base_angular_vel':
+            base_vel, _ = self._p.getBaseVelocity(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
+            self._p.resetBaseVelocity(objectUniqueId=bodyUniqueId, linearVelocity=base_vel, angularVelocity=reset_state, physicsClientId=physicsClientId)
+        elif type == 'base_vel':
+            _, base_rate = self._p.getBaseVelocity(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
+            self._p.resetBaseVelocity(objectUniqueId=bodyUniqueId, linearVelocity=reset_state, angularVelocity=base_rate, physicsClientId=physicsClientId)
+        else:
+            raise ValueError('Type ("%s") not recognized.' % type)
+
     def _service(self, req, buffer, name, obs_name, message_type):
         return message_type(buffer[name][obs_name])
 
     def _step(self):
         # Set all actions before stepping the world
-        for robot in self._actuator_services:
-            robot_actuators = self._actuator_services[robot]
+        for robot in self._get_actuator_services:
+            robot_actuators = self._get_actuator_services[robot]
             for actuator in robot_actuators:
                 (get_action_srv, set_action_srvs) = robot_actuators[actuator]
                 actions = get_action_srv()
@@ -338,7 +406,17 @@ class PyBulletBridge(PhysicsBridge):
         return True
 
     def _reset(self):
+        # Set all actions before stepping the world
+        for robot in self._reset_services:
+            robot_resets = self._reset_services[robot]
+            for state in robot_resets:
+                (get_state_srv, set_reset_srvs) = robot_resets[state]
+                state = get_state_srv()
+                set_reset_srvs(reset_state=list(state.value))
         return True
 
     def _close(self):
         return True
+    
+    def _seed(self, seed):
+        pass

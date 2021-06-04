@@ -9,13 +9,25 @@ from eager_core.msg import Space
 
 def get_space_from_def(object: dict) -> gym.Space:
     if object['type'] == 'boxf32':
-        high = np.array(object['high'])
-        low = np.array(object['low'])
-        return Box(low, high, dtype=np.float32)
+        if 'shape' in object:
+            high = object['high']
+            low = object['low']
+            shape = object['shape']
+            return Box(low, high, shape, dtype=np.float32)
+        else:
+            high = np.array(object['high'])
+            low = np.array(object['low'])
+            return Box(low, high, dtype=np.float32)
     elif object['type'] == 'boxu8':
-        high = np.array(object['high'])
-        low = np.array(object['low'])
-        return Box(low, high, dtype=np.uint8)
+        if 'shape' in object:
+            high = object['high']
+            low = object['low']
+            shape = object['shape']
+            return Box(low, high, shape, dtype=np.uint8)
+        else:
+            high = np.array(object['high'])
+            low = np.array(object['low'])
+            return Box(low, high, dtype=np.uint8)
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
         

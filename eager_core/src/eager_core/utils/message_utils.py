@@ -17,10 +17,10 @@ def get_response_from_def(object):
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
-def get_value_from_message(message_type):
-    if message_type is BoxFloat32Data:
+def get_value_from_def(object):
+    if object['type'] == 'boxf32':
         return 0.0
-    elif message_type is BoxUInt8Data:
+    elif object['type'] == 'boxu8':
         return 0
     else:
-        raise NotImplementedError('Unknown message type:', message_type)
+        raise NotImplementedError('Unknown message type:', object['type'])
