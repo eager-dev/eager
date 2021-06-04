@@ -8,6 +8,7 @@ from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
 from eager_bridge_gazebo.gazebo_engine import GazeboEngine
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
+from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 from eager_core.msg import Object
 import gym, gym.spaces
 import pybullet_data
@@ -29,26 +30,23 @@ if __name__ == '__main__':
     robot_name = 'ur5e1'
     robot_type = 'ur5e'
     
-    process_args = {}
-    process_args['moveit_package'] = 'ur5_e_moveit_config'
-    process_args['joint_names'] = ['shoulder_pan_joint',
-                                     'shoulder_lift_joint',
-                                     'elbow_joint',
-                                     'wrist_1_joint',
-                                     'wrist_2_joint',
-                                     'wrist_3_joint'
-                                     ]
-    process_args['group_name'] = 'manipulator'
-    process_args['duration'] = 0.1
-    process_args['dt'] = dt
-    process_args['object_frame'] = 'base_link'
-    process_args['checks_per_rad'] = 25
-    process_args['vel_limit'] = 3.0
-    process_args['robot_type'] = robot_type
+    process_args = SafeActionsProcessor(moveit_package = 'ur5_e_moveit_config',
+                                        joint_names = ['shoulder_pan_joint',
+                                                       'shoulder_lift_joint',
+                                                       'elbow_joint',
+                                                       'wrist_1_joint',
+                                                       'wrist_2_joint',
+                                                       'wrist_3_joint'],
+                                        group_name = 'manipulator',
+                                        duration = 0.1,
+                                        object_frame = 'base_link',
+                                        checks_per_rad = 15,
+                                        vel_limit = 3.0,
+                                        robot_type = robot_type)
     
     ur5e1 = Robot.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
     ur5e1.actuators["joints"].add_preprocess(launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
-                                             launch_args=process_args,
+                                             launch_args=process_args.__dict__,
                                              observations_from_objects=[ur5e1]
                                              )
     

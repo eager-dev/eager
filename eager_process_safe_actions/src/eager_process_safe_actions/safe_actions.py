@@ -29,7 +29,6 @@ class SafeActions(ActionProcessor):
         self.group_name = rospy.get_param('~group_name')
         self.checks_per_rad = rospy.get_param('~checks_per_rad')
         self.vel_limit = rospy.get_param('~vel_limit')
-        self.dt = rospy.get_param('~dt')
         self.duration = rospy.get_param('~duration')
     	
         # Initialize Moveit Commander and Scene
@@ -100,13 +99,10 @@ class SafeActions(ActionProcessor):
             x = [current_position, goal_position]
             cs = CubicSpline(t, x)
 
-        # We calculate where the robot is at twice (safety factor of 2) the next time step
-        # We use this to calculate the number of checks we will perform
-        next_pos = cs(2*self.dt)
-        max_angle_dif = np.max(np.abs(next_pos - current_position))
+        max_angle_dif = np.max(np.abs(goal_position - current_position))
 
         n_checks = int(np.ceil(self.checks_per_rad * max_angle_dif))
-        way_points = cs(np.linspace(0, 2*self.dt, n_checks))
+        way_points = cs(np.linspace(0, self.duration, n_checks))
         
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]

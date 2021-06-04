@@ -10,7 +10,6 @@
   <arg name="group_name" doc="Specifies the name of the move_group"/>
   <arg name="checks_per_rad" doc="Specifies the number of collision checks per radian"/>
   <arg name="vel_limit" doc="Specifies the joint velocity limit in rad/s"/>
-  <arg name="dt" doc="Specifies the step time of the physics bridge in s"/>
   <arg name="duration" doc="Specifies the duration for the joint trajectory point action in s"/>
 
 	<!-- MoveIt arguments -->
@@ -36,7 +35,6 @@
 	    <param name="group_name" value="$(arg group_name)"/>
 	    <param name="checks_per_rad" value="$(arg checks_per_rad)"/>
 	    <param name="vel_limit" value="$(arg vel_limit)"/>
-	    <param name="dt" value="$(arg dt)"/>
 	    <param name="duration" value="$(arg duration)"/>
 			<param name="object_frame" value="$(arg object_frame)"/>
 	  </node>

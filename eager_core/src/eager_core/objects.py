@@ -80,8 +80,6 @@ class Actuator(BaseRosObject):
     def init_node(self, base_topic: str = ''):
         if self.action_space is None:
             self.action_space = self._infer_space(base_topic)
-
-        self._buffer = self.action_space.sample()
         
         if self.preprocess_launch is not None:
             # Launch processor
@@ -104,9 +102,14 @@ class Actuator(BaseRosObject):
             else:
                 self.action_space = get_space_from_space_msg(response.action_space)
             
+            # Initialize buffer
+            self._buffer = self.action_space.sample()
+            
             # Create act service
             self._act_service = rospy.Service(self.get_topic(base_topic) + "/raw", get_message_from_space(self.action_space), self._action_service)
         else:
+            self._buffer = self.action_space.sample()
+            
             self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._action_service)
     
     def set_action(self, action: object) -> None:
