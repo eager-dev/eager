@@ -4,19 +4,18 @@ from gym.utils import seeding
 from eager_core.objects import Object
 from collections import OrderedDict
 from typing import List, Tuple
-from eager_core.srv import StepEnv, ResetEnv, CloseEnv, Register
+from eager_core.srv import StepEnv, ResetEnv, Register
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
 class BaseRosEnv(gym.Env):
-    def __init__(self, engine: EngineParams, name: str = 'ros_env', render_obs=None) -> None:
+    def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
         self._initialize_physics_bridge(engine, name)
 
         self.name = name
-        self.render_obs = render_obs
 
         self._step = rospy.ServiceProxy(name + '/step', StepEnv)
         self._reset = rospy.ServiceProxy(name + '/reset', ResetEnv)
@@ -93,6 +92,7 @@ class BaseRosEnv(gym.Env):
         except:
             pass
     def seed(self, seed: int = None) -> List[int]:
+        # todo: does this actually seed e.g. numpy on the RosEnv side?
         seed = seeding.create_seed(seed)
         self.__seed_publisher.publish(seed)
         return [seed]
@@ -100,18 +100,24 @@ class BaseRosEnv(gym.Env):
 
 class RosEnv(BaseRosEnv):
 
-    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], **kwargs) -> None:
+    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, **kwargs) -> None:
         # todo: Interface changes a lot, use **kwargs.
         #  Make arguments of baseclass explicit when interface is more-or-less fixed.
         super().__init__(**kwargs)
         self.objects = objects
         self.observers = observers
+        self.render_obs = render_obs
+
+        # Used in _is_done() check
+        self.STEPS_PER_ROLLOUT = max_steps
+        self.steps = 0
 
         self._init_nodes(self.objects, self.observers)
 
         self.observation_space, self.action_space, self.state_space = self._merge_spaces(self.objects, self.observers)
     
     def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
+        self.steps += 1
 
         for object in self.objects:
             if object.action_space:
@@ -126,23 +132,23 @@ class RosEnv(BaseRosEnv):
         return obs, reward, done, {'state': state}
     
     def reset(self) -> object:
-
-        for object in self.objects:
-            if object.state_space:  # Check if object has state that we can reset
-                reset_states = object.state_space.sample()
+        self.steps = 0
+        for obj in self.objects:
+            if obj.state_space:  # Check if object has state that we can reset
+                reset_states = obj.state_space.sample()
 
                 # currently resetting to zero state.
                 for state in reset_states:
                     reset_states[state] *= 0
 
-                if object.state_space:
-                    object.reset(states=reset_states)
+                # Set state we want to reset to in buffer
+                obj.reset(states=reset_states)
 
         self._reset()
 
         return self._get_obs()
 
-    def render(self, mode: str = 'human') -> None:
+    def render(self, mode: str = 'human', **kwargs) -> None:
         if self.render_obs:
             obs = self.render_obs()
             return obs
@@ -150,7 +156,6 @@ class RosEnv(BaseRosEnv):
             return None
 
     def _get_obs(self) -> 'OrderedDict[str, object]':
-
         obs = OrderedDict()
 
         for object in self.objects:
@@ -172,12 +177,13 @@ class RosEnv(BaseRosEnv):
         return state
 
     def _get_reward(self, obs: 'OrderedDict[str, object]') -> float:
-        # if needed:
-        #states = self._get_states()
         return 0.0
     
     def _is_done(self, obs: 'OrderedDict[str, object]') -> bool:
-        return False
-    
+        if self.STEPS_PER_ROLLOUT and self.STEPS_PER_ROLLOUT > 0:
+            return self.steps >= self.STEPS_PER_ROLLOUT
+        else:
+            return False
+
     def close(self):
         super().close(objects=self.objects, observers=self.observers)

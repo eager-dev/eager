@@ -125,8 +125,8 @@ pybullet:
       names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
       control_mode: position_control # position_control, velocity_control, torque_control, pd_control
       vel_target: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-      pos_gain: [0.3, 0.3, 0.3, 1, 1, 1]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
-      vel_gain: [0.7, 0.7, 0.7, 1, 1, 1]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
+      pos_gain: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
+      vel_gain: [0.7, 0.7, 0.7, 0.7, 0.7, 0.7]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
 
   # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
   # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, base_vel, joint_pos, joint_vel)

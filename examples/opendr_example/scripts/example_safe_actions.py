@@ -22,7 +22,7 @@ class MyEnv(BaseRosEnv):
         self.STEPS_PER_ROLLOUT = 100
         self.steps = 0
 
-        # Create ur5e robot
+        # Create ur5e object
         self.ur5e = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
 
         # Add preprocessing so that commanded actions are safe
@@ -46,10 +46,14 @@ class MyEnv(BaseRosEnv):
             launch_args=process_args.__dict__,
             observations_from_objects=[self.ur5e],
             action_space=spaces.Box(low=-np.pi, high=np.pi, shape=(6,)))
+
+        # Create a camera object
         self.camera = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam')
 
+        # Initialize all the services of the robots
         self._init_nodes([self.camera, self.ur5e])
 
+        # Define the spaces
         self.observation_space = self.ur5e.observation_space
         self.action_space = self.ur5e.action_space
     
@@ -87,20 +91,22 @@ class MyEnv(BaseRosEnv):
         return rgbd[:, :, :3]
 
     def _get_reward(self, obs):
-        return -(self.ur5e.get_state(['joint_pos'])['joint_pos'][5] - 2)**2  # Je mag hier iets verzinnen Bas
-    
+        # Quadratic reward - move to goal position [0, -np.pi/2, 0, 0, 0, 0]
+        return -((obs['joint_sensors'] - np.array([0, -np.pi/2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
+
     def _is_done(self, obs):
         return self.steps >= self.STEPS_PER_ROLLOUT
 
 
 if __name__ == '__main__':
 
-    rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
+    rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
-    # Engine specific parameters
-    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e_cam.wbt')
+    # Define the engine
+    # engine = WebotsEngine(world='$(find opendr_example)/worlds/ur5e_cam.wbt')
     engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
 
+    # Create environment
     env = MyEnv(engine, name="my_env")
     env = Flatten(env)
 
@@ -112,7 +118,6 @@ if __name__ == '__main__':
     for i in range(1000):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-
         env.render()
         if done:
             obs = env.reset()
