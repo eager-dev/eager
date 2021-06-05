@@ -1,9 +1,14 @@
 import gym, gym.spaces
-from eager_core.utils.file_utils import load_yaml
-from eager_core.utils.gym_utils import *
+from eager_core.utils.file_utils import load_yaml, substitute_xml_args
+from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_from_space,
+                                        get_def_from_space, get_response_from_space,
+                                        get_space_from_def)
+from eager_core.srv import RegisterActionProcessor, RegisterActionProcessorRequest
+from eager_core.msg import Object as Object_msg
 from collections import OrderedDict
 from typing import Dict, List, Callable, Union
 import rospy
+import roslaunch
 import numpy as np
 
 class BaseRosObject():
@@ -94,24 +99,71 @@ class Actuator(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
         super().__init__(type, name)
         self.action_space = space
+        self.preprocess_launch = None
+        self.processor_action_space = None
 
     def init_node(self, base_topic: str = ''):
         if self.action_space is None:
             self.action_space = self._infer_space(base_topic)
 
-        self._buffer = self.action_space.sample()
-
-        self._send_action_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._send_action)
+        if self.preprocess_launch is not None:
+            # Launch processor
+            cli_args = self.preprocess_launch
+            cli_args.append('ns:={}'.format(self.get_topic(base_topic)))
+            roslaunch_args = cli_args[1:]
+            roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+            uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+            roslaunch.configure_logging(uuid)
+            launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+            launch.start()
+            
+            # Register processor
+            self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(base_topic) + "/register_processor", RegisterActionProcessor)
+            self._register_action_processor_service.wait_for_service()
+            response = self._register_action_processor_service(self.preprocess_req)
+            
+            if self.processor_action_space is not None:
+                self.action_space = self.processor_action_space
+            else:
+                self.action_space = get_space_from_space_msg(response.action_space)
+            
+            # Initialize buffer
+            self._buffer = self.action_space.sample()
+            
+            # Create act service
+            self._act_service = rospy.Service(self.get_topic(base_topic) + "/raw", get_message_from_space(self.action_space), self._send_action)
+        else:
+            self._buffer = self.action_space.sample()
+            
+            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._send_action)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/actuator_preprocess/ros_launchfile', node_type='service', stateless=True):
-        self.action_space = processed_space
-        self.launch_path = launch_path
-        self.node_type = node_type
-        self.stateless = stateless
-    
+    def add_preprocess(self, launch_path: str, launch_args: dict={}, observations_from_objects: list=[], action_space: gym.Space = None):
+        
+        cli_args = [substitute_xml_args(launch_path)]
+        for key, value in launch_args.items():
+            cli_args.append('{}:={}'.format(key, value))
+        self.preprocess_launch = cli_args
+        
+        observation_objects = []
+        for object in observations_from_objects:
+            object_msg = Object_msg()
+            object_msg.type = object.type
+            object_msg.name = object.name
+            observation_objects.append(object_msg)
+        
+        req = RegisterActionProcessorRequest()
+        if action_space is not None:
+            req.raw_action_type = get_def_from_space(action_space)['type']
+        req.action_type = get_def_from_space(self.action_space)['type']
+        req.observation_objects = observation_objects
+        self.preprocess_req = req
+        
+        if action_space is not None:
+            self.processor_action_space = action_space
+        
     def reset(self) -> None:
         pass
 
@@ -260,4 +312,3 @@ class Object(BaseRosObject):
             actuator.close()
         for state in self.states.values():
             state.close()
-                    
