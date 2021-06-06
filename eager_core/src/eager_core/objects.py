@@ -172,7 +172,7 @@ class Actuator(BaseRosObject):
         return msg_class(self._buffer)
 
     def close(self):
-        self._send_action_service.shutdown()
+        self._act_service.shutdown()
 
 
 class Object(BaseRosObject):

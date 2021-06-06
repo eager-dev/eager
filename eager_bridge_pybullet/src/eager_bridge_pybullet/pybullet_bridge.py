@@ -1,12 +1,14 @@
 # ROS packages required
-from genpy import message
-import rospy, rosservice
+# from genpy import message
+import rospy, roslaunch, rosparam
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
 from eager_bridge_pybullet.pybullet_robot import URDFBasedRobot
-from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def
+from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def, get_dtype_from_def
 
+import tempfile
+import re
 import numpy as np
 import functools
 import os
@@ -69,6 +71,7 @@ class PyBulletBridge(PhysicsBridge):
             p = bullet_client.BulletClient(connection_mode=pybullet.GUI)
         else:
             p = bullet_client.BulletClient()
+        physics_client_id = p._client
         p.resetSimulation()
         p.setPhysicsEngineParameter(deterministicOverlappingPairs=1)
         # optionally enable EGL for faster headless rendering
@@ -81,24 +84,95 @@ class PyBulletBridge(PhysicsBridge):
                         p.loadPlugin(egl.get_filename(), "_eglRendererPlugin")
                     else:
                         p.loadPlugin("eglRendererPlugin")
+                    # STRANGE! Must pre-render atleast nun_runs=2 images, else crash in _camera_callback(...)
+                    self._test_fps_rendering(p, physics_client_id, num_runs=100)
         except:
             pass
-        physics_client_id = p._client
+
         return p, physics_client_id
 
+    def _test_fps_rendering(self, p, physics_client_id, num_runs=100):
+        import time
+        times = np.zeros(num_runs)
+        for i in range(num_runs):
+            start = time.time()
+            (_, _, rgb, depth, seg) = p.getCameraImage(width=640,
+                                                       height=480,
+                                                       viewMatrix=(0.0, -0.7071068286895752, 0.7071067690849304, 0.0, 1.0, 0.0, -0.0, 0.0, 0.0, 0.7071067690849304, 0.7071068286895752, 0.0, -0.0, 0.141421377658844, -0.841421365737915, 1.0),
+                                                       projectionMatrix=(1.299038052558899, 0.0, 0.0, 0.0, 0.0, 1.7320507764816284, 0.0, 0.0, 0.0, 0.0, -1.0020020008087158, -1.0, 0.0, 0.0, -0.20020020008087158, 0.0),
+                                                       flags=pybullet.ER_NO_SEGMENTATION_MASK,
+                                                       renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
+                                                       physicsClientId=physics_client_id)
+            # renderer=pybullet.ER_TINY_RENDERER)
+            stop = time.time()
+            duration = (stop - start)
+            if (duration):
+                fps = 1. / duration
+            else:
+                fps = 0
+            times[i] = fps
+        print("mean: {0} for {1} runs".format(np.mean(times), num_runs))
+
     def _register_object(self, topic, name, package, object_type, args, config):
-        urdf_path = substitute_xml_args(config['urdf'])
-        self._robots[name] = URDFBasedRobot(self._p,
-                                            model_urdf=urdf_path,
-                                            robot_name=name,
-                                            basePosition=args['position'],
-                                            baseOrientation=args['orientation'],
-                                            fixed_base=args['fixed_base'],
-                                            self_collision=args['self_collision'])
-        self._init_sensors(topic, name, config['sensors'], self._robots[name])
-        self._init_actuators(topic, name, config['actuators'], self._robots[name])
-        self._init_states(topic, name, config['states'], self._robots[name])
-        self._init_resets(topic, name, config['states'], self._robots[name])
+        if 'xacro' in config and config['xacro']:
+            if 'xacro_args' in config and config['xacro_args']:
+                # todo: maybe not needed if launch.start() only exits after xacro command has completely run
+                # try:
+                #     rosparam.delete_param('%s' % config['xacro_param'])
+                #     rospy.loginfo('Pre-existing robot_description under namespace "%s" deleted.' % config['xacro_param'])
+                # except:
+                #     pass
+
+                # Launch xacro that saves created urdf on ROSparam server
+                cli_args = [substitute_xml_args(config['xacro']),
+                            config['xacro_args']]
+                roslaunch_args = cli_args[1:]
+                roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+                uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+                roslaunch.configure_logging(uuid)
+                launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+                launch.start()
+
+                # Retrieve string URDF from ROSparam server and save as temporary file
+                tmp_fd, tmp_path = tempfile.mkstemp(suffix='.urdf')
+                pkg_path = re.search('\$\((.*)\)', config['xacro'])[0]
+                str_urdf = rospy.get_param('robot_description')
+                # todo: remove explicit dependence on "package://ur_e_description"
+                # todo: create a dedicated "pybullet_generate urdf.launch" in eager_robot_<robot> package
+                str_urdf_full = str_urdf.replace("package://ur_e_description", substitute_xml_args(pkg_path))
+                try:
+                    with os.fdopen(tmp_fd, 'w') as tmp:
+                        # do stuff with temp file
+                        tmp.write(str_urdf_full)
+                    self._robots[name] = URDFBasedRobot(self._p,
+                                                        model_urdf=tmp_path,
+                                                        robot_name=name,
+                                                        basePosition=args['position'],
+                                                        baseOrientation=args['orientation'],
+                                                        fixed_base=args['fixed_base'],
+                                                        self_collision=args['self_collision'])
+                finally:
+                    os.remove(tmp_path)
+        elif 'urdf' in config and config['urdf']:  # check if urdf is available
+            urdf_path = substitute_xml_args(config['urdf'])
+            self._robots[name] = URDFBasedRobot(self._p,
+                                                model_urdf=urdf_path,
+                                                robot_name=name,
+                                                basePosition=args['position'],
+                                                baseOrientation=args['orientation'],
+                                                fixed_base=args['fixed_base'],
+                                                self_collision=args['self_collision'])
+        # if 'type' is 'camera':
+            # todo: create camera class, initialize with .yaml sensor description.
+        else:  # if no urdf, also no pybullet robot. Create dummy robot.
+            self._robots[name] = None
+        if 'sensors' in config:
+            self._init_sensors(topic, name, config['sensors'], self._robots[name])
+        if 'actuators' in config:
+            self._init_actuators(topic, name, config['actuators'], self._robots[name])
+        if 'states' in config:
+            self._init_states(topic, name, config['states'], self._robots[name])
+            self._init_resets(topic, name, config['states'], self._robots[name])
         return True
 
     def _init_sensors(self, topic, name, sensors, robot):
@@ -107,9 +181,9 @@ class PyBulletBridge(PhysicsBridge):
         for sensor in sensors:
             topic_list = sensors[sensor]['names']
             space = sensors[sensor]['space']
-            robot_sensors[sensor] = [get_value_from_def(space)] * len(topic_list)
-            bodyUniqueId = []
+            robot_sensors[sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             if 'joint' in sensors[sensor]['type']:
+                bodyUniqueId = []
                 jointIndices = []
                 for idx, pybullet_name in enumerate(topic_list):
                     bodyid, jointindex = robot.jdict[pybullet_name].get_bodyid_jointindex()
@@ -126,6 +200,7 @@ class PyBulletBridge(PhysicsBridge):
                                              jointIndices=jointIndices,
                                              physicsClientId=self.physics_client_id)
             elif 'link' in sensors[sensor]['type']:
+                bodyUniqueId = []
                 linkIndices = []
                 for idx, pybullet_name in enumerate(topic_list):
                     bodyid, linkindex = robot.parts[pybullet_name].get_bodyid_linkindex()
@@ -138,8 +213,38 @@ class PyBulletBridge(PhysicsBridge):
                                              bodyUniqueId=bodyUniqueId[0],
                                              linkIndices=linkIndices,
                                              physicsClientId=self.physics_client_id)
+            elif 'camera' in sensors[sensor]['type']:
+                # todo: make position adjustable
+                # todo: breaks if observation space is not defined as uint8 with 'shape' keyword...
+                intrinsic = sensors[sensor]['intrinsic']
+                extrinsic = sensors[sensor]['extrinsic']
+                aspect = space['shape'][0] / space['shape'][1]  # height / width
+                proj_matrix = pybullet.computeProjectionMatrixFOV(fov=intrinsic['fov'],
+                                                                  aspect=aspect,
+                                                                  nearVal=intrinsic['near_val'],
+                                                                  farVal=intrinsic['far_val'])
+                view_matrix = pybullet.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=extrinsic['pos'],
+                                                                         distance=extrinsic['dist'],
+                                                                         roll=extrinsic['euler'][0],
+                                                                         pitch=extrinsic['euler'][1],
+                                                                         yaw=extrinsic['euler'][2],
+                                                                         upAxisIndex=extrinsic['up_axis'])
+
+                callback = functools.partial(self._camera_callback,
+                                             buffer=self._sensor_buffer,
+                                             name=name,
+                                             obs_name=sensor,
+                                             obs_type=sensors[sensor]['type'],
+                                             dtype=get_dtype_from_def(space),
+                                             height=space['shape'][0],
+                                             width=space['shape'][1],
+                                             viewMatrix=view_matrix,
+                                             projectionMatrix=proj_matrix,
+                                             renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
+                                             physicsClientId=self.physics_client_id)
             else:
-                raise ValueError('Sensor_type ("%s") must contain either "joint" or "link".' % sensors[sensor]['type'])
+                raise ValueError('Sensor_type ("%s") must contain either {joint, link, camera}.' % sensors[sensor]['type'])
+
             sensor_cb[sensor] = callback
             self._set_sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space),
                                                            functools.partial(self._service,
@@ -215,7 +320,7 @@ class PyBulletBridge(PhysicsBridge):
         for state in states:
             topic_list = states[state]['names']
             space = states[state]['space']
-            robot_states[state] = [get_value_from_def(space)] * len(topic_list)
+            robot_states[state] = [get_value_from_def(space)] * get_length_from_def(space)
             bodyUniqueId = []
             if 'joint' in states[state]['type']:
                 jointIndices = []
@@ -339,6 +444,31 @@ class PyBulletBridge(PhysicsBridge):
                 'Type of [%s][%s] in .yaml robot description (%s) must contain either {"pos", "vel", "orientation", "angular_vel"}.' % (name, obs_name, obs_type))
         buffer[name][obs_name] = obs
 
+    def _camera_callback(self, buffer, name, obs_name, obs_type, dtype, width, height, viewMatrix, projectionMatrix, renderer, physicsClientId):
+        obs = []
+        (_, _, rgba, depth, seg) = self._p.getCameraImage(width=width,
+                                                         height=height,
+                                                         viewMatrix=viewMatrix,
+                                                         projectionMatrix=projectionMatrix,
+                                                         flags=pybullet.ER_NO_SEGMENTATION_MASK,
+                                                         renderer=renderer,
+                                                         physicsClientId=physicsClientId,)
+        # todo: infer order via 'type' description
+        if 'rgb' in obs_type[7:]:
+            obs.append(rgba[:, :, :3])
+        if 'a' in obs_type[7:]:
+            obs.append(rgba[:, :, [3]])
+        if 'd' in obs_type[7:]:
+            if dtype is 'uint8':
+                depth *= 255
+            obs.append(depth[:, :, np.newaxis].astype(dtype))
+        # todo: if float, probably calculate as value between [0, 1]
+        # todo: Reduce computational load
+        obs = np.concatenate(obs, dtype=dtype, axis=2)  # computational load:  250 fps --> 190 fps
+        obs = obs.flatten()  # computational load: 190 fps --> 185 fps
+        obs = obs.tolist()  # computational load:  185 fps --> 85 fps
+        buffer[name][obs_name] = obs
+
     def _joint_actuator_srvs(self, action, control_mode, callback):
         if control_mode == 'position_control':
             callback(targetPositions=action)
@@ -413,6 +543,14 @@ class PyBulletBridge(PhysicsBridge):
                 (get_state_srv, set_reset_srvs) = robot_resets[state]
                 state = get_state_srv()
                 set_reset_srvs(reset_state=list(state.value))
+
+        # update all observation & state buffers
+        for name in self._sensor_cbs:
+            for sensor in self._sensor_cbs[name]:
+                self._sensor_cbs[name][sensor]()
+        for name in self._state_cbs:
+            for state in self._state_cbs[name]:
+                self._state_cbs[name][state]()
         return True
 
     def _close(self):
