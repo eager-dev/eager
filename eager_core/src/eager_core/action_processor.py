@@ -1,6 +1,6 @@
 import abc
 import rospy
-from eager_core.srv import RegisterActionProcessor, ResetEnv, CloseEnv
+from eager_core.srv import RegisterActionProcessor, ResetEnv
 from eager_core.utils.file_utils import load_yaml
 from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
 from eager_core.utils.gym_utils import get_message_from_space, get_space_msg_from_space
@@ -16,8 +16,7 @@ class ActionProcessor(ABC):
         self._get_observation_services = {}        
         self.__register_service = rospy.Service('register_processor', RegisterActionProcessor, self.__register_handler)
         self.__reset_service = rospy.Service('reset_processor', ResetEnv, self.__reset_handler)
-        self.__close_service = rospy.Service('close_processor', CloseEnv, self.__close_handler)
-           
+
     @abc.abstractmethod
     def _process_action(self, action, observation):
         return action

@@ -2,7 +2,7 @@
 
 # ROS packages required
 import rospy
-from eager_core.ros_env import BaseRosEnv
+from eager_core.eager_env import BaseEagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
@@ -14,7 +14,7 @@ import numpy as np
 import pybullet_data
 from stable_baselines3 import PPO
 
-class MyEnv(BaseRosEnv):
+class MyEnv(BaseEagerEnv):
 
     def __init__(self, engine, name="custom_env"):
         super().__init__(engine, name=name)

@@ -2,7 +2,7 @@
 
 # ROS packages required
 import rospy
-from eager_core.ros_env import RosEnv
+from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                                              observations_from_objects=[ur5e1],
                                              )
     
-    env = RosEnv(engine=engine, objects=[ur5e1], name=env_name)
+    env = EagerEnv(engine=engine, objects=[ur5e1], name=env_name)
     env = Flatten(env)
     # todo: As of now, check_env fails because we do not wrap the angles of the joints to [-pi, pi].
     #  This causes the observations to sometimes not be in the observation_space. This was a problem before,

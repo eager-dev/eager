@@ -2,7 +2,7 @@
 
 # ROS packages required
 import rospy
-from eager_core.ros_env import RosEnv
+from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     # Initialize environment
     robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
-    env = RosEnv(engine=engine, objects=[robot], name='ros_env')
+    env = EagerEnv(engine=engine, objects=[robot], name='ros_env')
     env = Flatten(env)
     check_env(env)
 

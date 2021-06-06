@@ -2,7 +2,7 @@
 
 # ROS packages required
 import rospy
-from eager_core.ros_env import RosEnv
+from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     objects.append(cam)
 
     # Create environment
-    env = RosEnv(engine=engine, objects=objects, name='multi_env', render_obs=cam.sensors['camera_right'].get_obs, max_steps=100, reward_fn=reward_fn)
+    env = EagerEnv(engine=engine, objects=objects, name='multi_env', render_obs=cam.sensors['camera_right'].get_obs, max_steps=100, reward_fn=reward_fn)
     env = Flatten(env)
 
     env.seed(42)
