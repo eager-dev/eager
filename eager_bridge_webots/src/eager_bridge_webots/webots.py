@@ -13,7 +13,7 @@ class WeBotsBridge(PhysicsBridge):
     def __init__(self):
         self._start_simulator()
 
-        self._step_time = 80
+        self._step_time = rospy.get_param('physics_bridge/step_time')
 
         self._supervisor_name = self._get_supervisor()
 
