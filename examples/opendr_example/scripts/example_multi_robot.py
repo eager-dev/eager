@@ -26,12 +26,21 @@ if __name__ == '__main__':
             idx = len(objects)
             objects.append(Object.create('ur5e%d' % idx, 'eager_robot_ur5e', 'ur5e', position=[x, y, 0]))
 
+    # Dummy reward function - Here, we output a batch reward for each ur5e.
+    # Anything can be defined here. All observations for each object in "objects" is included in obs
+    def reward_fn(obs):
+        rwd = []
+        for obj in obs:
+            if 'ur5e' in obj:
+                rwd.append(-(obs[obj]['joint_sensors'] ** 2).sum())
+        return rwd
+
     # Add a camera for rendering
     cam = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam')
     objects.append(cam)
 
     # Create environment
-    env = RosEnv(engine=engine, objects=objects, name='multi_env', render_obs=cam.sensors['camera_right'].get_obs, max_steps=100)
+    env = RosEnv(engine=engine, objects=objects, name='multi_env', render_obs=cam.sensors['camera_right'].get_obs, max_steps=100, reward_fn=reward_fn)
     env = Flatten(env)
 
     env.seed(42)

@@ -16,7 +16,7 @@ from stable_baselines3 import PPO
 
 class MyEnv(BaseRosEnv):
 
-    def __init__(self, engine, name="custom_env"):
+    def __init__(self, engine, name="my_env"):
         super().__init__(engine, name=name)
 
         self.STEPS_PER_ROLLOUT = 100

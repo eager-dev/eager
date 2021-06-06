@@ -1,9 +1,9 @@
 import gym, gym.spaces
 import rospy, roslaunch, rosparam
 from gym.utils import seeding
-from eager_core.objects import Object
 from collections import OrderedDict
 from typing import List, Tuple
+from eager_core.objects import Object
 from eager_core.srv import StepEnv, ResetEnv, Register
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.msg import Seed, Object as ObjectMsg
@@ -100,7 +100,7 @@ class BaseRosEnv(gym.Env):
 
 class RosEnv(BaseRosEnv):
 
-    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, **kwargs) -> None:
+    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, reward_fn=None, is_done_fn=None, **kwargs) -> None:
         # todo: Interface changes a lot, use **kwargs.
         #  Make arguments of baseclass explicit when interface is more-or-less fixed.
         super().__init__(**kwargs)
@@ -108,7 +108,13 @@ class RosEnv(BaseRosEnv):
         self.observers = observers
         self.render_obs = render_obs
 
-        # Used in _is_done() check
+        # Overwrite the _get_reward() function if provided
+        if reward_fn:
+            self._get_reward = reward_fn
+
+        # Overwrite the _is_done() function if provided
+        if is_done_fn:
+            self._is_done = is_done_fn
         self.STEPS_PER_ROLLOUT = max_steps
         self.steps = 0
 
