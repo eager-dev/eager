@@ -2,7 +2,7 @@
 
 # ROS packages required
 import rospy
-from eager_core.ros_env import RosEnv
+from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     # Initialize environment
     cam = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam')
     ur5e1 = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
-    env = RosEnv(engine=engine, objects=[ur5e1, cam], name='ros_env', render_obs=cam.sensors['camera_right'].get_obs)
+    env = EagerEnv(engine=engine, objects=[ur5e1, cam], name='ros_env', render_obs=cam.sensors['camera_right'].get_obs)
     env = Flatten(env)
     check_env(env)
 

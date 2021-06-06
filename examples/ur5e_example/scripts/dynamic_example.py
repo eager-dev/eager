@@ -1,6 +1,6 @@
 # ROS packages required
 import rospy
-from eager_core.ros_env import RosEnv
+from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # engine = GazeboEngine()
 
     # Initialize environment
-    env = RosEnv(engine=engine, objects=[Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')
+    env = EagerEnv(engine=engine, objects=[Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')], name='ros_env')
     env = Flatten(env)
     # todo: As of now, check_env fails because we do not wrap the angles of the joints to [-pi, pi].
     #  This causes the observations to sometimes not be in the observation_space. This was a problem before,

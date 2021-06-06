@@ -9,7 +9,7 @@ from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
-class BaseRosEnv(gym.Env):
+class BaseEagerEnv(gym.Env):
     def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
@@ -92,13 +92,13 @@ class BaseRosEnv(gym.Env):
         except:
             pass
     def seed(self, seed: int = None) -> List[int]:
-        # todo: does this actually seed e.g. numpy on the RosEnv side?
+        # todo: does this actually seed e.g. numpy on the EagerEnv side?
         seed = seeding.create_seed(seed)
         self.__seed_publisher.publish(seed)
         return [seed]
 
 
-class RosEnv(BaseRosEnv):
+class EagerEnv(BaseEagerEnv):
 
     def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, reward_fn=None, is_done_fn=None, **kwargs) -> None:
         # todo: Interface changes a lot, use **kwargs.
