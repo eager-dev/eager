@@ -108,7 +108,7 @@ gazebo:
       -
 
 pybullet:
-  xacro: '$(find ur_e_description)/launch/ur5e_upload.launch'
+  xacro: '$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro'
   xacro_args: 'limited:=true'
   xacro_param: 'robot_description'
   sensors:  # IMPORTANT! Currently, not possible to mix sensor measurements of links & joints
