@@ -1,6 +1,6 @@
 # ROS packages required
 # from genpy import message
-import rospy, roslaunch, rosparam
+import rospy, roslaunch, rosparam, subprocess, xacro
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
@@ -12,6 +12,7 @@ import re
 import numpy as np
 import functools
 import os
+import sys
 os.environ['PYBULLET_EGL'] = "1"
 # ^^^^ before importing pybullet_gym
 try:
@@ -124,22 +125,21 @@ class PyBulletBridge(PhysicsBridge):
                 #     pass
 
                 # Launch xacro that saves created urdf on ROSparam server
-                cli_args = [substitute_xml_args(config['xacro']),
-                            config['xacro_args']]
-                roslaunch_args = cli_args[1:]
-                roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-                uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-                roslaunch.configure_logging(uuid)
-                launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-                launch.start()
-
+                try:
+                    xacro_file = substitute_xml_args(config['xacro'])
+                    command_string = "rosrun xacro xacro {}".format(xacro_file)
+                    robot_description = subprocess.check_output(command_string, shell=True, stderr=subprocess.STDOUT).decode('ascii')
+                except subprocess.CalledProcessError as process_error:
+                    rospy.logfatal('Failed to run xacro command with error: \n%s', process_error.output)
+                    sys.exit(1)
+                rospy.set_param("/ros_env/robot_description", robot_description)
                 # Retrieve string URDF from ROSparam server and save as temporary file
                 tmp_fd, tmp_path = tempfile.mkstemp(suffix='.urdf')
                 pkg_path = re.search('\$\((.*)\)', config['xacro'])[0]
                 str_urdf = rospy.get_param('robot_description')
-                # todo: remove explicit dependence on "package://ur_e_description"
-                # todo: create a dedicated "pybullet_generate urdf.launch" in eager_robot_<robot> package
-                str_urdf_full = str_urdf.replace("package://ur_e_description", substitute_xml_args(pkg_path))
+                re_expr = re.compile(r"package\:\/\/[a-z\_]*")
+                m = re.findall(re_expr, str_urdf)
+                str_urdf_full = re.sub(re_expr, substitute_xml_args(pkg_path), str_urdf)
                 try:
                     with os.fdopen(tmp_fd, 'w') as tmp:
                         # do stuff with temp file
