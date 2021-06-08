@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+		<arg name="preprocess_example" default="false" doc="This will launch an example with preprocessing of actions."/>
+		
+    <node unless="$(arg preprocess_example)" name="panda_example" pkg="panda_example" type="example.py" output="screen"/>
+    <node if="$(arg preprocess_example)" name="ur5e_example" pkg="ur5e_example" type="preprocess_example.py" output="screen"/>
+</launch>
