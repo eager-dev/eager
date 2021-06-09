@@ -1,6 +1,6 @@
 # ROS packages required
 # from genpy import message
-import rospy, roslaunch, rosparam, subprocess, xacro
+import rospy, subprocess, xacro
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
