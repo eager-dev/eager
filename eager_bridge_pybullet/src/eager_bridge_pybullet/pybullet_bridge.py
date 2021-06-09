@@ -64,7 +64,6 @@ class PyBulletBridge(PhysicsBridge):
         self._set_state_services = []
 
         self._reset_services = dict()
-        self._generate_urdf = True
 
         super(PyBulletBridge, self).__init__("pybullet")
 
@@ -127,9 +126,8 @@ class PyBulletBridge(PhysicsBridge):
             # Runs xacro to generate robot urdf
             pkg_path = substitute_xml_args(re.search('\$\((.*)\)', config['xacro'])[0])
             urdf_filename = pkg_path + '/' + config['urdf_name'] + '.urdf'
-            self._generate_urdf = self._generate_urdf and 'generate_urdf' in config and config['generate_urdf']
-            self._generate_urdf = self._generate_urdf or not(os.path.exists(urdf_filename))
-            if self._generate_urdf:
+            generate_urdf = not('generate_urdf' in args and not(args['generate_urdf']))
+            if generate_urdf:
                 rospy.loginfo("Running xacro to create urdf and storing it at %s", urdf_filename)
                 try:
                     xacro_file = substitute_xml_args(config['xacro'])
@@ -146,7 +144,6 @@ class PyBulletBridge(PhysicsBridge):
                 str_urdf_full = re.sub(re_expr, pkg_path, robot_urdf)
                 with open(urdf_filename, 'w') as file:
                     file.write(str_urdf_full)
-                self._generate_urdf = False
             try:
                 self._robots[name] = URDFBasedRobot(self._p,
                                                     model_urdf=urdf_filename,
@@ -156,7 +153,7 @@ class PyBulletBridge(PhysicsBridge):
                                                     fixed_base=args['fixed_base'],
                                                     self_collision=args['self_collision'])
             except Exception as e:
-                rospy.logfatal('Failed to load urdf in pybullet: \n%s', e.output)
+                rospy.logfatal('Failed to load urdf in pybullet: \n%s', str(e))
         elif 'urdf' in config and config['urdf']:  # check if urdf is available
             urdf_path = substitute_xml_args(config['urdf'])
             self._robots[name] = URDFBasedRobot(self._p,
