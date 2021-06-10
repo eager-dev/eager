@@ -1,6 +1,6 @@
 # ROS packages required
 # from genpy import message
-import rospy, subprocess, xacro
+import rospy, xacro
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
@@ -137,13 +137,9 @@ class PyBulletBridge(PhysicsBridge):
                 rospy.loginfo("Running xacro to create urdf and storing it at %s", urdf_filename)
                 try:
                     xacro_file = substitute_xml_args(config['xacro'])
-                    command_string = "rosrun xacro xacro {}".format(xacro_file)
-                    if 'xacro_args' in config:
-                        for xacro_arg in config['xacro_args']:
-                            command_string += " " + xacro_arg[0] + ":=" + xacro_arg[1]
-                    robot_urdf = subprocess.check_output(command_string, shell=True, stderr=subprocess.STDOUT).decode('ascii')
-                except subprocess.CalledProcessError as process_error:
-                    rospy.logfatal('Failed to run xacro command with error: \n%s', process_error.output)
+                    robot_urdf = xacro.process_file(xacro_file).toxml()
+                except Exception as e:
+                    rospy.logfatal('Failed to run xacro with error: \n%s', str(e))
                     sys.exit(1)
                 re_expr = re.compile(r"package\:\/\/[a-z\_]*")
                 m = re.findall(re_expr, robot_urdf)
