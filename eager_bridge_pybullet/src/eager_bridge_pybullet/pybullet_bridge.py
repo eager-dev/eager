@@ -137,7 +137,7 @@ class PyBulletBridge(PhysicsBridge):
                 rospy.loginfo("Running xacro to create urdf and storing it at %s", urdf_filename)
                 try:
                     xacro_file = substitute_xml_args(config['xacro'])
-                    robot_urdf = xacro.process_file(xacro_file).toxml()
+                    robot_urdf = xacro.process_file(xacro_file).toprettyxml()
                 except Exception as e:
                     rospy.logfatal('Failed to run xacro with error: \n%s', str(e))
                     sys.exit(1)
