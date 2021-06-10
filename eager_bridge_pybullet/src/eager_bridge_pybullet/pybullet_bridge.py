@@ -1,6 +1,6 @@
 # ROS packages required
 # from genpy import message
-import rospy, roslaunch, rosparam
+import rospy, xacro
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
@@ -12,6 +12,7 @@ import re
 import numpy as np
 import functools
 import os
+import sys
 os.environ['PYBULLET_EGL'] = "1"
 # ^^^^ before importing pybullet_gym
 try:
@@ -115,44 +116,47 @@ class PyBulletBridge(PhysicsBridge):
 
     def _register_object(self, topic, name, package, object_type, args, config):
         if 'xacro' in config and config['xacro']:
-            if 'xacro_args' in config and config['xacro_args']:
-                # todo: maybe not needed if launch.start() only exits after xacro command has completely run
-                # try:
-                #     rosparam.delete_param('%s' % config['xacro_param'])
-                #     rospy.loginfo('Pre-existing robot_description under namespace "%s" deleted.' % config['xacro_param'])
-                # except:
-                #     pass
+            # todo: maybe not needed if launch.start() only exits after xacro command has completely run
+            # try:
+            #     rosparam.delete_param('%s' % config['xacro_param'])
+            #     rospy.loginfo('Pre-existing robot_description under namespace "%s" deleted.' % config['xacro_param'])
+            # except:
+            #     pass
 
-                # Launch xacro that saves created urdf on ROSparam server
-                cli_args = [substitute_xml_args(config['xacro']),
-                            config['xacro_args']]
-                roslaunch_args = cli_args[1:]
-                roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-                uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-                roslaunch.configure_logging(uuid)
-                launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-                launch.start()
-
-                # Retrieve string URDF from ROSparam server and save as temporary file
-                tmp_fd, tmp_path = tempfile.mkstemp(suffix='.urdf')
-                pkg_path = re.search('\$\((.*)\)', config['xacro'])[0]
-                str_urdf = rospy.get_param('robot_description')
-                # todo: remove explicit dependence on "package://ur_e_description"
-                # todo: create a dedicated "pybullet_generate urdf.launch" in eager_robot_<robot> package
-                str_urdf_full = str_urdf.replace("package://ur_e_description", substitute_xml_args(pkg_path))
+            # Check what kind of path was given and set urdf_filename accordingly
+            if bool(re.match(r"\/", config['urdf_name'])):
+                urdf_filename = config['urdf_name'] + ".urdf"
+            elif bool(re.match(r"\$", config['urdf_name'])):
+                urdf_filename = substitute_xml_args(config['urdf_name']) + ".urdf"
+            else:
+                eager_robot_pkg_path = substitute_xml_args('$(find eager_robot_' + object_type + ')')
+                urdf_filename = eager_robot_pkg_path + '/' + config['urdf_name'] + '.urdf'
+            generate_urdf = not('generate_urdf' in args and not(args['generate_urdf']))
+            if generate_urdf:
+                # Runs xacro to generate robot urdf
+                rospy.loginfo("Running xacro to create urdf and storing it at %s", urdf_filename)
                 try:
-                    with os.fdopen(tmp_fd, 'w') as tmp:
-                        # do stuff with temp file
-                        tmp.write(str_urdf_full)
-                    self._robots[name] = URDFBasedRobot(self._p,
-                                                        model_urdf=tmp_path,
-                                                        robot_name=name,
-                                                        basePosition=args['position'],
-                                                        baseOrientation=args['orientation'],
-                                                        fixed_base=args['fixed_base'],
-                                                        self_collision=args['self_collision'])
-                finally:
-                    os.remove(tmp_path)
+                    xacro_file = substitute_xml_args(config['xacro'])
+                    robot_urdf = xacro.process_file(xacro_file).toprettyxml()
+                except Exception as e:
+                    rospy.logfatal('Failed to run xacro with error: \n%s', str(e))
+                    sys.exit(1)
+                re_expr = re.compile(r"package\:\/\/[a-z\_]*")
+                m = re.findall(re_expr, robot_urdf)
+                description_pkg_path = substitute_xml_args(re.search('\$\((.*)\)', config['xacro'])[0])
+                str_urdf_full = re.sub(re_expr, description_pkg_path, robot_urdf)
+                with open(urdf_filename, 'w') as file:
+                    file.write(str_urdf_full)
+            try:
+                self._robots[name] = URDFBasedRobot(self._p,
+                                                    model_urdf=urdf_filename,
+                                                    robot_name=name,
+                                                    basePosition=args['position'],
+                                                    baseOrientation=args['orientation'],
+                                                    fixed_base=args['fixed_base'],
+                                                    self_collision=args['self_collision'])
+            except Exception as e:
+                rospy.logfatal('Failed to load urdf in pybullet: \n%s', str(e))
         elif 'urdf' in config and config['urdf']:  # check if urdf is available
             urdf_path = substitute_xml_args(config['urdf'])
             self._robots[name] = URDFBasedRobot(self._p,
