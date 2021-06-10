@@ -123,11 +123,17 @@ class PyBulletBridge(PhysicsBridge):
             # except:
             #     pass
 
-            # Runs xacro to generate robot urdf
-            pkg_path = substitute_xml_args(re.search('\$\((.*)\)', config['xacro'])[0])
-            urdf_filename = pkg_path + '/' + config['urdf_name'] + '.urdf'
+            # Check what kind of path was given and set urdf_filename accordingly
+            if bool(re.match(r"\/", config['urdf_name'])):
+                urdf_filename = config['urdf_name'] + ".urdf"
+            elif bool(re.match(r"\$", config['urdf_name'])):
+                urdf_filename = substitute_xml_args(config['urdf_name']) + ".urdf"
+            else:
+                eager_robot_pkg_path = substitute_xml_args('$(find eager_robot_' + object_type + ')')
+                urdf_filename = eager_robot_pkg_path + '/' + config['urdf_name'] + '.urdf'
             generate_urdf = not('generate_urdf' in args and not(args['generate_urdf']))
             if generate_urdf:
+                # Runs xacro to generate robot urdf
                 rospy.loginfo("Running xacro to create urdf and storing it at %s", urdf_filename)
                 try:
                     xacro_file = substitute_xml_args(config['xacro'])
@@ -141,7 +147,8 @@ class PyBulletBridge(PhysicsBridge):
                     sys.exit(1)
                 re_expr = re.compile(r"package\:\/\/[a-z\_]*")
                 m = re.findall(re_expr, robot_urdf)
-                str_urdf_full = re.sub(re_expr, pkg_path, robot_urdf)
+                description_pkg_path = substitute_xml_args(re.search('\$\((.*)\)', config['xacro'])[0])
+                str_urdf_full = re.sub(re_expr, description_pkg_path, robot_urdf)
                 with open(urdf_filename, 'w') as file:
                     file.write(str_urdf_full)
             try:
