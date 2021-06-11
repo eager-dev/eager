@@ -1,0 +1,8 @@
+- git:
+    local-name: universal_robot
+    uri: https://github.com/ros-industrial/universal_robot.git
+    version: melodic-devel
+- git:
+    local-name: ur_modern_driver
+    uri: https://github.com/ros-industrial/ur_modern_driver.git
+    version: kinetic-devel
