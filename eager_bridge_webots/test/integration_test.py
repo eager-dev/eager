@@ -8,7 +8,7 @@ from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
 
-from stable_baselines3.common.env_checker import check_env
+from eager_core.utils.env_checker import check_env
 
 PKG = 'eager_bridge_webots'
 NAME = 'integration_test'

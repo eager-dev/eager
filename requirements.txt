@@ -6,5 +6,4 @@ defusedxml
 scenic
 future
 netifaces
-stable-baselines3>=0.10.0
 pybullet>=3.1.7
