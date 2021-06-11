@@ -55,10 +55,7 @@
   <build_export_depend>rospy</build_export_depend>
   <exec_depend>eager_core</exec_depend>
   <exec_depend>rospy</exec_depend>
-  <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>franka_description</exec_depend>
-  <exec_depend>controller_manager</exec_depend>
-  <exec_depend>ur_modern_driver</exec_depend>
   
 
 
