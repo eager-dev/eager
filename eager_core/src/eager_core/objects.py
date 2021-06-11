@@ -1,5 +1,5 @@
 import gym, gym.spaces
-from eager_core.utils.file_utils import load_yaml, substitute_xml_args
+from eager_core.utils.file_utils import load_yaml, substitute_xml_args, check_object_config
 from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_from_space,
                                         get_def_from_space, get_response_from_space,
                                         get_space_from_def)
@@ -17,6 +17,7 @@ class BaseRosObject():
         self.type = type
         self.name = name
         self.args = str(kwargs)
+        self._is_initialized = False
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
         pass
@@ -36,6 +37,12 @@ class Sensor(BaseRosObject):
         self.observation_space = space
 
     def init_node(self, base_topic: str = '') -> None:
+        if self._is_initialized:
+            str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+        self._is_initialized = True
+
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
         
@@ -49,6 +56,11 @@ class Sensor(BaseRosObject):
         return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
+        if self._is_initialized:
+            str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+
         self.observation_space = processed_space
         self.launch_path = launch_path
         self.node_type = node_type
@@ -64,6 +76,12 @@ class State(BaseRosObject):
         self.state_space = space
 
     def init_node(self, base_topic: str = '') -> None:
+        if self._is_initialized:
+            str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+        self._is_initialized = True
+
         if self.state_space is None:
             self.state_space = self._infer_space(base_topic)
 
@@ -103,6 +121,12 @@ class Actuator(BaseRosObject):
         self.processor_action_space = None
 
     def init_node(self, base_topic: str = ''):
+        if self._is_initialized:
+            str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+        self._is_initialized = True
+
         if self.action_space is None:
             self.action_space = self._infer_space(base_topic)
 
@@ -141,7 +165,11 @@ class Actuator(BaseRosObject):
         self._buffer = action
 
     def add_preprocess(self, launch_path: str, launch_args: dict={}, observations_from_objects: list=[], action_space: gym.Space = None):
-        
+        if self._is_initialized:
+            str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+
         cli_args = [substitute_xml_args(launch_path)]
         for key, value in launch_args.items():
             cli_args.append('{}:={}'.format(key, value))
@@ -202,7 +230,7 @@ class Object(BaseRosObject):
         self.states = states if isinstance(states, OrderedDict) else OrderedDict(states)
 
         self.reset_func = reset
-    
+
     @classmethod
     def create(cls, name: str, package_name: str, object_type: str,
                position: List[float] = [0, 0, 0],
@@ -213,6 +241,7 @@ class Object(BaseRosObject):
                ) -> 'Object':
 
         params = load_yaml(package_name, object_type)
+        check_object_config(params)
 
         sensors = []
         if 'sensors' in params:
@@ -236,6 +265,11 @@ class Object(BaseRosObject):
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
+        if self._is_initialized:
+            str_err = 'Object "%s" already initialized. Hint: perhaps in another environment.' % self.name
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+        self._is_initialized = True
 
         for sensor in self.sensors.values():
             sensor.init_node(self.get_topic(base_topic))

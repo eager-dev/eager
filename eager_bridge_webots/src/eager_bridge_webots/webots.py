@@ -171,4 +171,4 @@ class WeBotsBridge(PhysicsBridge):
         return True
     
     def _seed(self, seed):
-        pass
+        rospy.logwarn("Webots must be seeded in the world file (.wbt). Did not set seed to %d.", seed)
