@@ -1,0 +1,51 @@
+sensors:
+  joint_sensors:
+    type: boxf32
+    high: [2.8973, 1.7628, 2.8973, 0.0698, 2.8973, 3.7525, 2.8973]
+    low: [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973]
+
+actuators:
+  joints:
+    type: boxf32
+    high: [2.8973, 1.7628, 2.8973, 0.0698, 2.8973, 3.7525, 2.8973]
+    low: [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973]
+
+states:
+  joint_pos:
+    type: boxf32
+    high: [2.8973, 1.7628, 2.8973, 0.0698, 2.8973, 3.7525, 2.8973]
+    low: [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973]
+  joint_vel:
+    type: boxf32
+    high: [2.175, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61]
+    low: [-2.175, -2.175, -2.175, -2.175, -2.61, -2.61, -2.61]
+
+pybullet:
+  xacro: '$(find franka_description)/robots/panda_arm_hand.urdf.xacro'
+  urdf_name: 'panda'
+  sensors:  # IMPORTANT! Currently, not possible to mix sensor measurements of links & joints
+    joint_sensors:
+      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      names: [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
+#    link_sensors:
+#      type: link_pos # OPTIONS: link_{pos, orientation, vel, angular_vel}
+#      name: [shoulder_link, upper_arm_link, forearm_link, wrist_1_link, wrist_2_link, wrist_3_link]
+
+  actuators:
+    joints:
+      type: joint
+      names: [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
+      control_mode: position_control # position_control, velocity_control, torque_control, pd_control
+      vel_target: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      pos_gain: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
+      vel_gain: [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
+
+  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
+  # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, base_vel, joint_pos, joint_vel)
+  states:
+    joint_pos:
+      type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      names: [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
+    joint_vel:
+      type: joint_vel # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
+      names: [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
