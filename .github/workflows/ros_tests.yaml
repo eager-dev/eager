@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements.txt
       # This step will fetch/store the directory used by ccache before/after the ci run
       - uses: actions/cache@v2
         with:
