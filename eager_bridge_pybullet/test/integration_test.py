@@ -22,7 +22,7 @@ class IntegrationTest(unittest.TestCase):
         rospy.init_node('integration_test_webots', anonymous=True)
 
     def test_check_env(self):
-        engine = PyBulletEngine(orld='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='true', dt=0.0165)
+        engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='true', dt=0.0165)
 
         # Initialize environment
         robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
