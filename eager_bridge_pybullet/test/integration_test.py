@@ -6,11 +6,12 @@ import unittest
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_bridge_webots.webots_engine import WebotsEngine
+from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
 
 from eager_core.utils.env_checker import check_env
+import pybullet_data
 
-PKG = 'eager_bridge_webots'
+PKG = 'eager_bridge_pybullet'
 NAME = 'integration_test'
 
 class IntegrationTest(unittest.TestCase):
@@ -21,7 +22,7 @@ class IntegrationTest(unittest.TestCase):
         rospy.init_node('integration_test_webots', anonymous=True)
 
     def test_check_env(self):
-        engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt', no_gui='true')
+        engine = PyBulletEngine(orld='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='true', dt=0.0165)
 
         # Initialize environment
         robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
