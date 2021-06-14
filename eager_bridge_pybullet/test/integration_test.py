@@ -17,16 +17,22 @@ NAME = 'integration_test'
 class IntegrationTest(unittest.TestCase):
 
     def __init__(self, *args):
+        print("init")
         super(IntegrationTest, self).__init__(*args)
+        print("super")
 
         rospy.init_node('integration_test_webots', anonymous=True)
+        print("node")
 
     def test_check_env(self):
         engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='true', dt=0.0165)
+        print(engine)
 
         # Initialize environment
         robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
+        print(robot)
         env = EagerEnv(engine=engine, objects=[robot], name='ros_env')
+        print(env)
         env = Flatten(env)
         try:
             check_env(env)
@@ -37,5 +43,7 @@ class IntegrationTest(unittest.TestCase):
             )
 
 if __name__ == '__main__':
+    print("start")
     import rostest
     rostest.run(PKG, NAME, IntegrationTest, sys.argv)
+    print("finished")
