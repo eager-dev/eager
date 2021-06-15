@@ -4,6 +4,6 @@ empy
 rospkg
 defusedxml
 scenic
-future
+six
 netifaces
 pybullet>=3.1.7
