@@ -64,7 +64,14 @@ class BaseEagerEnv(gym.Env):
                 object.init_node(bt)
 
     def _merge_spaces(cls, objects: List[Object] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict]:
-        
+        # Make sure all objects & observers are initialized
+        for el in (objects, observers):
+            for e in el:
+                if not e.is_initialized:
+                    str_err = '"%s" not yet initialized. Can only merge spaces after "%s" is initialized.' % (e.name, e.name)
+                    rospy.logerr(str_err)
+                    raise Exception(str_err)
+
         obs_spaces = OrderedDict()
         act_spaces = OrderedDict()
         state_spaces = OrderedDict()

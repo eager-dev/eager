@@ -30,6 +30,10 @@ class BaseRosObject():
             return self.name
         return base_topic + '/' + self.name
 
+    @property
+    def is_initialized(self):
+        return self._is_initialized
+
 
 class Sensor(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
