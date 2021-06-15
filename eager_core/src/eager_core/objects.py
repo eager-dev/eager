@@ -30,6 +30,19 @@ class BaseRosObject():
             return self.name
         return base_topic + '/' + self.name
 
+    def assert_not_yet_initialized(self, assert_type):
+        if self._is_initialized:
+            if assert_type is 'preprocess':
+                str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
+            elif assert_type is 'init':
+                str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
+            else:
+                str_err = '"%s" already initialized. Cannot perform "%s" after initialization.' % (self.name, assert_type)
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+        else:
+            return
+
     @property
     def is_initialized(self):
         return self._is_initialized
@@ -41,10 +54,7 @@ class Sensor(BaseRosObject):
         self.observation_space = space
 
     def init_node(self, base_topic: str = '') -> None:
-        if self._is_initialized:
-            str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
-            rospy.logerr(str_err)
-            raise Exception(str_err)
+        self.assert_not_yet_initialized('init')
         self._is_initialized = True
 
         if self.observation_space is None:
@@ -60,10 +70,7 @@ class Sensor(BaseRosObject):
         return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
-        if self._is_initialized:
-            str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
-            rospy.logerr(str_err)
-            raise Exception(str_err)
+        self.assert_not_yet_initialized('preprocess')
 
         self.observation_space = processed_space
         self.launch_path = launch_path
@@ -80,10 +87,7 @@ class State(BaseRosObject):
         self.state_space = space
 
     def init_node(self, base_topic: str = '') -> None:
-        if self._is_initialized:
-            str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
-            rospy.logerr(str_err)
-            raise Exception(str_err)
+        self.assert_not_yet_initialized('init')
         self._is_initialized = True
 
         if self.state_space is None:
@@ -125,10 +129,7 @@ class Actuator(BaseRosObject):
         self.processor_action_space = None
 
     def init_node(self, base_topic: str = ''):
-        if self._is_initialized:
-            str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
-            rospy.logerr(str_err)
-            raise Exception(str_err)
+        self.assert_not_yet_initialized('init')
         self._is_initialized = True
 
         if self.action_space is None:
@@ -168,11 +169,8 @@ class Actuator(BaseRosObject):
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, launch_path: str, launch_args: dict={}, observations_from_objects: list=[], action_space: gym.Space = None):
-        if self._is_initialized:
-            str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
-            rospy.logerr(str_err)
-            raise Exception(str_err)
+    def add_preprocess(self, launch_path: str, launch_args: dict = {}, observations_from_objects: list = [], action_space: gym.Space = None):
+        self.assert_not_yet_initialized('preprocess')
 
         cli_args = [substitute_xml_args(launch_path)]
         for key, value in launch_args.items():
@@ -269,10 +267,7 @@ class Object(BaseRosObject):
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
-        if self._is_initialized:
-            str_err = 'Object "%s" already initialized. Hint: perhaps in another environment.' % self.name
-            rospy.logerr(str_err)
-            raise Exception(str_err)
+        self.assert_not_yet_initialized('init')
         self._is_initialized = True
 
         for sensor in self.sensors.values():
