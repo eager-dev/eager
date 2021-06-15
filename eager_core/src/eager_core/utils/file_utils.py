@@ -1,6 +1,6 @@
 import rospkg, rosparam
 from roslaunch.substitution_args import resolve_args
-from future.utils import raise_from
+from six import raise_from
 
 
 def load_yaml(package_name, object_name):
