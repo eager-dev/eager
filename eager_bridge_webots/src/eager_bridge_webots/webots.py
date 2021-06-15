@@ -84,7 +84,7 @@ class WeBotsBridge(PhysicsBridge):
                     if 'type' in sensor:
                         sens_type = sensor['type']
                         if sens_type == 'camera':
-                            assert len(topic_list) is 1 # Temp check
+                            assert len(topic_list) == 1 # Temp check
                             self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/image",
                                 Image, functools.partial(self._camera_callback, name=name, sensor=sensor_name)))
                     else:

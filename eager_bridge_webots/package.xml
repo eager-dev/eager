@@ -58,6 +58,7 @@
   <exec_depend>eager_core</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>webots_ros</exec_depend>
+  <test_depend>eager_robot_ur5e</test_depend> 
 
 
   <!-- The export tag contains other, unspecified, tags -->
