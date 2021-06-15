@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(eager_robot_px150)
+project(eager_robot_panda)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -52,19 +52,13 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message2.msg
 # )
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
 ## Generate actions in the 'action' folder
 # add_action_files(
 #   FILES
 #   Action1.action
 #   Action2.action
 # )
+
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
@@ -103,7 +97,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES eager_robot_px150
+#  LIBRARIES eager_robot_ur5e
 #  CATKIN_DEPENDS eager_core rospy
 #  DEPENDS system_lib
 )
@@ -121,7 +115,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/eager_robot_px150.cpp
+#   src/${PROJECT_NAME}/eager_robot_ur5e.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -132,7 +126,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/eager_robot_px150_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/eager_robot_ur5e_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -185,17 +179,18 @@ include_directories(
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(FILES
-  config/px150.yaml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+# install(FILES
+#   # myfile1
+#   # myfile2
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_eager_robot_px150.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_eager_robot_ur5e.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
