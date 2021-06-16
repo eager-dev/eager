@@ -20,9 +20,9 @@ jobs:
       #- uses: openrndr/setup-opengl@v1.1
       - name: Install WeBots
         run: |
-        sudo snap install webots
-        export WEBOTS_HOME=/snap/webots/current/usr/share/webots
-        export LD_LIBRARY_PATH=$WEBOTS_HOME/lib/controller
+          sudo snap install webots
+          export WEBOTS_HOME=/snap/webots/current/usr/share/webots
+          export LD_LIBRARY_PATH=$WEBOTS_HOME/lib/controller
       # This step will fetch/store the directory used by ccache before/after the ci run
       - uses: actions/cache@v2
         with:
