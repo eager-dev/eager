@@ -14,15 +14,13 @@ jobs:
           - {ROS_DISTRO: noetic, ROS_REPO: main, UPSTREAM_WORKSPACE: '.rosinstall'}
     env:
       CCACHE_DIR: /github/home/.ccache # Directory for ccache (and how we enable ccache in industrial_ci)
+      AFTER_SETUP_UPSTREAM_WORKSPACE: 'export WEBOTS_HOME=/snap/webots/current/usr/share/webots && export LD_LIBRARY_PATH=$WEBOTS_HOME/lib/controller'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       #- uses: openrndr/setup-opengl@v1.1
       - name: Install WeBots
-        run: |
-          sudo snap install webots
-          export WEBOTS_HOME=/snap/webots/current/usr/share/webots
-          export LD_LIBRARY_PATH=$WEBOTS_HOME/lib/controller
+        run: sudo snap install webots
       # This step will fetch/store the directory used by ccache before/after the ci run
       - uses: actions/cache@v2
         with:
