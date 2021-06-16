@@ -1,5 +1,5 @@
 import gym, gym.spaces
-from eager_core.utils.file_utils import load_yaml, substitute_xml_args, check_object_config
+from eager_core.utils.file_utils import load_yaml, substitute_xml_args
 from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_from_space,
                                         get_def_from_space, get_response_from_space,
                                         get_space_from_def)
@@ -60,7 +60,7 @@ class Sensor(BaseRosObject):
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
         
-        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(self.observation_space))
+        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic + '/sensors'), get_message_from_space(self.observation_space))
 
     def get_obs(self) -> object: #Type depends on space
         response = self._get_sensor_service()
@@ -95,10 +95,10 @@ class State(BaseRosObject):
 
         self._buffer = self.state_space.sample()
 
-        self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic),
+        self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic + '/states'),
                                                  get_message_from_space(self.state_space))
 
-        self._send_state_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.state_space),
+        self._send_state_service = rospy.Service(self.get_topic(base_topic + '/resets'), get_message_from_space(self.state_space),
                                                   self._send_state)
 
     def get_state(self) -> object:  # Type depends on space
@@ -164,7 +164,7 @@ class Actuator(BaseRosObject):
         else:
             self._buffer = self.action_space.sample()
             
-            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._send_action)
+            self._act_service = rospy.Service(self.get_topic(base_topic + '/actuators'), get_message_from_space(self.action_space), self._send_action)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
@@ -243,7 +243,6 @@ class Object(BaseRosObject):
                ) -> 'Object':
 
         params = load_yaml(package_name, object_type)
-        check_object_config(params)
 
         sensors = []
         if 'sensors' in params:

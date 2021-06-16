@@ -53,7 +53,7 @@ class BaseEagerEnv(gym.Env):
                 objects_reg.append(ObjectMsg(object.type, object.name, object.args))
 
         register_service = rospy.ServiceProxy(self.name + '/register', Register)
-        register_service.wait_for_service(200000)
+        register_service.wait_for_service(20)
         register_service(objects_reg)
 
     def _init_listeners(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:

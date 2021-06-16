@@ -43,33 +43,3 @@ def is_namespace_empty(ns):
             topic_lst.append(topic)
     ns_empty = not len(srvs_lst) + len(topic_lst) > 0
     return ns_empty
-
-def check_object_config(config):
-    # Check that unique names are given to state/actuator/sensor categories
-    unique_names = []
-    if 'sensors' in config:
-        for sens_name, sensor in config['sensors'].items():
-            if sens_name in unique_names:
-                str_err = 'Name "%s" defined multiple times in object config. Name must be unique over all states/actuators/sensors.' % sens_name
-                rospy.logerr(str_err)
-                raise ValueError(str_err)
-            else:
-                unique_names.append(sens_name)
-
-    if 'actuators' in config:
-        for act_name, actuator in config['actuators'].items():
-            if act_name in unique_names:
-                str_err = 'Name "%s" defined multiple times in object config. Name must be unique over all states/actuators/sensors.' % act_name
-                rospy.logerr(str_err)
-                raise ValueError(str_err)
-            else:
-                unique_names.append(act_name)
-
-    if 'states' in config:
-        for state_name, state in config['states'].items():
-            if state_name in unique_names:
-                str_err = 'Name "%s" defined multiple times in object config. Name must be unique over all states/actuators/sensors.' % state_name
-                rospy.logerr(str_err)
-                raise ValueError(str_err)
-            else:
-                unique_names.append(state_name)

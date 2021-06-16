@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from eager_bridge_gazebo.gazebo import GazeboBridge
+from eager_bridge_gazebo.gazebo_bridge import GazeboBridge
 
 if __name__ == '__main__':
 
