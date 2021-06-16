@@ -13,7 +13,7 @@ import numpy as np
 import functools
 import os
 import sys
-os.environ['PYBULLET_EGL'] = "1"
+os.environ['PYBULLET_EGL'] = "0"
 # ^^^^ before importing pybullet_gym
 try:
     if os.environ["PYBULLET_EGL"]:
