@@ -1,5 +1,5 @@
 # EAGER
-Engine Agnostic Gym Environment using ROS.
+Engine Agnostic Gym Environment for Robotics.
 
 ## Toolkit's advantages (current implementation)
 - Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
@@ -34,7 +34,7 @@ Troubleshooting:
 - defusedxml
 - stable-baselines3
 - scenic
-- future
+- six
 - gazebo (this probably does exist, check!)
 - opencv==4.3.0.36
 - pybullet==3.1.7

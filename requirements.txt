@@ -1,9 +1,0 @@
-gym>=0.18.0
-numpy
-empy
-rospkg
-defusedxml
-scenic
-six
-netifaces
-pybullet>=3.1.7
