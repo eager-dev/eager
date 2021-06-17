@@ -116,13 +116,6 @@ class PyBulletBridge(PhysicsBridge):
 
     def _register_object(self, topic, name, package, object_type, args, config):
         if 'xacro' in config and config['xacro']:
-            # todo: maybe not needed if launch.start() only exits after xacro command has completely run
-            # try:
-            #     rosparam.delete_param('%s' % config['xacro_param'])
-            #     rospy.loginfo('Pre-existing robot_description under namespace "%s" deleted.' % config['xacro_param'])
-            # except:
-            #     pass
-
             # Check what kind of path was given and set urdf_filename accordingly
             if bool(re.match(r"\/", config['urdf_name'])):
                 urdf_filename = config['urdf_name'] + ".urdf"
@@ -250,7 +243,7 @@ class PyBulletBridge(PhysicsBridge):
                 raise ValueError('Sensor_type ("%s") must contain either {joint, link, camera}.' % sensors[sensor]['type'])
 
             sensor_cb[sensor] = callback
-            self._set_sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space),
+            self._set_sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                            functools.partial(self._service,
                                                                              buffer=self._sensor_buffer,
                                                                              name=name,
@@ -314,7 +307,7 @@ class PyBulletBridge(PhysicsBridge):
                                                     callback=cb)
             else:
                 raise ValueError('Actuator_type ("%s") must contain "joint".' % actuators[actuator]['type'])
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, get_message_from_def(space))
+            get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             robot_actuators[actuator] = (get_action_srv, set_action_srvs)
         self._get_actuator_services[name] = robot_actuators
 
@@ -361,12 +354,13 @@ class PyBulletBridge(PhysicsBridge):
             else:
                 raise ValueError('State type ("%s") must contain either {joint, link, base}.' % states[state]['type'])
             state_cb[state] = callback
-            # self._set_state_services.append(rospy.Service(topic + "/" + state, BoxSpace, functools.partial(self._service,
-            self._set_state_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), functools.partial(self._service,
-                                                                                                       buffer=self._state_buffer,
-                                                                                                       name=name,
-                                                                                                       obs_name=state,
-                                                                                                       message_type=get_response_from_def(space))))
+            # self._set_state_services.append(rospy.Service(topic + "/states/" + state, BoxSpace, functools.partial(self._service,
+            self._set_state_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space), functools.partial(self._service,
+                                                                                                         buffer=self._state_buffer,
+                                                                                                         name=name,
+                                                                                                         obs_name=state,
+                                                                                                         message_type=get_response_from_def(
+                                                                                                             space))))
         self._state_cbs[name] = state_cb
         self._state_buffer[name] = robot_states
 
@@ -397,7 +391,7 @@ class PyBulletBridge(PhysicsBridge):
                                                   physicsClientId=self.physics_client_id)
             else:
                 raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
-            get_state_srv = rospy.ServiceProxy(topic + "/" + state, get_message_from_def(space))
+            get_state_srv = rospy.ServiceProxy(topic + "/resets/" + state, get_message_from_def(space))
             robot_resets[state] = (get_state_srv, set_reset_srv)
         self._reset_services[name] = robot_resets
 

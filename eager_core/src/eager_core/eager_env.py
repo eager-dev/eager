@@ -5,7 +5,7 @@ from collections import OrderedDict
 from typing import List, Tuple
 from eager_core.objects import Object
 from eager_core.srv import StepEnv, ResetEnv, Register
-from eager_core.utils.file_utils import substitute_xml_args
+from eager_core.utils.file_utils import substitute_xml_args, is_namespace_empty
 from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
@@ -22,6 +22,25 @@ class BaseEagerEnv(gym.Env):
         self.__seed_publisher = rospy.Publisher(name + '/seed', Seed, queue_size=1)
 
     def _init_nodes(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        # Verify that object name is unique (i.e. no topics/services already defined within namespace)
+        obj_names = [obj.name for obj in objects]
+        for obj in objects:
+            ns = '/%s/objects/%s' % (self.name, obj.name)
+            is_unique = is_namespace_empty(ns) and 1 == len([name for name in obj_names if obj.name is name])
+            if not is_unique:
+                str_err = 'Cannot register object "%s", because object name not unique (namespace non-empty).' % obj.name
+                rospy.logerr(str_err)
+                raise Exception(str_err)
+
+        # Verify that observer name is unique (i.e. no topics/services already defined within namespace)
+        obs_names = [obs.name for obs in observers]
+        for obs in observers:
+            ns = '/%s/observers/%s' % (self.name, obs.name)
+            is_unique = is_namespace_empty(ns) and 1 == len([name for name in obs_names if obs.name is name])
+            if not is_unique:
+                str_err = 'Cannot register observer "%s", because observer name not unique (namespace non-empty).' % obs.name
+                rospy.logerr(str_err)
+                raise Exception(str_err)
 
         self._register_objects(objects, observers)
         self._init_listeners(objects, observers)
@@ -34,7 +53,7 @@ class BaseEagerEnv(gym.Env):
                 objects_reg.append(ObjectMsg(object.type, object.name, object.args))
 
         register_service = rospy.ServiceProxy(self.name + '/register', Register)
-        register_service.wait_for_service(200000)
+        register_service.wait_for_service(20)
         register_service(objects_reg)
 
     def _init_listeners(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
@@ -45,7 +64,14 @@ class BaseEagerEnv(gym.Env):
                 object.init_node(bt)
 
     def _merge_spaces(cls, objects: List[Object] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict]:
-        
+        # Make sure all objects & observers are initialized
+        for el in (objects, observers):
+            for e in el:
+                if not e.is_initialized:
+                    str_err = '"%s" not yet initialized. Can only merge spaces after "%s" is initialized.' % (e.name, e.name)
+                    rospy.logerr(str_err)
+                    raise Exception(str_err)
+
         obs_spaces = OrderedDict()
         act_spaces = OrderedDict()
         state_spaces = OrderedDict()

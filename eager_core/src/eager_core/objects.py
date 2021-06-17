@@ -17,6 +17,7 @@ class BaseRosObject():
         self.type = type
         self.name = name
         self.args = str(kwargs)
+        self._is_initialized = False
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
         pass
@@ -29,6 +30,23 @@ class BaseRosObject():
             return self.name
         return base_topic + '/' + self.name
 
+    def assert_not_yet_initialized(self, assert_type):
+        if self._is_initialized:
+            if assert_type is 'preprocess':
+                str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
+            elif assert_type is 'init':
+                str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
+            else:
+                str_err = '"%s" already initialized. Cannot perform "%s" after initialization.' % (self.name, assert_type)
+            rospy.logerr(str_err)
+            raise Exception(str_err)
+        else:
+            return
+
+    @property
+    def is_initialized(self):
+        return self._is_initialized
+
 
 class Sensor(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
@@ -36,10 +54,13 @@ class Sensor(BaseRosObject):
         self.observation_space = space
 
     def init_node(self, base_topic: str = '') -> None:
+        self.assert_not_yet_initialized('init')
+        self._is_initialized = True
+
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
         
-        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic), get_message_from_space(self.observation_space))
+        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic + '/sensors'), get_message_from_space(self.observation_space))
 
     def get_obs(self) -> object: #Type depends on space
         response = self._get_sensor_service()
@@ -49,6 +70,8 @@ class Sensor(BaseRosObject):
         return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
+        self.assert_not_yet_initialized('preprocess')
+
         self.observation_space = processed_space
         self.launch_path = launch_path
         self.node_type = node_type
@@ -64,15 +87,18 @@ class State(BaseRosObject):
         self.state_space = space
 
     def init_node(self, base_topic: str = '') -> None:
+        self.assert_not_yet_initialized('init')
+        self._is_initialized = True
+
         if self.state_space is None:
             self.state_space = self._infer_space(base_topic)
 
         self._buffer = self.state_space.sample()
 
-        self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic),
+        self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic + '/states'),
                                                  get_message_from_space(self.state_space))
 
-        self._send_state_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.state_space),
+        self._send_state_service = rospy.Service(self.get_topic(base_topic + '/resets'), get_message_from_space(self.state_space),
                                                   self._send_state)
 
     def get_state(self) -> object:  # Type depends on space
@@ -103,6 +129,9 @@ class Actuator(BaseRosObject):
         self.processor_action_space = None
 
     def init_node(self, base_topic: str = ''):
+        self.assert_not_yet_initialized('init')
+        self._is_initialized = True
+
         if self.action_space is None:
             self.action_space = self._infer_space(base_topic)
 
@@ -135,13 +164,14 @@ class Actuator(BaseRosObject):
         else:
             self._buffer = self.action_space.sample()
             
-            self._act_service = rospy.Service(self.get_topic(base_topic), get_message_from_space(self.action_space), self._send_action)
+            self._act_service = rospy.Service(self.get_topic(base_topic + '/actuators'), get_message_from_space(self.action_space), self._send_action)
     
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, launch_path: str, launch_args: dict={}, observations_from_objects: list=[], action_space: gym.Space = None):
-        
+    def add_preprocess(self, launch_path: str, launch_args: dict = {}, observations_from_objects: list = [], action_space: gym.Space = None):
+        self.assert_not_yet_initialized('preprocess')
+
         cli_args = [substitute_xml_args(launch_path)]
         for key, value in launch_args.items():
             cli_args.append('{}:={}'.format(key, value))
@@ -202,7 +232,7 @@ class Object(BaseRosObject):
         self.states = states if isinstance(states, OrderedDict) else OrderedDict(states)
 
         self.reset_func = reset
-    
+
     @classmethod
     def create(cls, name: str, package_name: str, object_type: str,
                position: List[float] = [0, 0, 0],
@@ -236,6 +266,8 @@ class Object(BaseRosObject):
             position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
+        self.assert_not_yet_initialized('init')
+        self._is_initialized = True
 
         for sensor in self.sensors.values():
             sensor.init_node(self.get_topic(base_topic))
