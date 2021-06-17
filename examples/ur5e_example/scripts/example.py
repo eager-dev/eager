@@ -18,13 +18,14 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e.wbt')
+    engine = WebotsEngine()
     # engine = GazeboEngine()
-    engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false', dt=0.0165)
+    # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false', dt=0.0165)
 
     # Initialize environment
     robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
-    env = EagerEnv(engine=engine, objects=[robot], name='ros_env')
+    robot2 = Object.create('ur5e2', 'eager_robot_ur5e', 'ur5e', position=[1, 0, 0])
+    env = EagerEnv(engine=engine, objects=[robot, robot2], name='ros_env')
     env = Flatten(env)
     check_env(env)
 
