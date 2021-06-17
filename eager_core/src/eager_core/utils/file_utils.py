@@ -1,4 +1,4 @@
-import rospkg, rosparam
+import rospkg, rosparam, rosservice, rostopic, rospy
 from roslaunch.substitution_args import resolve_args
 from six import raise_from
 
@@ -28,3 +28,18 @@ def substitute_xml_args(param):
             # Otherwise, add the element to the result
             elif isinstance(param[key], str):
                 param[key] = resolve_args(param[key])
+
+def is_namespace_empty(ns):
+    # Verifies that there are no topics/services registered to the namespace
+    # ROSparam server is not checked.
+    srvs_lst = [x for x in rosservice.get_service_list() if ns in x]
+    pubs_in, pubs_out = rostopic.get_topic_list()
+    topic_lst = []
+    for topic, topic_type, node_lst in pubs_in:
+        if ns in topic:
+            topic_lst.append(topic)
+    for topic, topic_type, node_lst in pubs_out:
+        if ns in topic:
+            topic_lst.append(topic)
+    ns_empty = not len(srvs_lst) + len(topic_lst) > 0
+    return ns_empty

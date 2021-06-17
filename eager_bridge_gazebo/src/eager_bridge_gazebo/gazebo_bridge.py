@@ -107,7 +107,7 @@ class GazeboBridge(PhysicsBridge):
                 msg_topic,
                 msg_type, 
                 functools.partial(self._sensor_callback, name=name, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space), 
+            self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service, 
                                                                          buffer=self._sensor_buffer, 
                                                                          name=name, obs_name=sensor, 
@@ -123,7 +123,7 @@ class GazeboBridge(PhysicsBridge):
             joint_names = actuators[actuator]["names"]
             space = actuators[actuator]['space']
             server_name = name + "/" + actuators[actuator]["server_name"]
-            get_action_srv = rospy.ServiceProxy(topic + "/" + actuator, get_message_from_def(space))
+            get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
             actuator_services[actuator] = (get_action_srv, set_action_srv)
         self._actuator_services[name] = actuator_services
@@ -135,17 +135,7 @@ class GazeboBridge(PhysicsBridge):
             state_params = states[state]
             space = state_params['space']
             robot_states[state] = [get_value_from_def(space)]*len(states[state])
-            # msg_topic = name + "/" + state_params["topic"]
-            # msg_name = state_params["msg_name"]
-            # msg_type = getattr(state_msgs.msg, msg_name)
-            # rospy.logdebug("Waiting for message topic {}".format(msg_topic))
-            # rospy.wait_for_message(msg_topic, msg_type)
-            # rospy.logdebug("Sensor {} received message from topic {}".format(state, msg_topic))
-            # self._state_subscribers.append(rospy.Subscriber(
-            #     msg_topic,
-            #     msg_type,
-            #     functools.partial(self._state_callback, state=state)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), 
+            self._sensor_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space),
                                                        functools.partial(self._service, 
                                                                          buffer=self._state_buffer, 
                                                                          name=name, 
