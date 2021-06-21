@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# 
+# Adapted for Python 2 compatibility for EAGER by Alexander Keijzer
 
 """Parse Webots world files."""
 
@@ -30,11 +32,13 @@ class WebotsParser:
             self.content['header'] = self.file.readline().strip()
             self.line_count = 1
             self.content['root'] = []
-            for line in self.file:
+            line = self.file.readline()
+            while line:
                 line = line.strip()
                 self.line_count += 1
                 if line:
                     self.content['root'].append(self._read_node(line))
+                line = self.file.readline()
 
     def save(self, filename):
         self.indentation = 0
@@ -148,7 +152,8 @@ class WebotsParser:
             return node
         else:
             node['name'] = words[0]
-        for line in self.file:
+        line = self.file.readline()
+        while line:
             line = line.strip()
             self.line_count += 1
             if line.startswith('hidden'):
@@ -157,6 +162,7 @@ class WebotsParser:
             elif line == '}':
                 break
             node['fields'].append(self._read_field(line))
+            line = self.file.readline()
         return node
 
     def _read_field(self, line):
