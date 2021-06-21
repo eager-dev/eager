@@ -1,6 +1,8 @@
 import rospy, rosservice, roslaunch
 import functools
 import re
+import tempfile
+import os
 from eager_bridge_webots.webots_parser import WebotsParser
 from eager_bridge_webots.orientation_utils import quad_to_axis_angle, quaternion_multiply
 from operator import add
@@ -42,27 +44,39 @@ class WeBotsBridge(PhysicsBridge):
         super(WeBotsBridge, self).__init__("webots")
 
     def _start_simulator(self):
-        """
-        wp = WebotsParser()
-        print(substitute_xml_args('%s' % rospy.get_param('physics_bridge/world')))
-        wp.load(substitute_xml_args('%s' % rospy.get_param('physics_bridge/world')))
-        print(wp.content)
-        for f in wp.content['root']:
-            for field in f['fields']:
-                if field['name'] == 'basicTimeStep':
-                    #field['value'] = rospy.get_param('physics_bridge/basicTimeStep', 20)
-                    break
-            else:
-                continue
-            break
 
-        """
+        world_file_path = substitute_xml_args('%s' % rospy.get_param('physics_bridge/world'))
+
+        wp = WebotsParser()
+        wp.load(world_file_path)
+        set_time = False
+        set_seed = not rospy.has_param('physics_bridge/seed')
+        for f in wp.content['root']:
+            if f['name'] == 'WorldInfo':
+                for field in f['fields']:
+                    if not set_time and field['name'] == 'basicTimeStep':
+                        field['value'] = rospy.get_param('physics_bridge/basicTimeStep')
+                        set_time = True
+                    elif not set_seed and field['name'] == 'randomSeed':
+                        field['value'] = rospy.get_param('physics_bridge/seed')
+                        set_seed = True
+                    if set_time and set_seed:
+                        break
+                if not set_time:
+                    f['fields'].append({'type': 'SFInt32', 'name': 'basicTimeStep', 'value': rospy.get_param('physics_bridge/basicTimeStep')})
+                if not set_seed:
+                    f['fields'].append({'type': 'SFInt32', 'name': 'randomSeed', 'value': rospy.get_param('physics_bridge/seed')})
+                break
+
+        self.world_file = tempfile.NamedTemporaryFile(mode = 'w', suffix = '.wbt', dir = os.path.dirname(world_file_path))
+        wp.save_in_file(self.world_file)
+        self.world_file.flush()
         
         str_launch_sim = '$(find eager_bridge_webots)/launch/webots_sim.launch'
         cli_args = [substitute_xml_args(str_launch_sim),
                     'mode:=%s' % rospy.get_param('physics_bridge/mode', 'fast'),
                     'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', 'false'),
-                    'world:=%s' % rospy.get_param('physics_bridge/world')]
+                    'world:=%s' % self.world_file.name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -205,6 +219,9 @@ class WeBotsBridge(PhysicsBridge):
 
     def _close(self):
         self._launch.shutdown()
+        # TODO: WeBots should fix this cleanup...
+        os.remove(os.path.dirname(self.world_file.name) + '/.' + os.path.splitext(os.path.basename(self.world_file.name))[0] + '.wbproj')
+        self.world_file.close()
         return True
     
     def _seed(self, seed):
