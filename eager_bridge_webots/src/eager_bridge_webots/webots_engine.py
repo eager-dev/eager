@@ -11,7 +11,7 @@ class WebotsEngine(EngineParams):
     def __init__(self,
                  world: str,
                  dt: float = 0.08,
-                 no_gui: str = 'false',
+                 no_gui: bool = False,
                  mode: str = 'fast'):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'webots'

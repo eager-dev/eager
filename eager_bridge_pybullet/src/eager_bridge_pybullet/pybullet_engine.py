@@ -6,7 +6,7 @@ class PyBulletEngine(EngineParams):
     def __init__(self,
                  world: str,
                  dt: float = 0.08,
-                 no_gui: str = 'false',
+                 no_gui: bool = False,
                  num_substeps: int = 1,
                  num_solver_iterations: int = 5,
                  contact_erp: float = 0.9):

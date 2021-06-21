@@ -35,7 +35,7 @@ class WeBotsBridge(PhysicsBridge):
         str_launch_sim = '$(find eager_bridge_webots)/launch/webots_sim.launch'
         cli_args = [substitute_xml_args(str_launch_sim),
                     'mode:=%s' % rospy.get_param('physics_bridge/mode', 'fast'),
-                    'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', 'false'),
+                    'no_gui:=%s' % 'false' if rospy.get_param('physics_bridge/no_gui', False) else 'true',
                     'world:=%s' % rospy.get_param('physics_bridge/world')]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
