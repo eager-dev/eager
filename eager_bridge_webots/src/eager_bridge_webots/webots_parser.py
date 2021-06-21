@@ -46,6 +46,15 @@ class WebotsParser:
             self.file.write(self.content['header'] + '\n')
             for node in self.content['root']:
                 self._write_node(node)
+    
+    def save_in_file(self, file):
+        self.indentation = 0
+        self.file = file
+        self.file.write(self.content['header'] + '\n')
+        for node in self.content['root']:
+            self._write_node(node)
+        self.file = None
+        
 
     @staticmethod
     def str(value):
@@ -78,21 +87,21 @@ class WebotsParser:
         if type == 'SFString':
             line += '"' + value + '"'
         elif type == 'SFInt32' or type == 'SFFloat':
-            line += value
+            line += str(value)
         elif type == 'SFBool':
             line += 'TRUE' if value else 'FALSE'
         elif type == 'SFVec2f':
-            line += value[0] + ' '
-            line += value[1]
+            line += str(value[0]) + ' '
+            line += str(value[1])
         elif type == 'SFVec3f' or type == 'SFColor':
-            line += value[0] + ' '
-            line += value[1] + ' '
-            line += value[2]
+            line += str(value[0]) + ' '
+            line += str(value[1]) + ' '
+            line += str(value[2])
         elif type == 'SFRotation':
-            line += value[0] + ' '
-            line += value[1] + ' '
-            line += value[2] + ' '
-            line += value[3]
+            line += str(value[0]) + ' '
+            line += str(value[1]) + ' '
+            line += str(value[2]) + ' '
+            line += str(value[3])
         elif type == 'SFNode':
             self.file.write(line)
             self._write_node(value)
@@ -125,15 +134,15 @@ class WebotsParser:
             if type == 'MFString':
                 self.file.write('"' + value + '"\n')
             elif type == 'MFInt32' or type == 'MFFloat':
-                self.file.write(value)
+                self.file.write(str(value))
             elif type == 'MFBool':
                 self.file.write('TRUE\n' if value else 'FALSE\n')
             elif type == 'MFVec2f':
-                self.file.write(value[0] + ' ' + value[1])
+                self.file.write(str(value[0]) + ' ' + str(value[1]))
             elif type == 'MFVec3f' or type == 'MFColor':
-                self.file.write(value[0] + ' ' + value[1] + ' ' + value[2])
+                self.file.write(str(value[0]) + ' ' + str(value[1]) + ' ' + str(value[2]))
             elif type == 'MFRotation':
-                self.file.write(value[0] + ' ' + value[1] + ' ' + value[2] + ' ' + value[3])
+                self.file.write(str(value[0]) + ' ' + str(value[1]) + ' ' + str(value[2]) + ' ' + str(value[3]))
             elif type == 'MFNode':
                 self._write_node(value)
             count += 1
