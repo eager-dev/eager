@@ -10,6 +10,12 @@ from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
 class BaseEagerEnv(gym.Env):
+    """
+    Base Gym Env to interact with 
+
+    :param engine: The physics engine to run this environment on
+    :param name: The namespace to run this environment in (must by unique if using multiple environments simultaniously)
+    """
     def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
@@ -22,6 +28,14 @@ class BaseEagerEnv(gym.Env):
         self.__seed_publisher = rospy.Publisher(name + '/seed', Seed, queue_size=1)
 
     def _init_nodes(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Initializes and registers a list of objects and observers in the physics engine.
+
+        Must be called before retreiving the obersation and action spaces.
+
+        :param objects: A list of objects to initialize
+        :param observers: A list of observers to initialize
+        """
         # Verify that object name is unique (i.e. no topics/services already defined within namespace)
         obj_names = [obj.name for obj in objects]
         for obj in objects:
@@ -46,6 +60,15 @@ class BaseEagerEnv(gym.Env):
         self._init_listeners(objects, observers)
 
     def _register_objects(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Registers objects to the physics engine.
+
+        Typically not called directly but through _init_nodes.
+
+        :param objects: A list of objects to register
+        :param observers: A list of observers to register
+
+        """
         objects_reg = []
 
         for el in (objects, observers):
@@ -57,6 +80,16 @@ class BaseEagerEnv(gym.Env):
         register_service(objects_reg)
 
     def _init_listeners(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Initializes listening to observation topics in objects and observers.
+
+        Called after registration.
+        Typically not called directly but through _init_nodes.
+
+        :param objects: A list of objects to register
+        :param observers: A list of observers to register
+
+        """
         bt = self.name + '/objects'
 
         for el in (objects, observers):
@@ -64,6 +97,16 @@ class BaseEagerEnv(gym.Env):
                 object.init_node(bt)
 
     def _merge_spaces(cls, objects: List[Object] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict]:
+        """
+        Merges the observation, action and state space of lists of objects and observers.
+
+        Can only be called after nodes are initialized.
+
+        :param objects: A list of objects to merge
+        :param observers: A list of observers to merge
+        :return: Observation space, action space, state space
+
+        """
         # Make sure all objects & observers are initialized
         for el in (objects, observers):
             for e in el:
@@ -89,10 +132,15 @@ class BaseEagerEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces), gym.spaces.Dict(spaces=state_spaces)
 
-    def _initialize_physics_bridge(self, engine: EngineParams, name: str):
-        # Delete all parameters parameter server (from a previous run) within namespace 'name'
+    def _initialize_physics_bridge(self, engine: EngineParams, name: str) -> None:
+        """
+        Starts the physics bridge.
 
-        # Upload dictionary with engine parameters to ROS parameter server
+        Called by the constructor, do not call directly.
+
+        :param engine: The chosen physics engine
+        :param name: The namespace to start the engine in
+        """
         rosparam.upload_params('%s/physics_bridge' % name, engine.__dict__)
 
         # Launch the physics bridge under the namespace 'name'
@@ -105,7 +153,15 @@ class BaseEagerEnv(gym.Env):
         self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         self._launch.start()
     
-    def close(self, objects=[], observers=[]):
+    def close(self, objects: List[Object] = [], observers: List[Object] = []) -> None:
+        """
+        Closes and cleans up the environment.
+
+        Will shutdown the physics engine and disable all passed node listeners.
+
+        :param objects: A list of objects to close
+        :param observers: A list of observers to close
+        """
         self._launch.shutdown()
 
         for el in (objects, observers):
@@ -118,6 +174,12 @@ class BaseEagerEnv(gym.Env):
         except:
             pass
     def seed(self, seed: int = None) -> List[int]:
+        """
+        Seeds the physics bridge and any processors where possible.
+
+        :param seed: A seed to use in the physics bridge and processors
+        :return: Currently only returns the given seed
+        """
         # todo: does this actually seed e.g. numpy on the EagerEnv side?
         seed = seeding.create_seed(seed)
         self.__seed_publisher.publish(seed)
