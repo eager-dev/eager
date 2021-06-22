@@ -3,7 +3,7 @@ import rospy
 from eager_core.srv import RegisterActionProcessor, ResetEnv
 from eager_core.utils.file_utils import load_yaml
 from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
-from eager_core.utils.gym_utils import get_message_from_space, get_space_msg_from_space
+from eager_core.utils.gym_utils import get_space_msg_from_def
 from eager_core.msg import Space
 
 # Abstract Base Class compatible with Python 2 and 3
@@ -54,8 +54,8 @@ class ActionProcessor(ABC):
         else:
             if space is None:
                 rospy.logerr('[{}] Action space of the processor is unknown!'.format(rospy.get_name()))
-            raw_action_msg = get_message_from_space(space)
-            space_msg = get_space_msg_from_space(space)
+            raw_action_msg = get_message_from_def(space)
+            space_msg = get_space_msg_from_def(space)
         
         action_object = {'type' : req.action_type}
         action_msg = get_message_from_def(action_object)
