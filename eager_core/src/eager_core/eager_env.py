@@ -153,7 +153,7 @@ class BaseEagerEnv(gym.Env):
         self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         self._launch.start()
     
-    def close(self, objects: List[Object] = [], observers: List[Object] = []) -> None:
+    def close(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
         """
         Closes and cleans up the environment.
 

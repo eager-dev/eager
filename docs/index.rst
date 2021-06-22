@@ -19,7 +19,6 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-
-.. autoclass:: BaseEagerEnv
-
-.. automodule:: eager_core
+.. autoclass:: eager_core.eager_env.BaseEagerEnv
+   :members:
+   :private-members:
