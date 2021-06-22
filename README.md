@@ -33,7 +33,6 @@ Troubleshooting:
 ## Python dependencies (listing them here, don't how to list in CMakeList if ros-<module> does not exist...)
 - defusedxml
 - stable-baselines3
-- scenic
 - six
 - gazebo (this probably does exist, check!)
 - opencv==4.3.0.36
