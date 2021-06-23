@@ -2,8 +2,7 @@ import abc
 import rospy
 from eager_core.srv import RegisterActionProcessor, ResetEnv
 from eager_core.utils.file_utils import load_yaml
-from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
-from eager_core.utils.gym_utils import get_space_msg_from_def
+from eager_core.utils.message_utils import get_message_from_def, get_response_from_def, get_space_msg_from_def
 from eager_core.msg import Space
 
 # Abstract Base Class compatible with Python 2 and 3
