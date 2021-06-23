@@ -69,7 +69,7 @@ class ActionProcessor(ABC):
             for sensor in object_params['sensors']:
                 sens_def = object_params['sensors'][sensor]
                 msg_type = get_message_from_def(sens_def)
-                self._get_observation_services[object_name][sensor] = rospy.ServiceProxy(env + 'objects/' + object_name + '/' + sensor, msg_type)
+                self._get_observation_services[object_name][sensor] = rospy.ServiceProxy(env + 'objects/' + object_name + '/sensors/' + sensor, msg_type)
         self._get_action_service = rospy.ServiceProxy(ns + '/raw', raw_action_msg)
         self.__process_action_service = rospy.Service(ns, action_msg, self.__process_action_handler)
         return space_msg # The new environment action space
