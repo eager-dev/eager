@@ -22,3 +22,7 @@ Indices and tables
 .. autoclass:: eager_core.eager_env.BaseEagerEnv
    :members:
    :private-members:
+
+.. autoclass:: eager_core.eager_env.EagerEnv
+   :members:
+   :private-members:
