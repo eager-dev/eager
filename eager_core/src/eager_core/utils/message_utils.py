@@ -44,7 +44,7 @@ def get_dtype_from_def(object):
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
-def get_def_from_space_msg(msg: Space) -> dict:
+def get_def_from_space_msg(msg):
     object = dict()
     object['type'] = msg.type
     object['high'] = [] 
@@ -55,7 +55,7 @@ def get_def_from_space_msg(msg: Space) -> dict:
         object['low'].append(substitute_xml_args(value))
     return object
     
-def get_space_msg_from_def(object: dict) -> Space:
+def get_space_msg_from_def(object):
     msg = Space()
     msg.type = object['type']
     msg.high = []
