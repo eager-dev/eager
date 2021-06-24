@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import rospy
 from safe_actions import SafeActions
-import sys
 
 
 if __name__ == '__main__':

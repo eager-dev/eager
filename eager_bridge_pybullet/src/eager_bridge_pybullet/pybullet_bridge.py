@@ -68,10 +68,11 @@ class PyBulletBridge(PhysicsBridge):
         super(PyBulletBridge, self).__init__("pybullet")
 
     def _start_simulator(self):
-        if rospy.get_param('physics_bridge/no_gui') == 'false':
-            p = bullet_client.BulletClient(connection_mode=pybullet.GUI)
-        else:
+        if rospy.get_param('physics_bridge/no_gui', False):
             p = bullet_client.BulletClient()
+        else:
+            p = bullet_client.BulletClient(connection_mode=pybullet.GUI)
+            
         physics_client_id = p._client
         p.resetSimulation()
         p.setPhysicsEngineParameter(deterministicOverlappingPairs=1)

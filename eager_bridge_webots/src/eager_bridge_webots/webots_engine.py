@@ -7,7 +7,7 @@ class WebotsEngine(EngineParams):
     def __init__(self,
                  world: str = '$(find eager_bridge_webots)/worlds/default.wbt',
                  dt: float = 0.08,
-                 no_gui: str = 'false',
+                 no_gui: bool = False,
                  mode: str = 'realtime',
                  physics_step = 0.02,
                  seed = None):

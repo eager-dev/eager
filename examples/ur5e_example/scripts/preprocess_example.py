@@ -20,7 +20,7 @@ if __name__ == '__main__':
                     anonymous=True, log_level=rospy.WARN)
     
     dt = 0.08
-    engine = WebotsEngine(dt=dt, world='$(find ur5e_example)/worlds/ur5e.wbt')
+    engine = WebotsEngine(physics_step=0.01, seed=42)
     # engine = GazeboEngine(dt=dt)
     # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
     
@@ -62,13 +62,12 @@ if __name__ == '__main__':
     rospy.loginfo("Training starts")
     
     model = PPO('MlpPolicy', env, verbose=1)
-    
-    model.learn(total_timesteps=100000)
+
+    # model.learn(total_timesteps=100000)
 
     obs = env.reset()
-    
     for i in range(1000):
-        action, _states = model.predict(obs, deterministic=True)
+        action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         env.render()
         if done:
