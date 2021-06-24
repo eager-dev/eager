@@ -3,26 +3,27 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to EAGER's documentation!
-=================================
+Engine Agnostic Gym Environment for Robotics (EAGER) Documentation
+==================================================================
+
+`EAGER <https://github.com/eager-dev/eager>`_ is a physics engine abstraction layer for reinforcement learning.
+EAGER allows switching between simulators and reality with a single line of code, supports action and observation processing and controller switching for resets.
+
+EAGER is built on ROS 1.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: User Guide
 
+   guide/install
+   guide/starting
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference Guide
 
-Indices and tables
-==================
+   ref/eager_env
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-.. autoclass:: eager_core.eager_env.BaseEagerEnv
-   :members:
-   :private-members:
-
-.. autoclass:: eager_core.eager_env.EagerEnv
-   :members:
-   :private-members:
+Contributing
+------------
+N/A
