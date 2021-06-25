@@ -3,17 +3,17 @@ export EAGER_HOME=$PWD
 export PYTHONPATH=$EAGER_HOME/src:$PYTHONPATH
 export PYTHON=python3
 
+if [[ -z "$ROS_DISTRO" ]]; then
+       echo "ROS is not installed"
+       exit 1
+fi
+
 if [[ ! -d "eager_venv" ]]; then
 	pip3 install virtualenv
 	virtualenv -p python3 eager_venv
 fi
 
 source eager_venv/bin/activate
-
-if [[ -z "$ROS_DISTRO" ]]; then
-       echo "ROS is not installed"
-       exit 1
-fi
 
 export EAGER_WS=${HOME}/eager_ws
 

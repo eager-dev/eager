@@ -1,6 +1,19 @@
 # EAGER
 Engine Agnostic Gym Environment for Robotics.
 
+## Installation
+The installation procedure for EAGER is simple. First clone this repository to a desired location. Then run:
+```
+source bin/setup.bash
+```
+This will create a virtual environment in which Python dependencies will be installed.
+Also, a catkin workspace named *eager_ws* will be created in the home directory of the user.
+Symbolic links will be created that point to the EAGER ROS packages and these packages will be build.
+After running this command, the user is ready to go. The installation can be checked by running one of the examples:
+```
+roslaunch ur5e_example ur5e_example.launch
+```
+
 ## Toolkit's advantages (current implementation)
 - Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
 - Ability to use a python debugger (because we use services)
@@ -12,7 +25,7 @@ Engine Agnostic Gym Environment for Robotics.
 - Create a symbolic link in your `catkin_ws/src` to the `ros` directory.
 
 ## Launch python training script with a different python interpreter (e.g. with an Anaconda virtual environment)
-- Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`). 
+- Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`).
 
 ## Run python training script dynamically (e.g. via PyCharm debugger)
 - If you would like to start-up your python script without a launch file, make sure to source the `devel/setup.bash` (e.g. inside your `~/.bashrc`) right before you run your python script inside the IDE.
