@@ -3,8 +3,10 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
+from operator import add
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
+from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
 from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
 from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
@@ -67,9 +69,26 @@ class GazeboBridge(PhysicsBridge):
         self._launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
+        self._add_robot(topic, name, package, args, config)
+        
+        self._init_sensors(topic, name, config['sensors'])
+        
+        self._init_actuators(topic, name, config['actuators'])
+        
+        self._init_states(topic, name, config['states'])
+        
+        self._step_world(self.step_request)
+        return True
+    
+    def _add_robot(self, topic, name, package, args, config):
+        pos = "-x {} -y {} -z {}".format(*map(add, config['default_translation'], args['position']))
+        ori = "-R {} -P {} -Y {}".format(*euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
+        
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
-                    'ns:=%s' % topic]
+                    'ns:=%s' % topic,
+                    'name:=%s' % name,
+                    'configuration:=%s' % (pos + " " + ori)]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -77,15 +96,6 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
         
-        self._init_sensors(topic, name, config['sensors'])
-        
-        self._init_actuators(topic, name, config['actuators'])
-
-        self._init_states(topic, name, config['states'])
-        
-        self._step_world(self.step_request)
-        return True
-    
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
         for sensor in sensors:
@@ -96,6 +106,7 @@ class GazeboBridge(PhysicsBridge):
             space = sensor_params['space']
             msg_type = getattr(sensor_msgs.msg, msg_name)
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
+            rospy.logwarn(self._sensor_buffer)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type, 
@@ -110,7 +121,7 @@ class GazeboBridge(PhysicsBridge):
                                          )
     
     def _init_actuators(self, topic, name, actuators):
-        actuator_services = dict()
+        self._actuator_services[name] = {}
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
             joint_names = actuators[actuator]["names"]
@@ -118,16 +129,15 @@ class GazeboBridge(PhysicsBridge):
             server_name = topic + "/" + actuators[actuator]["server_name"]
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
-            actuator_services[actuator] = (get_action_srv, set_action_srv)
-        self._actuator_services[name] = actuator_services
+            self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)
 
     def _init_states(self, topic, name, states):
-        robot_states = dict()
+        self._state_buffer[name] = {}
         for state in states:
             rospy.logdebug("Initializing state {}".format(state))
             state_params = states[state]
             space = state_params['space']
-            robot_states[state] = [get_value_from_def(space)] * get_length_from_def(space)
+            self._state_buffer[name][state] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space),
                                                        functools.partial(self._service, 
                                                                          buffer=self._state_buffer, 
@@ -137,7 +147,6 @@ class GazeboBridge(PhysicsBridge):
                                                                          )
                                                        )
                                          )
-        self._state_buffer[name] = robot_states
         
     def _sensor_callback(self, data, name, sensor):
         data_list = data.position

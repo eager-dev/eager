@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>    
   <arg name="ns" default=""  doc="Namespace of the robot." />
+  <arg name="name" default="robot" doc="Name of the robot. This should be unique." />
+  <arg name="configuration" default="-z 0"/>
 	
 	<group ns="$(arg ns)">
 		<!-- send robot urdf to param server -->
@@ -9,7 +11,7 @@
 		</include>
 
 		<!-- push robot_description to factory and spawn robot in gazebo -->
-		<node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -z 0.0" respawn="false" output="screen" />
+		<node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model $(arg name) $(arg configuration)" respawn="false" output="screen" />
 
 		<include file="$(find ur_e_gazebo)/launch/controller_utils.launch"/>
 
