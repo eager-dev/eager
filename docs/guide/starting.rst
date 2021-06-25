@@ -24,6 +24,12 @@ Gazebo
 
 .. autoclass:: eager_bridge_gazebo.gazebo_engine.GazeboEngine
 
+Reality
+~~~~~~~
+
+.. autoclass:: eager_bridge_real.real_engine.RealEngine
+
+
 In the codeblock below we import the engine class and create a default world configuration.
 
 .. code-block:: python
@@ -71,7 +77,7 @@ To alter the behaviour of the environment and its observations and actions to be
 Full Example
 ------------
 
-In this example we create a WeBots environment with a sing UR5e robot.
+In this example we create a WeBots environment with a single UR5e robot.
 Once started we step the environment with random actions from the action space and then close the environment.
 
 .. code-block:: python
