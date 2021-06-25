@@ -31,7 +31,7 @@ class Input(object):
         time_since_input = (time % self.input_dt) + dt
         return int(time_since_input / self.input_dt)
 
-    def get(self, time, dt):
+    def __call__(self, time, dt):
         self.expected_input = self.get_inputs_in_step(time, dt)
 
         if self.expected_input == 0:
