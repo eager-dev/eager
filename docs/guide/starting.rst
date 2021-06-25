@@ -40,7 +40,7 @@ In the codeblock below we import the engine class and create a default world con
 The classes here do not actually do anything when initialized but only store parameters to be used when starting the engine.
 
 Initializing Objects
-----------------
+--------------------
 
 To add objects to the world function create them using the ``create`` funcion in the ``Object`` class.
 
@@ -63,6 +63,7 @@ Now an envirnment can be made with the created objects and the simulator.
 As soon as the ``EagerEnv`` is initialized the chosen physics engine will start and the objects will be added to the world.
 
 .. autoclass:: eager_core.eager_env.EagerEnv
+    :noindex:
 
 In the codeblock below we create a default ``EagerEnv`` with the single robot we created.
 
