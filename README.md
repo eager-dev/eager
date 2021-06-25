@@ -21,9 +21,6 @@ roslaunch ur5e_example ur5e_example.launch
 - Ability to step environments in simulation. In this way the simulation time between actions is constant and performance is not affected by calculation time.
 - Ability to use different physics engines: WeBots, PyBullet, Gazebo (which supports Open Dynamics Engine (ODE), Bullet, Dynamic Animation and Robotics Toolkit (DART), Simbody)
 
-## Package building
-- Create a symbolic link in your `catkin_ws/src` to the `ros` directory.
-
 ## Launch python training script with a different python interpreter (e.g. with an Anaconda virtual environment)
 - Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`).
 
