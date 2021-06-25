@@ -1,11 +1,16 @@
 import rospy, rosservice, roslaunch
 import functools
 import re
+import tempfile
+import os
+from eager_bridge_webots.webots_parser import WebotsParser
+from eager_bridge_webots.orientation_utils import quad_to_axis_angle, quaternion_multiply
+from operator import add
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def, get_dtype_from_def
 from webots_ros.msg import Float64Stamped
-from webots_ros.srv import set_int, set_float
+from webots_ros.srv import set_int, set_float, get_uint64, node_get_field, field_import_node_from_string
 from sensor_msgs.msg import Image
 
 class WeBotsBridge(PhysicsBridge):
@@ -18,6 +23,13 @@ class WeBotsBridge(PhysicsBridge):
         self._supervisor_name = self._get_supervisor()
 
         self._step_service = rospy.ServiceProxy(self._supervisor_name + "/robot/time_step", set_int)
+
+        get_root = rospy.ServiceProxy(self._supervisor_name + '/supervisor/get_root', get_uint64)
+        get_root.wait_for_service(20)
+        root = get_root(True).value
+        get_node_field = rospy.ServiceProxy(self._supervisor_name + '/supervisor/node/get_field', node_get_field)
+        self._root_node_field = get_node_field(root, "children", False).field
+        self._import_robot_service = rospy.ServiceProxy(self._supervisor_name + '/supervisor/field/import_node_from_string', field_import_node_from_string)
 
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
@@ -32,11 +44,39 @@ class WeBotsBridge(PhysicsBridge):
         super(WeBotsBridge, self).__init__("webots")
 
     def _start_simulator(self):
+
+        world_file_path = substitute_xml_args('%s' % rospy.get_param('physics_bridge/world'))
+
+        wp = WebotsParser()
+        wp.load(world_file_path)
+        set_time = False
+        set_seed = not rospy.has_param('physics_bridge/seed')
+        for f in wp.content['root']:
+            if f['name'] == 'WorldInfo':
+                for field in f['fields']:
+                    if not set_time and field['name'] == 'basicTimeStep':
+                        field['value'] = rospy.get_param('physics_bridge/basicTimeStep')
+                        set_time = True
+                    elif not set_seed and field['name'] == 'randomSeed':
+                        field['value'] = rospy.get_param('physics_bridge/seed')
+                        set_seed = True
+                    if set_time and set_seed:
+                        break
+                if not set_time:
+                    f['fields'].append({'type': 'SFInt32', 'name': 'basicTimeStep', 'value': rospy.get_param('physics_bridge/basicTimeStep')})
+                if not set_seed:
+                    f['fields'].append({'type': 'SFInt32', 'name': 'randomSeed', 'value': rospy.get_param('physics_bridge/seed')})
+                break
+
+        self.world_file = tempfile.NamedTemporaryFile(mode = 'w', suffix = '.wbt', dir = os.path.dirname(world_file_path))
+        wp.save_in_file(self.world_file)
+        self.world_file.flush()
+        
         str_launch_sim = '$(find eager_bridge_webots)/launch/webots_sim.launch'
         cli_args = [substitute_xml_args(str_launch_sim),
                     'mode:=%s' % rospy.get_param('physics_bridge/mode', 'fast'),
-                    'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', 'false'),
-                    'world:=%s' % rospy.get_param('physics_bridge/world')]
+                    'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', False),
+                    'world:=%s' % self.world_file.name]
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -58,6 +98,7 @@ class WeBotsBridge(PhysicsBridge):
         return re.search("[^\/]+(?=\/supervisor)", supervisors[0]).group()
 
     def _register_object(self, topic, name, package, object_type, args, config):
+        self._add_robot(config['node_type_name'], name, args, config)
         if 'sensors' in config:
             self._init_sensors(topic, name, config['sensors'])
         if 'actuators' in config:
@@ -67,14 +108,15 @@ class WeBotsBridge(PhysicsBridge):
         return True
     
     def _init_sensors(self, topic, name, sensors):
-        robot_sensors = dict()
+        self._sensor_buffer[name] = dict()
         for sensor_name in sensors:
             sensor = sensors[sensor_name]
             topic_list = sensor['names']
             space = sensor['space']
-            robot_sensors[sensor_name] = [get_value_from_def(space)] * get_length_from_def(space)
+            self._sensor_buffer[name][sensor_name] = [get_value_from_def(space)] * get_length_from_def(space)
             for idx, webots_sensor_name in enumerate(topic_list):
                 enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
+                enable_sensor.wait_for_service(5)
 
                 success = enable_sensor(self._step_time) # For the second robot WeBots gets stuck here.
                 # To continue handing this service it needs a step in the synchronized robot.
@@ -96,10 +138,9 @@ class WeBotsBridge(PhysicsBridge):
                                                                          name=name,
                                                                          obs_name=sensor_name,
                                                                          message_type=get_response_from_def(space))))
-        self._sensor_buffer[name] = robot_sensors
     
     def _init_actuators(self, topic, name, actuators):
-        robot_actuators = dict()
+        self._actuator_services[name] = dict()
         for actuator_name in actuators:
             actuator = actuators[actuator_name]
             topic_list = actuator['names']
@@ -109,16 +150,15 @@ class WeBotsBridge(PhysicsBridge):
                 set_action_srvs.append(rospy.ServiceProxy(name + "/" + webots_actuator_name + "/set_position", set_float))
 
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator_name, get_message_from_def(space))
-            robot_actuators[actuator_name] = (get_action_srv, set_action_srvs)
-        self._actuator_services[name] = robot_actuators
+            self._actuator_services[name][actuator_name] = (get_action_srv, set_action_srvs)
 
     def _init_states(self, topic, name, states):
-        robot_states = dict()
+        self._state_buffer[name] = dict()
         for state_name in states:
             state = states[state_name]
             topic_list = state['names']
             space = state['space']
-            robot_states[state_name] = [get_value_from_def(space)] * get_length_from_def(space)
+            self._state_buffer[name][state_name] = [get_value_from_def(space)] * get_length_from_def(space)
             # for idx, webots_sensor_name in enumerate(topic_list):
             #     enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
             #     success = enable_sensor(self._step_time)
@@ -131,9 +171,17 @@ class WeBotsBridge(PhysicsBridge):
                                                                          name=name,
                                                                          obs_name=state_name,
                                                                          message_type=get_response_from_def(space))))
-        self._state_buffer[name] = robot_states
+    
+    def _add_robot(self, node_type, name, args, config):
+        pos = '{} {} {}'.format(*map(add, config['default_translation'], args['position']))
+        ori = '{} {} {} {}'.format(*quad_to_axis_angle(quaternion_multiply(config['default_orientation'], args['orientation'])))
+        self._import_robot_service(self._root_node_field, 0, '{} {{ translation {} rotation {} controller "ros" controllerArgs [ "--name={}" ]}}'.format(node_type, pos, ori, name))
+    
 
     def _sensor_callback(self, data, name, sensor, pos):
+        if data.data != data.data:
+            rospy.logwarn('NaN sensor input from WeBots')
+            return
         self._sensor_buffer[name][sensor][pos] = data.data
     
     def _camera_callback(self, data, name, sensor):
@@ -160,7 +208,8 @@ class WeBotsBridge(PhysicsBridge):
                     if not success:
                         rospy.logwarn("Not all actions for %s could be set", actuator)
     
-        self._step_service(self._step_time)
+        #self._step_service(self._step_time)
+        rospy.sleep(float(self._step_time)/1000)
         # todo: Seems like after calling the step_service and returning the step service to RosEnv,
         #  we are not sure that the observation buffers are updated.
         return True
@@ -170,6 +219,9 @@ class WeBotsBridge(PhysicsBridge):
 
     def _close(self):
         self._launch.shutdown()
+        # TODO: WeBots should fix this cleanup...
+        os.remove(os.path.dirname(self.world_file.name) + '/.' + os.path.splitext(os.path.basename(self.world_file.name))[0] + '.wbproj')
+        self.world_file.close()
         return True
     
     def _seed(self, seed):

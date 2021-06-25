@@ -1,7 +1,6 @@
 import sys
 import rospy
 import moveit_commander
-import gym
 from eager_core.action_processor import ActionProcessor
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
@@ -49,7 +48,10 @@ class SafeActions(ActionProcessor):
         super(SafeActions, self).__init__()
     
     def _get_space(self):
-        space = gym.spaces.Box(low=-3.14, high=3.14, shape=(len(self.joint_names),))
+        space = {}
+        space['low'] = [-3.14]*len(self.joint_names)
+        space['high'] = [3.14]*len(self.joint_names)
+        space['type'] = 'boxf32'
         return space
         
     def _close(self):

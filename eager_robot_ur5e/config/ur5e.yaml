@@ -37,6 +37,9 @@ states:
 #    low: [-1, -1, -1]
 
 webots:
+  node_type_name: UR5e
+  default_translation: [0, 0, 0]
+  default_orientation: [0.707107, 0, 0, -0.707107]
   sensors:
     joint_sensors:
       names:

@@ -138,7 +138,7 @@ class Actuator(BaseRosObject):
         if self.preprocess_launch is not None:
             # Launch processor
             cli_args = self.preprocess_launch
-            cli_args.append('ns:={}'.format(self.get_topic(base_topic)))
+            cli_args.append('ns:={}'.format(self.get_topic(base_topic + '/actuators')))
             roslaunch_args = cli_args[1:]
             roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
             uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -147,7 +147,7 @@ class Actuator(BaseRosObject):
             launch.start()
             
             # Register processor
-            self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(base_topic) + "/register_processor", RegisterActionProcessor)
+            self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(base_topic + '/actuators') + "/register_processor", RegisterActionProcessor)
             self._register_action_processor_service.wait_for_service()
             response = self._register_action_processor_service(self.preprocess_req)
             
@@ -160,7 +160,7 @@ class Actuator(BaseRosObject):
             self._buffer = self.action_space.sample()
             
             # Create act service
-            self._act_service = rospy.Service(self.get_topic(base_topic) + "/raw", get_message_from_space(self.action_space), self._send_action)
+            self._act_service = rospy.Service(self.get_topic(base_topic + '/actuators') + "/raw", get_message_from_space(self.action_space), self._send_action)
         else:
             self._buffer = self.action_space.sample()
             
