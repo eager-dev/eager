@@ -13,7 +13,7 @@
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>TODO</license>
+  <license>Apache2.0</license>
 
 
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
@@ -70,7 +70,6 @@
   <exec_depend>eager_bridge_webots</exec_depend>
   <exec_depend>eager_robot_ur5e</exec_depend>
   <exec_depend>eager_process_safe_actions</exec_depend>
-
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
