@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     # Engine specific parameters
     engine = WebotsEngine(physics_step=0.01, seed=42)
-    # engine = GazeboEngine()
+    # engine = GazeboEngine(seed=42)
     # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui=False, dt=0.0165)
 
     # Initialize environment

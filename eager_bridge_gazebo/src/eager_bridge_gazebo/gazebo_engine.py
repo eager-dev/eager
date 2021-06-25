@@ -5,7 +5,8 @@ class GazeboEngine(EngineParams):
                  world: str = '$(find eager_bridge_gazebo)/worlds/eager_empty.world',
                  dt: float = 0.08,
                  max_update_rate: float = 0.0,  # 0.0 --> simulate as fast as possible
-                 no_gui: bool = False):
+                 no_gui: bool = False,
+                 seed = None):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'gazebo'
         launch_file = '$(find eager_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)
@@ -15,6 +16,8 @@ class GazeboEngine(EngineParams):
         # on the parameter server anywhere before calling the baseclass' constructor.
         kwargs = locals().copy()
         kwargs.pop('self')
+        if seed is None:
+            kwargs.pop('seed')
         super(GazeboEngine, self).__init__(**kwargs)
 
         # Calculate other parameters based on previously defined attributes.
