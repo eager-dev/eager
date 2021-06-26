@@ -1,4 +1,5 @@
 import gym, gym.spaces
+from eager_core.comms.input import Input
 from eager_core.utils.file_utils import load_yaml, substitute_xml_args
 from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_from_space,
                                         get_def_from_space, get_response_from_space,
@@ -29,6 +30,9 @@ class BaseRosObject():
         if base_topic == '':
             return self.name
         return base_topic + '/' + self.name
+    
+    def step(self, time: float, dt: float) -> None:
+        pass
 
     def assert_not_yet_initialized(self, assert_type):
         if self._is_initialized:
@@ -53,17 +57,17 @@ class Sensor(BaseRosObject):
         super().__init__(type, name)
         self.observation_space = space
 
-    def init_node(self, base_topic: str = '') -> None:
+    def init_node(self, input_rate: float, base_topic: str = '') -> None:
         self.assert_not_yet_initialized('init')
         self._is_initialized = True
 
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
         
-        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic + '/sensors'), get_message_from_space(self.observation_space))
+        self._get_data = Input(self.get_topic(base_topic + '/sensors'), get_message_from_space(self.observation_space), input_rate)
 
     def get_obs(self) -> object: #Type depends on space
-        response = self._get_sensor_service()
+        response = self._get_data()
         if self.observation_space.dtype == np.dtype(np.uint8):
             buf = np.frombuffer(response.value, np.uint8).reshape(self.observation_space.shape)
             return buf
@@ -134,7 +138,12 @@ class Actuator(BaseRosObject):
 
         if self.action_space is None:
             self.action_space = self._infer_space(base_topic)
+        
+        self._buffer = self.action_space.sample()
+            
+        self._action_publisher = rospy.Publisher(self.get_topic(base_topic + '/actuators'), get_message_from_space(self.action_space))
 
+        """
         if self.preprocess_launch is not None:
             # Launch processor
             cli_args = self.preprocess_launch
@@ -165,6 +174,7 @@ class Actuator(BaseRosObject):
             self._buffer = self.action_space.sample()
             
             self._act_service = rospy.Service(self.get_topic(base_topic + '/actuators'), get_message_from_space(self.action_space), self._send_action)
+        """
     
     def set_action(self, action: object) -> None:
         self._buffer = action
