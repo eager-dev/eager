@@ -1,7 +1,11 @@
 #!/bin/sh
 
+if [ ! -d ${HOME}/eager ]; then
+    cd ${HOME}
+    git clone https://github.com/eager-dev/eager.git
+fi
 
-export EAGER_HOME=$PWD
+export EAGER_HOME=${HOME}/eager
 
 if [[ -z "$ROS_DISTRO" ]]; then
        echo "ROS is not installed"
