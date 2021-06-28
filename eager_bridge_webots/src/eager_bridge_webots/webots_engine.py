@@ -10,7 +10,8 @@ class WebotsEngine(EngineParams):
                  no_gui: bool = False,
                  mode: str = 'realtime',
                  physics_step = 0.02,
-                 seed = None):
+                 seed = None,
+                 virtual_display=False):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'webots'
         launch_file = '$(find eager_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)

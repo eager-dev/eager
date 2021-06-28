@@ -12,6 +12,7 @@ from eager_core.utils.message_utils import get_value_from_def, get_message_from_
 from webots_ros.msg import Float64Stamped
 from webots_ros.srv import set_int, set_float, get_uint64, node_get_field, field_import_node_from_string
 from sensor_msgs.msg import Image
+from eager_bridge_webots.webots_launcher import WebotsRunner
 
 class WeBotsBridge(PhysicsBridge):
 
@@ -23,6 +24,7 @@ class WeBotsBridge(PhysicsBridge):
         self._supervisor_name = self._get_supervisor()
 
         self._step_service = rospy.ServiceProxy(self._supervisor_name + "/robot/time_step", set_int)
+        self._quit_service = rospy.ServiceProxy(self._supervisor_name + "/supervisor/simulation_quit", set_int)
 
         get_root = rospy.ServiceProxy(self._supervisor_name + '/supervisor/get_root', get_uint64)
         get_root.wait_for_service(20)
@@ -71,18 +73,10 @@ class WeBotsBridge(PhysicsBridge):
         self.world_file = tempfile.NamedTemporaryFile(mode = 'w', suffix = '.wbt', dir = os.path.dirname(world_file_path))
         wp.save_in_file(self.world_file)
         self.world_file.flush()
-        
-        str_launch_sim = '$(find eager_bridge_webots)/launch/webots_sim.launch'
-        cli_args = [substitute_xml_args(str_launch_sim),
-                    'mode:=%s' % rospy.get_param('physics_bridge/mode', 'fast'),
-                    'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', False),
-                    'world:=%s' % self.world_file.name]
-        roslaunch_args = cli_args[1:]
-        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        roslaunch.configure_logging(uuid)
-        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        self._launch.start()
+
+        self.webots_runner = WebotsRunner(self.world_file.name, rospy.get_param('physics_bridge/mode', 'fast'),
+            rospy.get_param('physics_bridge/no_gui', False),
+            rospy.get_param('physics_bridge/virtual_display', False))
 
     def _get_supervisor(cls):
         supervisor_checks = 0
@@ -218,9 +212,7 @@ class WeBotsBridge(PhysicsBridge):
         return True
 
     def _close(self):
-        self._launch.shutdown()
-        # TODO: WeBots should fix this cleanup...
-        os.remove(os.path.dirname(self.world_file.name) + '/.' + os.path.splitext(os.path.basename(self.world_file.name))[0] + '.wbproj')
+        self.webots_runner.quit()
         self.world_file.close()
         return True
     
