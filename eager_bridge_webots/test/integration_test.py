@@ -21,7 +21,7 @@ class IntegrationTest(unittest.TestCase):
         rospy.init_node('integration_test_webots', anonymous=True)
 
     def test_check_env(self):
-        engine = WebotsEngine(world='$(find eager_bridge_webots)/worlds/ur5e.wbt', no_gui=True, virtual_display=True)
+        engine = WebotsEngine(world='$(find eager_bridge_webots)/worlds/ur5e.wbt', no_gui=True, virtual_display=True, ci=True)
 
         # Initialize environment
         robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
