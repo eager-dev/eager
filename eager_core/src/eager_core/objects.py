@@ -32,9 +32,9 @@ class BaseRosObject():
 
     def assert_not_yet_initialized(self, assert_type):
         if self._is_initialized:
-            if assert_type is 'preprocess':
+            if assert_type == 'preprocess':
                 str_err = '"%s" already initialized. Cannot add preprocessing after initialization.' % self.name
-            elif assert_type is 'init':
+            elif assert_type == 'init':
                 str_err = '"%s" already initialized. Hint: perhaps in another environment.' % self.name
             else:
                 str_err = '"%s" already initialized. Cannot perform "%s" after initialization.' % (self.name, assert_type)
