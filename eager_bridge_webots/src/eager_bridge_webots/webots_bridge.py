@@ -76,7 +76,8 @@ class WeBotsBridge(PhysicsBridge):
 
         self.webots_runner = WebotsRunner(self.world_file.name, rospy.get_param('physics_bridge/mode', 'fast'),
             rospy.get_param('physics_bridge/no_gui', False),
-            rospy.get_param('physics_bridge/virtual_display', False))
+            rospy.get_param('physics_bridge/virtual_display', False),
+            rospy.get_param('physics_bridge/continuous_integration', False))
 
     def _get_supervisor(cls):
         supervisor_checks = 0
