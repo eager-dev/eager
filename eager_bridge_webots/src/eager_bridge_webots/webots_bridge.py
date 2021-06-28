@@ -268,7 +268,6 @@ class WeBotsBridge(PhysicsBridge):
             for state in robot_resets:
                 (get_state_srv, set_reset_srvs) = robot_resets[state]
                 state = get_state_srv()
-                print(state.value)
                 set_reset_srvs(list(state.value))
 
         # update all observation & state buffers
