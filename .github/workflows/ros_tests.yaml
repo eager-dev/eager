@@ -16,12 +16,12 @@ jobs:
       CCACHE_DIR: /github/home/.ccache # Directory for ccache (and how we enable ccache in industrial_ci)
       BEFORE_INIT: >
         apt-get update;
-        apt-get install wget;
+        apt-get install -y wget;
         wget -qO- https://cyberbotics.com/Cyberbotics.asc | apt-key add -;
         apt-add-repository 'deb https://cyberbotics.com/debian/ binary-amd64/';
         apt-get update;
-        apt-get install webots;
-        apt-get install xvfb
+        apt-get install -y webots;
+        apt-get install -y xvfb
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
