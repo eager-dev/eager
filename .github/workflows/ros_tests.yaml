@@ -14,7 +14,12 @@ jobs:
           - {ROS_DISTRO: noetic, ROS_REPO: main, UPSTREAM_WORKSPACE: '.rosinstall'}
     env:
       CCACHE_DIR: /github/home/.ccache # Directory for ccache (and how we enable ccache in industrial_ci)
-      BEFORE_INIT: snap install webots && apt-get install xvfb
+      BEFORE_INIT: >
+        wget -qO- https://cyberbotics.com/Cyberbotics.asc | sudo apt-key add -;
+        apt-add-repository 'deb https://cyberbotics.com/debian/ binary-amd64/';
+        apt-get update;
+        apt-get install webots;
+        apt-get install xvfb
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

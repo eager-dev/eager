@@ -7,7 +7,7 @@ class WebotsRunner(object):
     def __init__(self, world, mode, no_gui=False, virtual_display=False, ci=False):
         if 'WEBOTS_HOME' not in os.environ:
             if ci:
-                os.environ['WEBOTS_HOME'] = '/snap/webots/current/usr/share/webots'
+                os.environ['WEBOTS_HOME'] = '/usr/local/webots'
             else:
                 raise Exception('WEBOTS_HOME not defined')
 
