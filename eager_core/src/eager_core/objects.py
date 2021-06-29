@@ -93,7 +93,7 @@ class State(BaseRosObject):
         if self.state_space is None:
             self.state_space = self._infer_space(base_topic)
 
-        self._buffer = self.state_space.sample()
+        self._buffer = None
 
         self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic + '/states'),
                                                  get_message_from_space(self.state_space))
@@ -331,8 +331,8 @@ class Object(BaseRosObject):
         for actuator in self.actuators.values():
             actuator.reset()
 
-        for state_name, state in self.states.items():
-            state.set_state(states[state_name])
+        for state_name, state in states.items():
+            self.states[state_name].set_state(state)
 
         if self.reset_func is not None:
             self.reset_func(self)

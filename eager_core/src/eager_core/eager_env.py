@@ -126,7 +126,7 @@ class BaseEagerEnv(gym.Env):
 
 class EagerEnv(BaseEagerEnv):
 
-    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, reward_fn=None, is_done_fn=None, **kwargs) -> None:
+    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, reward_fn=None, is_done_fn=None, reset_fn=None, **kwargs) -> None:
         # todo: Interface changes a lot, use **kwargs.
         #  Make arguments of baseclass explicit when interface is more-or-less fixed.
         super().__init__(**kwargs)
@@ -141,6 +141,8 @@ class EagerEnv(BaseEagerEnv):
         # Overwrite the _is_done() function if provided
         if is_done_fn:
             self._is_done = is_done_fn
+
+        self._reset_fn = reset_fn
         self.STEPS_PER_ROLLOUT = max_steps
         self.steps = 0
 
@@ -165,16 +167,9 @@ class EagerEnv(BaseEagerEnv):
     
     def reset(self) -> object:
         self.steps = 0
-        for obj in self.objects:
-            if obj.state_space:  # Check if object has state that we can reset
-                reset_states = obj.state_space.sample()
 
-                # currently resetting to zero state.
-                for state in reset_states:
-                    reset_states[state] *= 0
-
-                # Set state we want to reset to in buffer
-                obj.reset(states=reset_states)
+        if self._reset_fn:
+            self._reset_fn(self)
 
         self._reset()
 

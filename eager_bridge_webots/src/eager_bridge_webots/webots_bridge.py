@@ -221,9 +221,15 @@ class WeBotsBridge(PhysicsBridge):
         return functools.partial(set_srv.__call__, field=field)
     
     def _add_robot(self, node_type, name, args, config):
-        pos = '{} {} {}'.format(*map(add, config['default_translation'], args['position']))
-        ori = '{} {} {} {}'.format(*quad_to_axis_angle(quaternion_multiply(config['default_orientation'], args['orientation'])))
-        self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ translation {} rotation {} controller "ros" controllerArgs [ "--name={}" ]}}'.format(name, node_type, pos, ori, name))
+        pos = 'translation {} {} {}'.format(*map(add, config['default_translation'], args['position']))
+        ori = 'rotation {} {} {} {}'.format(*quad_to_axis_angle(quaternion_multiply(config['default_orientation'], args['orientation'])))
+
+        if 'no_controller' not in config or config['no_controller'] is False:
+            controller = 'controller "ros" controllerArgs [ "--name={}" ]'.format(name)
+        else:
+            controller = ''
+
+        self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ {} {} {}}}'.format(name, node_type, pos, ori, controller))
 
     def _sensor_callback(self, data, name, sensor, pos):
         if data.data != data.data:
@@ -268,7 +274,8 @@ class WeBotsBridge(PhysicsBridge):
             for state in robot_resets:
                 (get_state_srv, set_reset_srvs) = robot_resets[state]
                 state = get_state_srv()
-                set_reset_srvs(list(state.value))
+                if state.value:
+                    set_reset_srvs(list(state.value))
 
         # update all observation & state buffers
         # Sensors are topics here, no quarantee for update, reset to 0?
