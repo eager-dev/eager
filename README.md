@@ -2,17 +2,40 @@
 Engine Agnostic Gym Environment for Robotics.
 
 ## Installation
-The installation procedure for EAGER is simple. First clone this repository to a desired location. Then run:
+There are two ways to install EAGER:
+
+1. By cloning the repository into a catkin workspace and building from source:
 ```
-source bin/setup.bash
+mkdir -p ~/eager_ws/src
+cd ~/eager_ws/src
+git clone https://github.com/eager-dev/eager.git
 ```
-This will create a virtual environment in which Python dependencies will be installed.
-Also, a catkin workspace named *eager_ws* will be created in the home directory of the user.
-Symbolic links will be created that point to the EAGER ROS packages and these packages will be build.
-After running this command, the user is ready to go. The installation can be checked by running one of the examples:
+Be aware that if you want to use the `eager_bridge_gazebo` in combination with the `eager_robot_ur5e`, the following repositories should be cloned into `~/eager_ws/src`:
 ```
-roslaunch ur5e_example ur5e_example.launch
+git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
+git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
 ```
+Now you can install the dependencies and build the workspace:
+```
+cd ~/eager_ws
+rosdep update --rosdistro $ROS_DISTRO
+rosdep install --from-paths src --ignore-src -r -y
+catkin_make
+source devel/setup.bash
+```
+2. Via PIP installation, which also provides the possibility to perform a custom installation rather than full installation with all EAGER packages:
+```
+pip install git+https://github.com/eager-dev/eager
+install_eager
+```
+The bash script ```install_eager``` will clone the repository and create a catkin
+workspace. It also asks for input in order to create links to the desired packages in this workspace. Afterwards, it will build the workspace. In order to use EAGER, the only thing that is required
+is sourcing:
+```
+source ~/eager_ws/devel/setup.bash
+```
+It is possible to run ```install_eager``` multiple times in order to install
+additional packages.
 
 ## Toolkit's advantages (current implementation)
 - Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)

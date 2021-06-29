@@ -1,42 +1,102 @@
-#!/bin/sh
-
-if [ ! -d ${HOME}/eager ]; then
-    cd ${HOME}
-    git clone https://github.com/eager-dev/eager.git
-fi
-
-export EAGER_HOME=${HOME}/eager
+#!/bin/bash
 
 if [[ -z "$ROS_DISTRO" ]]; then
-       echo "ROS is not installed"
+       echo "ROS is not installed, please install ROS first."
        exit 1
 fi
 
-export EAGER_WS=${HOME}/eager_ws
+EAGER_HOME=${HOME}/eager
+
+if [ ! -d ${HOME}/eager ]; then
+		echo Cloning EAGER...
+		cd ${HOME}
+    git clone https://github.com/eager-dev/eager.git
+fi
+
+EAGER_WS=${HOME}/eager_ws
 
 if [ ! -d ${HOME}/eager_ws ]; then
 		echo "Creating eager_ws"
 		cd ${HOME}
 		mkdir -p eager_ws/src
-fi
-
-rosdep update --rosdistro $ROS_DISTRO
-
-# install universal robot packages UR5 robot package
-if [ ! -d ${EAGER_WS}/src/universal_robot ]; then
     cd ${EAGER_WS}/src
-    git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
+    ln -s ${EAGER_HOME}/eager_core
 fi
 
-# install universal robot packages UR5 robot package
-if [ ! -d ${EAGER_WS}/src/ur_modern_driver ]; then
-    cd ${EAGER_WS}/src
-    git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
-fi
+echo "Do you wish to install all EAGER packages? (y/n)"
+invalid_input=true
+full_install=false
+while [[ $invalid_input = true ]]; do
+    read input
+    if [[ "$input" = "y" ]]; then
+       full_install=true
+       invalid_input=false
+       cd ${EAGER_WS}/src
+       ln -s ${EAGER_HOME}/examples
+    elif [[ "$input" = "n" ]]; then
+       invalid_input=false
+    fi
+done
 
-# install eager
-ln -s ${EAGER_HOME} ${EAGER_WS}/src
+cd ${EAGER_WS}/src
+packages_to_install=()
+package_types="bridge process robot sensor"
+for package_type in $package_types; do
+    installed=$(ls | grep eager_$package_type)
+    echo Installed $package_type packages: $installed
+    available=$(ls ${EAGER_HOME} | grep eager_$package_type)
+    not_installed=()
+    for available_package in $available; do
+        if [[ ! " $installed " =~ $available_package ]]; then
+           not_installed+=("$available_package")
+        fi
+    done
+    if [ ${#not_installed[@]} -ge 1 ]; then
+       if [ $full_install = true ]; then
+          packages_to_install+=" ${not_installed[@]}"
+       else
+           invalid_input=true
+           while [[ $invalid_input = true && ${#input} -ge 1 ]]; do
+               echo Packages of type $package_type that can be installed are: ${not_installed[@]}
+               echo Enter the packages you wish to install, seperated by spaces:
+               echo If you wish to install none, press enter.
+               read input
+               for entry in $input; do
+                  if [[ ! " ${not_installed[@]} " =~ " ${entry} " ]]; then
+                      invalid_input=true
+                      echo Invalid input given: $input
+                  else
+                      packages_to_install+=("${entry}")
+                      invalid_input=false
+                  fi
+               done
+           done
+        fi
+    fi
+done
+
+
+for package_to_install in ${packages_to_install[@]}; do
+    ln -s ${EAGER_HOME}/$package_to_install
+done
+
+cd ${EAGER_WS}/src
+packages=$(ls)
+if [[ " $packages " =~ "eager_bridge_gazebo" && " $packages " =~ "eager_robot_ur5e" ]]; then
+  # install universal robot packages UR5 robot package
+  echo "Installing UR robot packages"
+  if [ ! -d ${EAGER_WS}/src/universal_robot ]; then
+      cd ${EAGER_WS}/src
+      git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
+  fi
+  # install universal robot packages UR5 robot package
+  if [ ! -d ${EAGER_WS}/src/ur_modern_driver ]; then
+      cd ${EAGER_WS}/src
+      git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
+  fi
+fi
 
 cd ${EAGER_WS}
+rosdep update --rosdistro $ROS_DISTRO
 rosdep install --from-paths src --ignore-src -r -y
 catkin_make
