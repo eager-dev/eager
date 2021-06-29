@@ -15,7 +15,8 @@ jobs:
     env:
       CCACHE_DIR: /github/home/.ccache # Directory for ccache (and how we enable ccache in industrial_ci)
       BEFORE_INIT: >
-        wget -qO- https://cyberbotics.com/Cyberbotics.asc | sudo apt-key add -;
+        apt-get install wget;
+        wget -qO- https://cyberbotics.com/Cyberbotics.asc | apt-key add -;
         apt-add-repository 'deb https://cyberbotics.com/debian/ binary-amd64/';
         apt-get update;
         apt-get install webots;
