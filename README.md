@@ -25,7 +25,7 @@ source devel/setup.bash
 ```
 2. Via PIP installation, which also provides the possibility to perform a custom installation rather than full installation with all EAGER packages:
 ```
-pip install git+https://github.com/eager-dev/eager
+pip install git+https://github.com/eager-dev/eager@create-installation-script
 install_eager
 ```
 The bash script ```install_eager``` will clone the repository and create a catkin

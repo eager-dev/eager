@@ -56,13 +56,14 @@ for package_type in $package_types; do
           packages_to_install+=" ${not_installed[@]}"
        else
            invalid_input=true
+           input=0
+           echo Packages of type $package_type that can be installed are: ${not_installed[@]}
+           echo Enter the packages you wish to install, seperated by spaces:
+           echo If you wish to install none, press enter.
            while [[ $invalid_input = true && ${#input} -ge 1 ]]; do
-               echo Packages of type $package_type that can be installed are: ${not_installed[@]}
-               echo Enter the packages you wish to install, seperated by spaces:
-               echo If you wish to install none, press enter.
-               read input
                for entry in $input; do
                   if [[ ! " ${not_installed[@]} " =~ " ${entry} " ]]; then
+                      read input
                       invalid_input=true
                       echo Invalid input given: $input
                   else
