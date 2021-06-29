@@ -4,9 +4,12 @@ import time
 import rospy
 
 class WebotsRunner(object):
-    def __init__(self, world, mode, no_gui, virtual_display):
+    def __init__(self, world, mode, no_gui=False, virtual_display=False, ci=False):
         if 'WEBOTS_HOME' not in os.environ:
-            raise Exception('WEBOTS_HOME not defined')
+            if ci:
+                os.environ['WEBOTS_HOME'] = '/usr/local/webots'
+            else:
+                raise Exception('WEBOTS_HOME not defined')
 
         self.world = world
         command = [os.path.join(os.environ['WEBOTS_HOME'], 'webots'), '--mode=' + mode, world]
