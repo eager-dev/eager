@@ -16,7 +16,7 @@ jobs:
       CCACHE_DIR: /github/home/.ccache # Directory for ccache (and how we enable ccache in industrial_ci)
       BEFORE_INIT: >
         apt-get update;
-        apt-get install curl;
+        apt-get install -y curl;
         curl https://cyberbotics.com/Cyberbotics.asc | apt-key add -;
         apt-add-repository 'deb https://cyberbotics.com/debian/ binary-amd64/';
         apt-get update;
