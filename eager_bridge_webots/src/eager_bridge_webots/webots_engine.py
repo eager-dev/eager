@@ -1,6 +1,21 @@
 from eager_core.engine_params import EngineParams
 
 class WebotsEngine(EngineParams):
+    """
+    Webots engine parameters for EAGER environments.
+
+    This class includes all settings available for the Webots physics engine.
+
+    :param world: A path to a Webots world (.wbt) file. 
+    This file will be copied to a temporary file and edited to include the chosen settings
+    :param dt: The time step when :func:`eager_core.eager_env.EagerEnv.step` is called, must be a multiple of ``physics_step``
+    :param no_gui: For Webots this will launch minimized and without rendering
+    :param mode: The running mode of Webots ('pauze', 'realtime' or 'fast')
+    :param physics_step: The time step used in the physics calculations, ``dt`` must be a multiple of this
+    :param seed: The seed for the physics simulation
+    :param virtual_display: Run webots in a virtual display (:99)
+    :param continuous_integration: Run in CI mode
+    """
     def __init__(self,
                  world: str = '$(find eager_bridge_webots)/worlds/default.wbt',
                  dt: float = 0.08,

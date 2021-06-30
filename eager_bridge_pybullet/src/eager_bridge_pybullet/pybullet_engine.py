@@ -3,6 +3,18 @@ from eager_core.utils.file_utils import substitute_xml_args
 import pybullet_data
 
 class PyBulletEngine(EngineParams):
+    """
+    Pybullet engine parameters for EAGER environments.
+
+    This class includes all settings available for the Pybullet physics engine.
+
+    :param world: A path to a Pybullet world urdf
+    :param dt: The time step when :func:`eager_core.eager_env.EagerEnv.step` is called
+    :param no_gui: For Webots this will launch minimized and without rendering
+    :param num_substeps: Subdivide the physics simulation step further within a single step of ``dt``
+    :param num_solver_iterations: Choose the maximum number of constraint solver iterations
+    :param contact_erp: Contact error reduction parameter
+    """
     def __init__(self,
                  world: str = '%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'),
                  dt: float = 0.08,

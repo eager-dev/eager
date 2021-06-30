@@ -213,6 +213,23 @@ class Actuator(BaseRosObject):
 
 
 class Object(BaseRosObject):
+    """
+    Object for use in the EAGER environment.
+
+    Objects can have a observation, action and state space.
+    The constructor of Objects is usually not called directly.
+    To create a new object use :func:`eager_core.objects.Object.create`.
+
+    :param type: The object type
+    :param name: The name of this object, must be unique
+    :param sensors: A list or dict of sensors in this object
+    :param actuators: A list or dict of actuators in this object
+    :param states: A list or dict of sensors in this object
+    :param position: The initial position of the object in the world
+    :param orientation: The initial orientation of the object in the world (quaternion xyzw)
+    :param fixed_base: Fix the base position and orientation (for manipulators)
+    :param self_collision: Collide with own collision boxes (for manipulators)
+        """
     def __init__(self, type: str, name: str, 
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
                  actuators: Union[List[Actuator], Dict[str, Actuator]], 
@@ -248,6 +265,21 @@ class Object(BaseRosObject):
                self_collision: bool = True,
                **kwargs
                ) -> 'Object':
+        """
+        Creates an Object for use in the EAGER environment.
+
+        Objects can have a observation, action and state space.
+        The function will read the config of ``object_type`` in ``package_name``.
+        and create this type with handle ``name``.
+
+        :param name: The name of this object, must be unique
+        :param package_name: The name of the package to load this object from
+        :param object_type: The object type in the package
+        :param position: The initial position of the object in the world
+        :param orientation: The initial orientation of the object in the world (quaternion xyzw)
+        :param fixed_base: Fix the base position and orientation (for manipulators)
+        :param self_collision: Collide with own collision boxes (for manipulators)
+        """
 
         params = load_yaml(package_name, object_type)
 
