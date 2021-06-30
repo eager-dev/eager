@@ -8,11 +8,13 @@ from eager_bridge_webots.orientation_utils import quad_to_axis_angle, quaternion
 from operator import add
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
-from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def, get_dtype_from_def
+from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
 from webots_ros.msg import Float64Stamped
-from webots_ros.srv import set_int, set_float, get_uint64, node_get_field, field_import_node_from_string
+import webots_ros.srv
+from webots_ros.srv import set_int, set_float, get_uint64, node_get_field, field_import_node_from_string, supervisor_get_from_def
 from sensor_msgs.msg import Image
 from eager_bridge_webots.webots_launcher import WebotsRunner
+from geometry_msgs.msg import Vector3, Quaternion
 
 class WeBotsBridge(PhysicsBridge):
 
@@ -29,9 +31,10 @@ class WeBotsBridge(PhysicsBridge):
         get_root = rospy.ServiceProxy(self._supervisor_name + '/supervisor/get_root', get_uint64)
         get_root.wait_for_service(20)
         root = get_root(True).value
-        get_node_field = rospy.ServiceProxy(self._supervisor_name + '/supervisor/node/get_field', node_get_field)
-        self._root_node_field = get_node_field(root, "children", False).field
+        self._get_node_field = rospy.ServiceProxy(self._supervisor_name + '/supervisor/node/get_field', node_get_field)
+        self._root_node_field = self._get_node_field(root, "children", False).field
         self._import_robot_service = rospy.ServiceProxy(self._supervisor_name + '/supervisor/field/import_node_from_string', field_import_node_from_string)
+        self._get_node_from_def = rospy.ServiceProxy(self._supervisor_name + '/supervisor/get_from_def', supervisor_get_from_def)
 
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
@@ -42,6 +45,8 @@ class WeBotsBridge(PhysicsBridge):
         self._state_buffer = dict()
         self._state_subscribers = []
         self._state_services = []
+
+        self._reset_services = dict()
 
         super(WeBotsBridge, self).__init__("webots")
 
@@ -100,6 +105,7 @@ class WeBotsBridge(PhysicsBridge):
             self._init_actuators(topic, name, config['actuators'])
         if 'states' in config:
             self._init_states(topic, name, config['states'])
+            self._init_resets(topic, name, config['states'])
         return True
     
     def _init_sensors(self, topic, name, sensors):
@@ -151,27 +157,66 @@ class WeBotsBridge(PhysicsBridge):
         self._state_buffer[name] = dict()
         for state_name in states:
             state = states[state_name]
-            topic_list = state['names']
             space = state['space']
-            self._state_buffer[name][state_name] = [get_value_from_def(space)] * get_length_from_def(space)
-            # for idx, webots_sensor_name in enumerate(topic_list):
-            #     enable_sensor = rospy.ServiceProxy(name + "/" + webots_sensor_name + "/enable", set_int)
-            #     success = enable_sensor(self._step_time)
-            #     if success:
-            #         self._sensor_subscribers.append(rospy.Subscriber(name + "/" + webots_sensor_name + "/value",
-            #             Float64Stamped, functools.partial(self._sensor_callback, name=name, sensor=sensor, pos=idx)))
-            self._sensor_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
-                                                       functools.partial(self._service,
-                                                                         buffer=self._state_buffer,
-                                                                         name=name,
-                                                                         obs_name=state_name,
-                                                                         message_type=get_response_from_def(space))))
+            if state_name == 'position':
+                field_getter = self._get_field(name, 'translation', 'vec3f')
+                resp = get_response_from_def(space)
+                self._state_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
+                    lambda _, field_getter=field_getter: resp(field_getter(index=0).value.__getstate__())))
+            elif state_name == 'orientation':
+                field_getter = self._get_field(name, 'rotation', 'rotation')
+                resp = get_response_from_def(space)
+                self._state_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
+                    lambda _, field_getter=field_getter: resp(field_getter(index=0).value.__getstate__())))
+
+    def _init_resets(self, topic, name, states):
+        self._reset_services[name] = dict()
+        for state_name in states:
+            state = states[state_name]
+            space = state['space']
+            if state_name == 'position':
+                field_setter = self._set_field(name, 'translation', 'vec3f')
+                set_reset_srv = lambda value, field_setter=field_setter: field_setter(index=0, value=Vector3(*value))
+            elif state_name == 'orientation':
+                field_setter = self._set_field(name, 'rotation', 'rotation')
+                set_reset_srv = lambda value, field_setter=field_setter: field_setter(index=0, value=Quaternion(*value))
+            else:
+                continue
+            get_reset_srv = rospy.ServiceProxy(topic + "/resets/" + state_name, get_message_from_def(space))
+            self._reset_services[name][state_name] = (get_reset_srv, set_reset_srv)
+
+    def _get_field(self, node_def, field_name, field_type):
+        """
+        Possible field types:
+            bool, int32, float, vec2f, vec3f, rotation, color, string, node
+        """
+        node = self._get_node_from_def(node_def, 0).node
+        field = self._get_node_field(node, field_name, False).field
+        get_srv = rospy.ServiceProxy(self._supervisor_name + '/supervisor/field/get_' + field_type,
+            getattr(webots_ros.srv, 'field_get_' + field_type))
+        return functools.partial(get_srv.__call__, field=field)
+    
+    def _set_field(self, node_def, field_name, field_type):
+        """
+        Possible field types:
+            bool, int32, float, vec2f, vec3f, rotation, color, string, node
+        """
+        node = self._get_node_from_def(node_def, 0).node
+        field = self._get_node_field(node, field_name, False).field
+        set_srv = rospy.ServiceProxy(self._supervisor_name + '/supervisor/field/set_' + field_type,
+            getattr(webots_ros.srv, 'field_set_' + field_type))
+        return functools.partial(set_srv.__call__, field=field)
     
     def _add_robot(self, node_type, name, args, config):
-        pos = '{} {} {}'.format(*map(add, config['default_translation'], args['position']))
-        ori = '{} {} {} {}'.format(*quad_to_axis_angle(quaternion_multiply(config['default_orientation'], args['orientation'])))
-        self._import_robot_service(self._root_node_field, 0, '{} {{ translation {} rotation {} controller "ros" controllerArgs [ "--name={}" ]}}'.format(node_type, pos, ori, name))
-    
+        pos = 'translation {} {} {}'.format(*map(add, config['default_translation'], args['position']))
+        ori = 'rotation {} {} {} {}'.format(*quad_to_axis_angle(quaternion_multiply(config['default_orientation'], args['orientation'])))
+
+        if 'no_controller' not in config or config['no_controller'] is False:
+            controller = 'controller "ros" controllerArgs [ "--name={}" ]'.format(name)
+        else:
+            controller = ''
+
+        self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ {} {} {}}}'.format(name, node_type, pos, ori, controller))
 
     def _sensor_callback(self, data, name, sensor, pos):
         if data.data != data.data:
@@ -210,6 +255,18 @@ class WeBotsBridge(PhysicsBridge):
         return True
 
     def _reset(self):
+        # Set all actions before stepping the world
+        for robot in self._reset_services:
+            robot_resets = self._reset_services[robot]
+            for state in robot_resets:
+                (get_state_srv, set_reset_srvs) = robot_resets[state]
+                state = get_state_srv()
+                if state.value:
+                    set_reset_srvs(list(state.value))
+
+        # update all observation & state buffers
+        # Sensors are topics here, no quarantee for update, reset to 0?
+        # There is no state buffer
         return True
 
     def _close(self):
