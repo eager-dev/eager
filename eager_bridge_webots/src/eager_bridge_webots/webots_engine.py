@@ -20,7 +20,7 @@ class WebotsEngine(EngineParams):
                  dt: float = 0.08,
                  no_gui: bool = False,
                  mode: str = 'realtime',
-                 physics_step = 0.02,
+                 physics_step: float = 0.02,
                  seed: int = None,
                  virtual_display: bool = False,
                  continuous_integration: bool = False):
