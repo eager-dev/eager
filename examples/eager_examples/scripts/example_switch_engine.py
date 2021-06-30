@@ -11,7 +11,6 @@ from eager_process_safe_actions.safe_actions_processor import SafeActionsProcess
 
 from gym import spaces
 import numpy as np
-import pybullet_data
 from stable_baselines3 import PPO
 
 
@@ -98,16 +97,14 @@ if __name__ == '__main__':
     rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    engine = WebotsEngine(world='$(find opendr_example)/worlds/ur5e.wbt')
-    # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
+    engine = WebotsEngine()
+    # engine = PyBulletEngine()
 
     # Create environment
     env = MyEnv(engine, name="my_env")
     env = Flatten(env)
 
     env.seed(42)
-
-    rospy.loginfo("Training starts")
 
     obs = env.reset()
     for i in range(1000):

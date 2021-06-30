@@ -1,0 +1,19 @@
+states:
+  position:
+    type: boxf32
+    high: [3.4E+38, 3.4E+38, 3.4E+38] #Max float32
+    low: [-3.4E+38, -3.4E+38, -3.4E+38]
+  orientation:
+    type: boxf32
+    high: [1, 1, 1, 1] #Max float32
+    low: [-1, -1, -1, -1]
+
+webots:
+  node_type_name: Can
+  default_translation: [0, 0, 0]
+  default_orientation: [0, 0, 0, 1]
+  no_controller: true
+
+  states:
+    position: {}
+    orientation: {}

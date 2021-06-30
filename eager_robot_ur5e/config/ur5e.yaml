@@ -11,6 +11,14 @@ actuators:
     low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
 
 states:
+  position:
+    type: boxf32
+    high: [3.4E+38, 3.4E+38, 3.4E+38] #Max float32
+    low: [-3.4E+38, -3.4E+38, -3.4E+38]
+  orientation:
+    type: boxf32
+    high: [1, 1, 1, 1] #Max float32
+    low: [-1, -1, -1, -1]
   joint_pos:
     type: boxf32
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
@@ -61,12 +69,8 @@ webots:
       - wrist_3_joint
 
   states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
-    joint_pos:
-      names:
-      -
-    joint_vel:
-      names:
-      -
+    position: {}
+    orientation: {}
 
 real:
   sensors:

@@ -200,7 +200,7 @@ def _check_render(env: gym.Env, warn: bool = True, headless: bool = False) -> No
     
 def _check_steps(env: gym.Env):
     for _ in range(10):
-        action = np.array([env.action_space.sample()])
+        action = env.action_space.sample()
         _, _, _, _ = env.step(action)
 
 
