@@ -13,22 +13,25 @@ WeBots
 ~~~~~~
 
 .. autoclass:: eager_bridge_webots.webots_engine.WebotsEngine
+    :noindex:
 
 PyBullet
 ~~~~~~~~
 
 .. autoclass:: eager_bridge_pybullet.pybullet_engine.PyBulletEngine
+    :noindex:
 
 Gazebo
 ~~~~~~
 
 .. autoclass:: eager_bridge_gazebo.gazebo_engine.GazeboEngine
+    :noindex:
 
 Reality
 ~~~~~~~
 
 .. autoclass:: eager_bridge_real.real_engine.RealEngine
-
+    :noindex:
 
 In the codeblock below we import the engine class and create a default world configuration.
 
@@ -45,6 +48,7 @@ Initializing Objects
 To add objects to the world function create them using the ``create`` funcion in the ``Object`` class.
 
 .. autofunction:: eager_core.objects.Object.create
+    :noindex:
 
 In the codeblock below we create a single robot of type ``ur5e`` from the ``eager_robot_ur5e`` package with the name ``robot1``.
 

@@ -6,8 +6,7 @@ class WebotsEngine(EngineParams):
 
     This class includes all settings available for the Webots physics engine.
 
-    :param world: A path to a Webots world (.wbt) file. 
-    This file will be copied to a temporary file and edited to include the chosen settings
+    :param world: A path to a Webots world (.wbt) file. This file will be copied to a temporary file and edited to include the chosen settings
     :param dt: The time step when :func:`eager_core.eager_env.EagerEnv.step` is called, must be a multiple of ``physics_step``
     :param gui: Will launch Webots minimized and without rendering if set to False
     :param mode: The running mode of Webots ('pauze', 'realtime' or 'fast')
@@ -21,10 +20,10 @@ class WebotsEngine(EngineParams):
                  dt: float = 0.08,
                  gui: bool = True,
                  mode: str = 'realtime',
-                 physics_step = 0.02,
-                 seed = None,
-                 virtual_display=False,
-                 continuous_integration=False):
+                 physics_step: float = 0.02,
+                 seed: int = None,
+                 virtual_display: bool = False,
+                 continuous_integration: bool = False):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'webots'
         launch_file = '$(find eager_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)

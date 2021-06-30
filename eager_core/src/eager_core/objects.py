@@ -229,7 +229,7 @@ class Object(BaseRosObject):
     :param orientation: The initial orientation of the object in the world (quaternion xyzw)
     :param fixed_base: Fix the base position and orientation (for manipulators)
     :param self_collision: Collide with own collision boxes (for manipulators)
-        """
+    """
     def __init__(self, type: str, name: str, 
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
                  actuators: Union[List[Actuator], Dict[str, Actuator]], 
@@ -269,7 +269,7 @@ class Object(BaseRosObject):
         Creates an Object for use in the EAGER environment.
 
         Objects can have a observation, action and state space.
-        The function will read the config of ``object_type`` in ``package_name``.
+        The function will read the config of ``object_type`` in ``package_name``
         and create this type with handle ``name``.
 
         :param name: The name of this object, must be unique
@@ -279,6 +279,7 @@ class Object(BaseRosObject):
         :param orientation: The initial orientation of the object in the world (quaternion xyzw)
         :param fixed_base: Fix the base position and orientation (for manipulators)
         :param self_collision: Collide with own collision boxes (for manipulators)
+        :return: An uninitialized Object with name ``name``
         """
 
         params = load_yaml(package_name, object_type)

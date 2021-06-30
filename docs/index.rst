@@ -23,6 +23,11 @@ EAGER is built on ROS 1.
    :caption: Reference Guide
 
    ref/eager_env
+   ref/objects
+   ref/webots
+   ref/pybullet
+   ref/gazebo
+   ref/real
 
 Contributing
 ------------
