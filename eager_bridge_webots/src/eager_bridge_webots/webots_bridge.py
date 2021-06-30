@@ -210,13 +210,16 @@ class WeBotsBridge(PhysicsBridge):
     def _add_robot(self, node_type, name, args, config):
         pos = 'translation {} {} {}'.format(*map(add, config['default_translation'], args['position']))
         ori = 'rotation {} {} {} {}'.format(*quad_to_axis_angle(quaternion_multiply(config['default_orientation'], args['orientation'])))
+        self_collision = 'selfCollision {}'.format('TRUE' if args['self_collision'] else 'FALSE')
+        fixed_base = 'staticBase {}'.format('TRUE' if args['fixed_base'] else 'FALSE')
 
         if 'no_controller' not in config or config['no_controller'] is False:
             controller = 'controller "ros" controllerArgs [ "--name={}" ]'.format(name)
         else:
             controller = ''
 
-        self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ {} {} {}}}'.format(name, node_type, pos, ori, controller))
+        self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ {} {} {} {} {}}}'.format(
+            name, node_type, pos, ori, controller, self_collision, fixed_base))
 
     def _sensor_callback(self, data, name, sensor, pos):
         if data.data != data.data:
