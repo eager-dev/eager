@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 
+# Copyright 2021 - present, OpenDR European Project
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # ROS packages required
 import rospy
 from eager_core.eager_env import BaseEagerEnv
@@ -11,7 +25,6 @@ from eager_process_safe_actions.safe_actions_processor import SafeActionsProcess
 
 from gym import spaces
 import numpy as np
-import pybullet_data
 from stable_baselines3 import PPO
 
 class MyEnv(BaseEagerEnv):
@@ -38,7 +51,7 @@ class MyEnv(BaseEagerEnv):
                                             duration=0.1,
                                             object_frame='base_link',
                                             checks_per_rad=15,
-                                            vel_limit=3.0,
+                                            vel_limit=2.0,
                                             robot_type='ur5e',
                                             )
         self.ur5e.actuators['joints'].add_preprocess(
@@ -103,16 +116,14 @@ if __name__ == '__main__':
     rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    # engine = WebotsEngine(world='$(find opendr_example)/worlds/ur5e_cam.wbt')
-    engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
+    # engine = WebotsEngine()
+    engine = PyBulletEngine(no_gui=False)
 
     # Create environment
     env = MyEnv(engine, name="my_env")
     env = Flatten(env)
 
     env.seed(42)
-
-    rospy.loginfo("Training starts")
 
     obs = env.reset()
     for i in range(1000):

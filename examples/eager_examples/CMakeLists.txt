@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(panda_example)
+project(eager_examples)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -9,9 +9,8 @@ project(panda_example)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   eager_core
-  eager_robot_panda
+  eager_robot_ur5e
   rospy
-  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions

@@ -200,12 +200,14 @@ class EagerEnv(BaseEagerEnv):
     :param max_steps: The amount of steps per rollout, overridden if ``is_done_fn`` is set
     :param reward_fn: The reward function of this environment. Takes the environment and observations and returns a reward
     :param is_done_fn: Function to indicate this environment is done and should reset. Takes the environment and observations and returns a reward
+    :param reset_fn: Function that sets the states of objects in the world when resetting
     """
 
     def __init__(self, engine: EngineParams, objects: List[Object] = [], observers: List['Observer'] = [],
             name: str = 'ros_env', render_obs: Callable[[], object] = None, max_steps: int = None,
             reward_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], float] = None,
-            is_done_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], bool] = None) -> None:
+            is_done_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], bool] = None,
+            reset_fn: Callable[['EagerEnv'], None] = None) -> None:
         
         super().__init__(engine, name)
         self.objects = objects
@@ -219,6 +221,8 @@ class EagerEnv(BaseEagerEnv):
         # Overwrite the _is_done() function if provided
         if is_done_fn:
             self._is_done = is_done_fn
+
+        self._reset_fn = reset_fn
         self.STEPS_PER_ROLLOUT = max_steps
         self.steps = 0
 
@@ -254,16 +258,9 @@ class EagerEnv(BaseEagerEnv):
         :return: observations
         """
         self.steps = 0
-        for obj in self.objects:
-            if obj.state_space:  # Check if object has state that we can reset
-                reset_states = obj.state_space.sample()
 
-                # currently resetting to zero state.
-                for state in reset_states:
-                    reset_states[state] *= 0
-
-                # Set state we want to reset to in buffer
-                obj.reset(states=reset_states)
+        if self._reset_fn:
+            self._reset_fn(self)
 
         self._reset()
 

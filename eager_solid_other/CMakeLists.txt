@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(ur5e_example)
+project(eager_solid_other)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -9,9 +9,6 @@ project(ur5e_example)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   eager_core
-  eager_robot_ur5e
-  rospy
-  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -21,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+## catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -54,13 +51,6 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message2.msg
 # )
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
 ## Generate actions in the 'action' folder
 # add_action_files(
 #   FILES
@@ -68,10 +58,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   Action2.action
 # )
 
+
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   std_msgs  # Or other packages containing msgs
 # )
 
 ################################################
@@ -105,8 +96,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES ur5e_example
-#  CATKIN_DEPENDS ros_env rospy std_msgs
+#  LIBRARIES eager_robot_ur5e
+#  CATKIN_DEPENDS eager_core rospy
 #  DEPENDS system_lib
 )
 
@@ -123,7 +114,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/ur5e_example.cpp
+#   src/${PROJECT_NAME}/eager_robot_ur5e.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -134,7 +125,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/ur5e_example_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/eager_robot_ur5e_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -187,18 +178,16 @@ include_directories(
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_ur5e_example.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_eager_robot_ur5e.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

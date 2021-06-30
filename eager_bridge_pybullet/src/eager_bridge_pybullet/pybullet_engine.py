@@ -1,10 +1,10 @@
 from eager_core.engine_params import EngineParams
 from eager_core.utils.file_utils import substitute_xml_args
-
+import pybullet_data
 
 class PyBulletEngine(EngineParams):
     def __init__(self,
-                 world: str,
+                 world: str = '%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'),
                  dt: float = 0.08,
                  no_gui: bool = False,
                  num_substeps: int = 1,

@@ -2,16 +2,20 @@
 
 # ROS packages required
 import rospy
+from random import random
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
-from eager_bridge_gazebo.gazebo_engine import GazeboEngine
-from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
 
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
-import pybullet_data
+from eager_core.utils.env_checker import check_env
+
+def reset_func(env: EagerEnv):
+    for obj in env.objects:
+        if obj.name == 'can':
+            #WeBots cannot handle exactly 0 rotations
+            states = dict(position=[random(), 0, random()], orientation=[0.0000001, 0, 0, 0.9999999])
+            obj.reset(states)
 
 if __name__ == '__main__':
 
@@ -19,21 +23,13 @@ if __name__ == '__main__':
 
     # Engine specific parameters
     engine = WebotsEngine(physics_step=0.01, seed=42)
-    # engine = GazeboEngine()
-    # engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui=False, dt=0.0165)
 
     # Initialize environment
     robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
-    robot2 = Object.create('ur5e2', 'eager_robot_ur5e', 'ur5e', position=[1, 0, 0])
-    env = EagerEnv(engine=engine, objects=[robot, robot2], name='ros_env')
+    can = Object.create('can', 'eager_solid_other', 'can', position=[0, 0, 1])
+    env = EagerEnv(engine=engine, objects=[robot, can], name='ros_env', reset_fn=reset_func, max_steps=20)
     env = Flatten(env)
     check_env(env)
-
-    rospy.loginfo("Training starts")
-    
-    model = PPO('MlpPolicy', env, verbose=1)
-
-    # model.learn(total_timesteps=100000)
 
     obs = env.reset()
     for i in range(1000):

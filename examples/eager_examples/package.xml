@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>ur5e_example</name>
+  <name>eager_examples</name>
   <version>0.0.0</version>
-  <description>The ur5e_example package</description>
+  <description>The eager_examples package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -49,18 +49,29 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>eager_core</build_depend>
   <build_depend>rospy</build_depend>
-  <build_depend>std_msgs</build_depend>
+  <build_depend>eager_core</build_depend>
+  <build_depend>eager_bridge_webots</build_depend>
+  <build_depend>eager_bridge_pybullet</build_depend>
+  <build_depend>eager_bridge_gazebo</build_depend>
   <build_depend>eager_robot_ur5e</build_depend>
+  <build_depend>eager_solid_other</build_depend>
+
   <build_export_depend>eager_core</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>eager_robot_ur5e</build_export_depend>
+  <build_export_depend>eager_solid_other</build_export_depend>
+  <build_export_depend>eager_bridge_webots</build_export_depend>
+  <build_export_depend>eager_bridge_pybullet</build_export_depend>
+  <build_export_depend>eager_bridge_gazebo</build_export_depend>
+
   <exec_depend>eager_core</exec_depend>
   <exec_depend>rospy</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
   <exec_depend>eager_robot_ur5e</exec_depend>
+  <exec_depend>eager_solid_other</exec_depend>
+  <exec_depend>eager_bridge_webots</exec_depend>
+  <exec_depend>eager_bridge_pybullet</exec_depend>
+  <exec_depend>eager_bridge_gazebo</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
