@@ -13,7 +13,7 @@
 import os
 import sys
 
-autodoc_mock_imports = ['rospy', 'rosparam', 'roslaunch']
+autodoc_mock_imports = ['rospy', 'rosparam', 'roslaunch', 'rospkg']
 for pck in os.listdir('..'):
     sys.path.insert(0, os.path.abspath('../{}/src/'.format(pck)))
     autodoc_mock_imports.append(pck + '.srv')
