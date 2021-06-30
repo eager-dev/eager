@@ -1,7 +1,4 @@
-from eager_bridge_webots.webots_parser import WebotsParser
 from eager_core.engine_params import EngineParams
-from eager_core.utils.file_utils import substitute_xml_args
-
 
 class WebotsEngine(EngineParams):
     def __init__(self,
