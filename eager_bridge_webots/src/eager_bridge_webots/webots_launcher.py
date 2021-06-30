@@ -4,7 +4,7 @@ import time
 import rospy
 
 class WebotsRunner(object):
-    def __init__(self, world, mode, no_gui=False, virtual_display=False, ci=False):
+    def __init__(self, world, mode, gui=True, virtual_display=False, ci=False):
         if 'WEBOTS_HOME' not in os.environ:
             if ci:
                 os.environ['WEBOTS_HOME'] = '/usr/local/webots'
@@ -16,7 +16,7 @@ class WebotsRunner(object):
 
         command.append('--batch') # Always disable popups
 
-        if no_gui or virtual_display:
+        if not gui or virtual_display:
             command.append('--stdout')
             command.append('--stderr')
             command.append('--no-rendering')

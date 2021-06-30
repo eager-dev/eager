@@ -80,7 +80,7 @@ class WeBotsBridge(PhysicsBridge):
         self.world_file.flush()
 
         self.webots_runner = WebotsRunner(self.world_file.name, rospy.get_param('physics_bridge/mode', 'fast'),
-            rospy.get_param('physics_bridge/no_gui', False),
+            rospy.get_param('physics_bridge/gui', True),
             rospy.get_param('physics_bridge/virtual_display', False),
             rospy.get_param('physics_bridge/continuous_integration', False))
 
