@@ -20,8 +20,8 @@ if __name__ == '__main__':
     # engine = PyBulletEngine(dt=0.0165)
 
     # Initialize environment
-    robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
-    robot2 = Object.create('ur5e2', 'eager_robot_ur5e', 'ur5e', position=[1, 0, 0])
+    robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e', fixed_base=False)
+    robot2 = Object.create('ur5e2', 'eager_robot_ur5e', 'ur5e', position=[1, 0, 0], self_collision=False)
     env = EagerEnv(engine=engine, objects=[robot, robot2], name='ros_env')
     env = Flatten(env)
 

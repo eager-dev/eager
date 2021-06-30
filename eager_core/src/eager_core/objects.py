@@ -269,7 +269,7 @@ class Object(BaseRosObject):
         Creates an Object for use in the EAGER environment.
 
         Objects can have a observation, action and state space.
-        The function will read the config of ``object_type`` in ``package_name``.
+        The function will read the config of ``object_type`` in ``package_name``
         and create this type with handle ``name``.
 
         :param name: The name of this object, must be unique
