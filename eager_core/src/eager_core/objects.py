@@ -106,7 +106,7 @@ class State(BaseRosObject):
     def get_state(self) -> object:  # Type depends on space
         if not self._get_state_service.resolved_name in rosservice.get_service_list():
             if not self._has_warned:
-                rospy.logwarn('State {} cannot be retrieved in this environment'.format(self.name))
+                rospy.logwarn('State "{}" cannot be retrieved in this environment.'.format(self.name))
                 self._has_warned = True
             return None
         response = self._get_state_service()

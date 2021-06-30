@@ -21,8 +21,6 @@ from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
 
-import numpy as np
-import pybullet_data
 from stable_baselines3 import PPO
 
 if __name__ == '__main__':
@@ -30,7 +28,7 @@ if __name__ == '__main__':
     rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    engine = PyBulletEngine(world='%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'), no_gui='false')
+    engine = PyBulletEngine(no_gui=False)
 
     # Create a grid of ur5e robots
     objects = []
@@ -58,8 +56,6 @@ if __name__ == '__main__':
     env = Flatten(env)
 
     env.seed(42)
-
-    rospy.loginfo("Training starts")
 
     obs = env.reset()
     for i in range(1000):
