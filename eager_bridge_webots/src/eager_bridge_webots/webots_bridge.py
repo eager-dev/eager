@@ -173,14 +173,6 @@ class WeBotsBridge(PhysicsBridge):
                 resp = get_response_from_def(space)
                 self._state_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
                     lambda _, field_getter=field_getter: resp(field_getter(index=0).value.__getstate__())))
-            else:
-                self._state_buffer[name][state_name] = [get_value_from_def(space)] * get_length_from_def(space)
-                self._sensor_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
-                                            functools.partial(self._service,
-                                                                buffer=self._state_buffer,
-                                                                name=name,
-                                                                obs_name=state_name,
-                                                                message_type=get_response_from_def(space))))
 
     def _init_resets(self, topic, name, states):
         self._reset_services[name] = dict()

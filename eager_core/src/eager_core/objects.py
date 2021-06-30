@@ -9,6 +9,7 @@ from collections import OrderedDict
 from typing import Dict, List, Callable, Union
 import rospy
 import roslaunch
+import rosservice
 import numpy as np
 
 class BaseRosObject():
@@ -85,6 +86,7 @@ class State(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
         super().__init__(type, name)
         self.state_space = space
+        self._has_warned = False
 
     def init_node(self, base_topic: str = '') -> None:
         self.assert_not_yet_initialized('init')
@@ -102,6 +104,11 @@ class State(BaseRosObject):
                                                   self._send_state)
 
     def get_state(self) -> object:  # Type depends on space
+        if not self._get_state_service.resolved_name in rosservice.get_service_list():
+            if not self._has_warned:
+                rospy.logwarn('State {} cannot be retrieved in this environment'.format(self.name))
+                self._has_warned = True
+            return None
         response = self._get_state_service()
         if self.state_space.dtype == np.dtype(np.uint8):
             buf = np.frombuffer(response.value, np.uint8).reshape(self.state_space.shape)
@@ -291,11 +298,18 @@ class Object(BaseRosObject):
         return obs
 
     def get_state(self, states: List[str] = None) -> 'OrderedDict[str, object]':
+        state_dict = dict()
         if states is not None:
-            obs = OrderedDict([(state, self.states[state].get_state()) for state in states])
+            for state in states:
+                state_val = self.states[state].get_state()
+                if state_val is not None:
+                    state_dict[state] = state_val
         else:
-            obs = OrderedDict([(state_name, state.get_state()) for state_name, state in self.states.items()])
-        return obs
+            for state_name, state in self.states.items():
+                state_val = self.states[state_name].get_state()
+                if state_val is not None:
+                    state_dict[state_name] = state_val
+        return state_dict
     
     @property
     def action_space(self) -> gym.spaces.Dict:

@@ -71,8 +71,6 @@ webots:
   states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
     position: {}
     orientation: {}
-    joint_pos: {}
-    joint_vel: {}
 
 real:
   sensors:
