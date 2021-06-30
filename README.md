@@ -23,9 +23,17 @@ rosdep install --from-paths src --ignore-src -r -y
 catkin_make
 source devel/setup.bash
 ```
-2. Via PIP installation, which also provides the possibility to perform a custom installation rather than full installation with all EAGER packages:
+2. Via PIP installation, which also provides the possibility to perform a custom installation rather than full installation with all EAGER packages. This can done via HTTPS or SSH.
+- Using HTTPS, run:
 ```
 pip install git+https://github.com/eager-dev/eager@create-installation-script
+```
+- Using SSH, run:
+```
+pip install git+ssh://git@github.com/eager-dev/eager.git@create-installation-script
+```
+Now install EAGER by running:
+```
 install_eager
 ```
 The bash script ```install_eager``` will clone the repository and create a catkin
