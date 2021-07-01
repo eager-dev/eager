@@ -45,15 +45,12 @@ source [EAGER_WORKSPACE]/devel/setup.bash
 It is possible to run ```install_eager``` multiple times in order to install
 additional packages.
 
-## Package building
-- Create a symbolic link in your `catkin_ws/src` to the `ros` directory.
-
 ## Launch python training script with a different python interpreter (e.g. with an Anaconda virtual environment)
 - Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`).
 
 ## Run python training script dynamically (e.g. via PyCharm debugger)
 - If you would like to start-up your python script without a launch file, make sure to source the `devel/setup.bash` (e.g. inside your `~/.bashrc`) right before you run your python script inside the IDE.
-- For PyCharm, add `source ~/eager_ws/devel/setup.bash` to `~/.bashrc` and follow [this](http://wiki.ros.org/IDEs#PyCharm_.28community_edition.29).
+- For PyCharm, add `source [EAGER_CATKIN_WORKSPACE]/devel/setup.bash` to `~/.bashrc` and follow [this](http://wiki.ros.org/IDEs#PyCharm_.28community_edition.29).
 - Make sure to have the python package `defusedxml` installed. `pip install defusedxml`.
 - Before running the python script in your IDE, start up a roscore in a separate terminal.
 
