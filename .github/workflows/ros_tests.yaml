@@ -14,12 +14,17 @@ jobs:
           - {ROS_DISTRO: noetic, ROS_REPO: main, UPSTREAM_WORKSPACE: '.rosinstall'}
     env:
       CCACHE_DIR: /github/home/.ccache # Directory for ccache (and how we enable ccache in industrial_ci)
-      AFTER_SETUP_UPSTREAM_WORKSPACE: 'export WEBOTS_HOME=/snap/webots/current/usr/share/webots && export LD_LIBRARY_PATH=$WEBOTS_HOME/lib/controller'
+      #BEFORE_INIT: >
+      #  apt-get update;
+      #  apt-get install -y curl;
+      #  curl https://cyberbotics.com/Cyberbotics.asc | apt-key add -;
+      #  apt-add-repository 'deb https://cyberbotics.com/debian/ binary-amd64/';
+      #  apt-get update;
+      #  apt-get install -y webots;
+      #  apt-get install -y xvfb
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install WeBots
-        run: sudo snap install webots
       # This step will fetch/store the directory used by ccache before/after the ci run
       - uses: actions/cache@v2
         with:

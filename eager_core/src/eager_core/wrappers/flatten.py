@@ -4,7 +4,11 @@ from gym.wrappers import FlattenObservation
 
 
 class FlattenAction(ActionWrapper):
-    r"""Observation wrapper that flattens the observation."""
+    """
+    Observation wrapper that flattens the observation.
+
+    :param env: The environment to flatten
+    """
     def __init__(self, env: gym.Env) -> None:
         super(FlattenAction, self).__init__(env)
         self.action_space = gym.spaces.flatten_space(env.action_space)
@@ -14,5 +18,11 @@ class FlattenAction(ActionWrapper):
 
 
 class Flatten(gym.Wrapper):
+    """
+    Flattens the environment action and observations space to a single
+    type.
+
+    :param env: The environment to flatten
+    """
     def __init__(self, env: gym.Env) -> None:
         super().__init__(FlattenObservation(FlattenAction(env)))

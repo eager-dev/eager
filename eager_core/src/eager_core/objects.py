@@ -9,6 +9,7 @@ from collections import OrderedDict
 from typing import Dict, List, Callable, Union
 import rospy
 import roslaunch
+import rosservice
 import numpy as np
 
 class BaseRosObject():
@@ -85,6 +86,7 @@ class State(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
         super().__init__(type, name)
         self.state_space = space
+        self._has_warned = False
 
     def init_node(self, base_topic: str = '') -> None:
         self.assert_not_yet_initialized('init')
@@ -93,7 +95,7 @@ class State(BaseRosObject):
         if self.state_space is None:
             self.state_space = self._infer_space(base_topic)
 
-        self._buffer = self.state_space.sample()
+        self._buffer = None
 
         self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic + '/states'),
                                                  get_message_from_space(self.state_space))
@@ -102,6 +104,11 @@ class State(BaseRosObject):
                                                   self._send_state)
 
     def get_state(self) -> object:  # Type depends on space
+        if not self._get_state_service.resolved_name in rosservice.get_service_list():
+            if not self._has_warned:
+                rospy.logwarn('State "{}" cannot be retrieved in this environment.'.format(self.name))
+                self._has_warned = True
+            return None
         response = self._get_state_service()
         if self.state_space.dtype == np.dtype(np.uint8):
             buf = np.frombuffer(response.value, np.uint8).reshape(self.state_space.shape)
@@ -206,6 +213,23 @@ class Actuator(BaseRosObject):
 
 
 class Object(BaseRosObject):
+    """
+    Object for use in the EAGER environment.
+
+    Objects can have a observation, action and state space.
+    The constructor of Objects is usually not called directly.
+    To create a new object use :func:`eager_core.objects.Object.create`.
+
+    :param type: The object type
+    :param name: The name of this object, must be unique
+    :param sensors: A list or dict of sensors in this object
+    :param actuators: A list or dict of actuators in this object
+    :param states: A list or dict of sensors in this object
+    :param position: The initial position of the object in the world
+    :param orientation: The initial orientation of the object in the world (quaternion xyzw)
+    :param fixed_base: Fix the base position and orientation (for manipulators)
+    :param self_collision: Collide with own collision boxes (for manipulators)
+    """
     def __init__(self, type: str, name: str, 
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
                  actuators: Union[List[Actuator], Dict[str, Actuator]], 
@@ -241,6 +265,22 @@ class Object(BaseRosObject):
                self_collision: bool = True,
                **kwargs
                ) -> 'Object':
+        """
+        Creates an Object for use in the EAGER environment.
+
+        Objects can have a observation, action and state space.
+        The function will read the config of ``object_type`` in ``package_name``
+        and create this type with handle ``name``.
+
+        :param name: The name of this object, must be unique
+        :param package_name: The name of the package to load this object from
+        :param object_type: The object type in the package
+        :param position: The initial position of the object in the world
+        :param orientation: The initial orientation of the object in the world (quaternion xyzw)
+        :param fixed_base: Fix the base position and orientation (for manipulators)
+        :param self_collision: Collide with own collision boxes (for manipulators)
+        :return: An uninitialized Object with name ``name``
+        """
 
         params = load_yaml(package_name, object_type)
 
@@ -291,11 +331,18 @@ class Object(BaseRosObject):
         return obs
 
     def get_state(self, states: List[str] = None) -> 'OrderedDict[str, object]':
+        state_dict = dict()
         if states is not None:
-            obs = OrderedDict([(state, self.states[state].get_state()) for state in states])
+            for state in states:
+                state_val = self.states[state].get_state()
+                if state_val is not None:
+                    state_dict[state] = state_val
         else:
-            obs = OrderedDict([(state_name, state.get_state()) for state_name, state in self.states.items()])
-        return obs
+            for state_name, state in self.states.items():
+                state_val = self.states[state_name].get_state()
+                if state_val is not None:
+                    state_dict[state_name] = state_val
+        return state_dict
     
     @property
     def action_space(self) -> gym.spaces.Dict:
@@ -331,8 +378,8 @@ class Object(BaseRosObject):
         for actuator in self.actuators.values():
             actuator.reset()
 
-        for state_name, state in self.states.items():
-            state.set_state(states[state_name])
+        for state_name, state in states.items():
+            self.states[state_name].set_state(state)
 
         if self.reset_func is not None:
             self.reset_func(self)
