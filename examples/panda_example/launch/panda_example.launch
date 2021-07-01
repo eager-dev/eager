@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node name="panda_example" pkg="panda_example" type="example.py" output="screen"/>
-</launch>

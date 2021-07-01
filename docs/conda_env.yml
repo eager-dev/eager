@@ -1,0 +1,14 @@
+name: root
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - pip=20.2
+  - python=3.6
+  - pip:
+    - gym
+    - pandas
+    - numpy
+    - sphinx_autodoc_typehints
+    - six

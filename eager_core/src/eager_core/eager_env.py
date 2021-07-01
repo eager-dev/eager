@@ -2,7 +2,7 @@ import gym, gym.spaces
 import rospy, roslaunch, rosparam
 from gym.utils import seeding
 from collections import OrderedDict
-from typing import List, Tuple
+from typing import List, Tuple, Callable, Optional
 from eager_core.objects import Object
 from eager_core.srv import StepEnv, ResetEnv, Register
 from eager_core.utils.file_utils import substitute_xml_args, is_namespace_empty
@@ -10,6 +10,12 @@ from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
 
 class BaseEagerEnv(gym.Env):
+    """
+    Base Gym Env to interact with 
+
+    :param engine: The physics engine to run this environment on
+    :param name: The namespace to run this environment in (must by unique if using multiple environments simultaniously)
+    """
     def __init__(self, engine: EngineParams, name: str = 'ros_env') -> None:
         super().__init__()
 
@@ -22,6 +28,14 @@ class BaseEagerEnv(gym.Env):
         self.__seed_publisher = rospy.Publisher(name + '/seed', Seed, queue_size=1)
 
     def _init_nodes(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Initializes and registers a list of objects and observers in the physics engine.
+
+        Must be called before retreiving the observation, action and state spaces.
+
+        :param objects: A list of objects to initialize
+        :param observers: A list of observers to initialize
+        """
         # Verify that object name is unique (i.e. no topics/services already defined within namespace)
         obj_names = [obj.name for obj in objects]
         for obj in objects:
@@ -46,6 +60,15 @@ class BaseEagerEnv(gym.Env):
         self._init_listeners(objects, observers)
 
     def _register_objects(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Registers objects to the physics engine.
+
+        Typically not called directly but through _init_nodes.
+
+        :param objects: A list of objects to register
+        :param observers: A list of observers to register
+
+        """
         objects_reg = []
 
         for el in (objects, observers):
@@ -57,6 +80,16 @@ class BaseEagerEnv(gym.Env):
         register_service(objects_reg)
 
     def _init_listeners(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Initializes listening to observation topics in objects and observers.
+
+        Called after registration.
+        Typically not called directly but through _init_nodes.
+
+        :param objects: A list of objects to register
+        :param observers: A list of observers to register
+
+        """
         bt = self.name + '/objects'
 
         for el in (objects, observers):
@@ -64,6 +97,16 @@ class BaseEagerEnv(gym.Env):
                 object.init_node(bt)
 
     def _merge_spaces(cls, objects: List[Object] = [], observers: List['Observer'] = []) -> Tuple[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict]:
+        """
+        Merges the observation, action and state space of lists of objects and observers.
+
+        Can only be called after nodes are initialized.
+
+        :param objects: A list of objects to merge
+        :param observers: A list of observers to merge
+        :return: Observation space, action space, state space
+
+        """
         # Make sure all objects & observers are initialized
         for el in (objects, observers):
             for e in el:
@@ -89,10 +132,15 @@ class BaseEagerEnv(gym.Env):
         
         return gym.spaces.Dict(spaces=obs_spaces), gym.spaces.Dict(spaces=act_spaces), gym.spaces.Dict(spaces=state_spaces)
 
-    def _initialize_physics_bridge(self, engine: EngineParams, name: str):
-        # Delete all parameters parameter server (from a previous run) within namespace 'name'
+    def _initialize_physics_bridge(self, engine: EngineParams, name: str) -> None:
+        """
+        Starts the physics bridge.
 
-        # Upload dictionary with engine parameters to ROS parameter server
+        Called by the constructor, do not call directly.
+
+        :param engine: The chosen physics engine
+        :param name: The namespace to start the engine in
+        """
         rosparam.upload_params('%s/physics_bridge' % name, engine.__dict__)
 
         # Launch the physics bridge under the namespace 'name'
@@ -105,7 +153,15 @@ class BaseEagerEnv(gym.Env):
         self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         self._launch.start()
     
-    def close(self, objects=[], observers=[]):
+    def close(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
+        """
+        Closes and cleans up the environment.
+
+        Will shutdown the physics engine and disable all passed node listeners.
+
+        :param objects: A list of objects to close
+        :param observers: A list of observers to close
+        """
         self._launch.shutdown()
 
         for el in (objects, observers):
@@ -118,6 +174,12 @@ class BaseEagerEnv(gym.Env):
         except:
             pass
     def seed(self, seed: int = None) -> List[int]:
+        """
+        Seeds the physics bridge and any processors where possible.
+
+        :param seed: A seed to use in the physics bridge and processors
+        :return: Currently only returns the given seed
+        """
         # todo: does this actually seed e.g. numpy on the EagerEnv side?
         seed = seeding.create_seed(seed)
         self.__seed_publisher.publish(seed)
@@ -125,11 +187,29 @@ class BaseEagerEnv(gym.Env):
 
 
 class EagerEnv(BaseEagerEnv):
+    """
+    A simple fully functional gym environment for multiple physics engines.
 
-    def __init__(self, objects: List[Object] = [], observers: List['Observer'] = [], render_obs=None, max_steps=None, reward_fn=None, is_done_fn=None, **kwargs) -> None:
-        # todo: Interface changes a lot, use **kwargs.
-        #  Make arguments of baseclass explicit when interface is more-or-less fixed.
-        super().__init__(**kwargs)
+    Will merge the observation, action and state space of all given objects.
+
+    :param engine: The physics engine to run this environment on
+    :param objects: The objects to include in this environment
+    :param observers: The observers to include in this environment
+    :param name: The namespace to run this environment in (must by unique if using multiple environments simultaniously)
+    :param render_obs: A reference to the :func:`eager_core.objects.Sensor.get_obs` function of the observation to be used in the :func:`render` function
+    :param max_steps: The amount of steps per rollout, overridden if ``is_done_fn`` is set
+    :param reward_fn: The reward function of this environment. Takes the environment and observations and returns a reward
+    :param is_done_fn: Function to indicate this environment is done and should reset. Takes the environment and observations and returns a reward
+    :param reset_fn: Function that sets the states of objects in the world when resetting
+    """
+
+    def __init__(self, engine: EngineParams, objects: List[Object] = [], observers: List['Observer'] = [],
+            name: str = 'ros_env', render_obs: Callable[[], object] = None, max_steps: int = None,
+            reward_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], float] = None,
+            is_done_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], bool] = None,
+            reset_fn: Callable[['EagerEnv'], None] = None) -> None:
+        
+        super().__init__(engine, name)
         self.objects = objects
         self.observers = observers
         self.render_obs = render_obs
@@ -141,6 +221,8 @@ class EagerEnv(BaseEagerEnv):
         # Overwrite the _is_done() function if provided
         if is_done_fn:
             self._is_done = is_done_fn
+
+        self._reset_fn = reset_fn
         self.STEPS_PER_ROLLOUT = max_steps
         self.steps = 0
 
@@ -149,6 +231,12 @@ class EagerEnv(BaseEagerEnv):
         self.observation_space, self.action_space, self.state_space = self._merge_spaces(self.objects, self.observers)
     
     def step(self, action: 'OrderedDict[str, object]') -> Tuple[object, float, bool, dict]:
+        """
+        Steps the environment
+
+        :param action: A dictionary of actions to perform
+        :return: observations, reward, done, states
+        """
         self.steps += 1
 
         for object in self.objects:
@@ -163,24 +251,28 @@ class EagerEnv(BaseEagerEnv):
         done = self._is_done(obs)
         return obs, reward, done, {'state': state}
     
-    def reset(self) -> object:
+    def reset(self) -> 'OrderedDict[str, object]':
+        """
+        Resets the environment by first calling the objects reset function and then resetting the environment
+
+        :return: observations
+        """
         self.steps = 0
-        for obj in self.objects:
-            if obj.state_space:  # Check if object has state that we can reset
-                reset_states = obj.state_space.sample()
 
-                # currently resetting to zero state.
-                for state in reset_states:
-                    reset_states[state] *= 0
-
-                # Set state we want to reset to in buffer
-                obj.reset(states=reset_states)
+        if self._reset_fn:
+            self._reset_fn(self)
 
         self._reset()
 
         return self._get_obs()
 
-    def render(self, mode: str = 'human', **kwargs) -> None:
+    def render(self, mode: str = 'human') -> Optional[object]:
+        """
+        Resets the environment by first calling the objects reset function and then resetting the environment
+
+        :param mode: The rendering mode, currently not used
+        :return: The observation given in ``render_obs`` in the constructor, None if not set
+        """
         if self.render_obs:
             obs = self.render_obs()
             return obs
@@ -188,6 +280,11 @@ class EagerEnv(BaseEagerEnv):
             return None
 
     def _get_obs(self) -> 'OrderedDict[str, object]':
+        """
+        Gets the observations of all objects and observers in this environment
+
+        :return: observations
+        """
         obs = OrderedDict()
 
         for object in self.objects:
@@ -200,6 +297,11 @@ class EagerEnv(BaseEagerEnv):
         return obs
     
     def _get_states(self) -> 'OrderedDict[str, object]':
+        """
+        Gets the states of all objects and observers in this environment
+
+        :return: states
+        """
         state = OrderedDict()
 
         for object in self.objects:
@@ -209,13 +311,35 @@ class EagerEnv(BaseEagerEnv):
         return state
 
     def _get_reward(self, obs: 'OrderedDict[str, object]') -> float:
+        """
+        The reward function of this environment.
+        
+        Is zero by default, must be set in the costructor with ``reward_fn`` or overridden
+
+        :param obs: The observations of the current time step
+        :return: reward
+        """
         return 0.0
     
     def _is_done(self, obs: 'OrderedDict[str, object]') -> bool:
+        """
+        Signals if the environment should reset after this step
+        
+        By default returns true after ``max_steps`` if set and can be set in costructor
+        by setting ``is_done_fn`` or can be overridden
+
+        :param obs: The observations of the current time step
+        :return: done
+        """
         if self.STEPS_PER_ROLLOUT and self.STEPS_PER_ROLLOUT > 0:
             return self.steps >= self.STEPS_PER_ROLLOUT
         else:
             return False
 
-    def close(self):
+    def close(self) -> None:
+        """
+        Closes and cleans up the environment.
+
+        Will shutdown the physics engine and disable all passed node listeners.
+        """
         super().close(objects=self.objects, observers=self.observers)
