@@ -11,12 +11,12 @@ echo "Enter desired EAGER root install location. If it does not exist, it will b
 echo "Press enter for default: ${HOME}"
 read input
 if [[ ! ${#input} -ge 1  ]]; then
-  EAGER_ROOT=${HOME}/eager
+  EAGER_ROOT=${HOME}
 elif [[ ! -d $input ]]; then
   mkdir -p $input
-  EAGER_ROOT=${input}/eager
+  EAGER_ROOT=${input}
 else
-  EAGER_ROOT=${input}/eager
+  EAGER_ROOT=${input}
 fi
 
 EAGER_HOME=${EAGER_ROOT}/eager
