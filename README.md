@@ -45,13 +45,6 @@ source [EAGER_WORKSPACE]/devel/setup.bash
 It is possible to run ```install_eager``` multiple times in order to install
 additional packages.
 
-## Toolkit's advantages (current implementation)
-- Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
-- Ability to use a python debugger (because we use services)
-- Ability to train faster than real time in simulation environments.
-- Ability to step environments in simulation. In this way the simulation time between actions is constant and performance is not affected by calculation time.
-- Ability to use different physics engines: WeBots, PyBullet, Gazebo (which supports Open Dynamics Engine (ODE), Bullet, Dynamic Animation and Robotics Toolkit (DART), Simbody)
-
 ## Package building
 - Create a symbolic link in your `catkin_ws/src` to the `ros` directory.
 
