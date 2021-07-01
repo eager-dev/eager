@@ -16,6 +16,7 @@ class GazeboBridge(PhysicsBridge):
 
     def __init__(self):
         self._start_simulator()
+        self.stepped = False
         
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
         
@@ -39,7 +40,6 @@ class GazeboBridge(PhysicsBridge):
         self._step_world.wait_for_service()
         
         self.step_request = SetIntRequest(int(round(step_time/physics_parameters.time_step)))
-        self._step_world(self.step_request)
         
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
@@ -71,19 +71,25 @@ class GazeboBridge(PhysicsBridge):
     def _register_object(self, topic, name, package, object_type, args, config):
         self._add_robot(topic, name, package, args, config)
         
-        self._init_sensors(topic, name, config['sensors'])
+        if 'sensors' in config:
+            self._init_sensors(topic, name, config['sensors'])
+       
+        if 'actuators' in config:
+            self._init_actuators(topic, name, config['actuators'])
         
-        self._init_actuators(topic, name, config['actuators'])
-        
-        self._init_states(topic, name, config['states'])
-        
-        self._step_world(self.step_request)
+        if 'states' in config:
+            self._init_states(topic, name, config['states'])
         return True
     
     def _add_robot(self, topic, name, package, args, config):
-        pos = "-x {} -y {} -z {}".format(*map(add, config['default_translation'], args['position']))
-        ori = "-R {} -P {} -Y {}".format(*euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
-        
+        if 'default_translation' in config:
+            pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*map(add, config['default_translation'], args['position']))
+        else:
+            pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*args['position'])
+        if 'default_orientation' in config:
+            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
+        else:
+            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % topic,
@@ -105,12 +111,12 @@ class GazeboBridge(PhysicsBridge):
             msg_name = sensor_params["msg_name"]
             space = sensor_params['space']
             msg_type = getattr(sensor_msgs.msg, msg_name)
+            attribute = sensor_params["type"]
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
-            rospy.logwarn(self._sensor_buffer)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type, 
-                functools.partial(self._sensor_callback, name=name, sensor=sensor)))
+                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service, 
                                                                          buffer=self._sensor_buffer, 
@@ -148,9 +154,8 @@ class GazeboBridge(PhysicsBridge):
                                                        )
                                          )
         
-    def _sensor_callback(self, data, name, sensor):
-        data_list = data.position
-        self._sensor_buffer[name][sensor] = data_list
+    def _sensor_callback(self, data, name, sensor, attribute):
+        self._sensor_buffer[name][sensor] = getattr(data, attribute)
 
     def _state_callback(self, data, state):
         # todo: implement routine to update state buffer.
@@ -162,12 +167,10 @@ class GazeboBridge(PhysicsBridge):
         return message_type(buffer[name][obs_name])
 
     def _step(self):
-        rospy.logdebug("Stepping")
         for robot in self._actuator_services:
             for actuator in self._actuator_services[robot]:
                 (get_action_srv, set_action_srv) = self._actuator_services[robot][actuator]
                 actions = get_action_srv()
-                rospy.logdebug("Actuator {} received action: {}".format(actuator, actions.value))
                 set_action_srv(actions.value)
         self._step_world(self.step_request)
         return True

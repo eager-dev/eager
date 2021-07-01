@@ -21,6 +21,7 @@ from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
+from eager_bridge_gazebo.gazebo_engine import GazeboEngine
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 
 from gym import spaces
@@ -118,6 +119,7 @@ if __name__ == '__main__':
     # Define the engine
     # engine = WebotsEngine()
     engine = PyBulletEngine(no_gui=False)
+    # engine = GazeboEngine(seed=42)
 
     # Create environment
     env = MyEnv(engine, name="my_env")
