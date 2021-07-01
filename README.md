@@ -40,7 +40,7 @@ The bash script ```install_eager``` will clone the repository and create a catki
 workspace. It also asks for input in order to create links to the desired packages in this workspace. Afterwards, it will build the workspace. In order to use EAGER, the only thing that is required
 is sourcing:
 ```
-source ~/[EAGER_WORKSPACE]/devel/setup.bash
+source [EAGER_WORKSPACE]/devel/setup.bash
 ```
 It is possible to run ```install_eager``` multiple times in order to install
 additional packages.
