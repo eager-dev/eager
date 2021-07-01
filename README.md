@@ -1,6 +1,50 @@
 # EAGER
 Engine Agnostic Gym Environment for Robotics.
 
+## Installation
+There are two ways to install EAGER:
+
+1. By cloning the repository into a catkin workspace and building from source:
+```
+mkdir -p ~/eager_ws/src
+cd ~/eager_ws/src
+git clone https://github.com/eager-dev/eager.git
+```
+Be aware that if you want to use the `eager_bridge_gazebo` in combination with the `eager_robot_ur5e`, the following repositories should be cloned into `~/eager_ws/src`:
+```
+git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
+git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
+```
+Now you can install the dependencies and build the workspace:
+```
+cd ~/eager_ws
+rosdep update --rosdistro $ROS_DISTRO
+rosdep install --from-paths src --ignore-src -r -y
+catkin_make
+source devel/setup.bash
+```
+2. Via PIP installation, which also provides the possibility to perform a custom installation rather than full installation with all EAGER packages. This can done via HTTPS or SSH.
+- Using HTTPS, run:
+```
+pip install git+https://github.com/eager-dev/eager@create-installation-script
+```
+- Using SSH, run:
+```
+pip install git+ssh://git@github.com/eager-dev/eager.git@create-installation-script
+```
+Now install EAGER by running:
+```
+install_eager
+```
+The bash script ```install_eager``` will clone the repository and create a catkin
+workspace. It also asks for input in order to create links to the desired packages in this workspace. Afterwards, it will build the workspace. In order to use EAGER, the only thing that is required
+is sourcing:
+```
+source ~/eager_ws/devel/setup.bash
+```
+It is possible to run ```install_eager``` multiple times in order to install
+additional packages.
+
 ## Toolkit's advantages (current implementation)
 - Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
 - Ability to use a python debugger (because we use services)
@@ -12,7 +56,7 @@ Engine Agnostic Gym Environment for Robotics.
 - Create a symbolic link in your `catkin_ws/src` to the `ros` directory.
 
 ## Launch python training script with a different python interpreter (e.g. with an Anaconda virtual environment)
-- Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`). 
+- Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`).
 
 ## Run python training script dynamically (e.g. via PyCharm debugger)
 - If you would like to start-up your python script without a launch file, make sure to source the `devel/setup.bash` (e.g. inside your `~/.bashrc`) right before you run your python script inside the IDE.
