@@ -1,84 +1,129 @@
 #!/bin/bash
 
+CURRENT_DIR=$PWD
+
 if [[ -z "$ROS_DISTRO" ]]; then
-       echo "ROS is not installed, please install ROS first."
-       exit 1
+  echo "ROS is not installed, please install ROS first."
+  exit 1
 fi
 
-EAGER_HOME=${HOME}/eager
+echo "Enter desired EAGER root install location. If it does not exist, it will be created."
+echo "Press enter for default: ${HOME}"
+read input
+if [[ ! ${#input} -ge 1  ]]; then
+  EAGER_ROOT=${HOME}/eager
+elif [[ ! -d $input ]]; then
+  mkdir -p $input
+  EAGER_ROOT=${input}/eager
+else
+  EAGER_ROOT=${input}/eager
+fi
 
-if [ ! -d ${HOME}/eager ]; then
-		echo Cloning EAGER...
-		cd ${HOME}
-    git clone https://github.com/eager-dev/eager.git
+EAGER_HOME=${EAGER_ROOT}/eager
+
+if [ ! -d ${EAGER_HOME} ]; then
+  cd ${EAGER_ROOT}
+  echo Cloning EAGER...
+  git clone https://github.com/eager-dev/eager.git
+fi
+
+cd $CURRENT_DIR
+
+echo "Enter desired location of catkin workspace. If it does not exist, it will be created."
+echo "Press enter for default: ${HOME}/eager_ws"
+input=0
+read input
+if [[ ! ${#input} -ge 1  ]]; then
+  EAGER_WS=${HOME}/eager_ws
+elif [[ ! -d $input ]]; then
+  mkdir -p ${input}/src
+  EAGER_WS=${input}
+else
+  if [[ ! -d $input/src ]]; then
+    mkdir -p ${input}/src
+  fi
+  EAGER_WS=${input}
 fi
 
 EAGER_WS=${HOME}/eager_ws
 
 if [ ! -d ${HOME}/eager_ws ]; then
-		echo "Creating eager_ws"
-		cd ${HOME}
-		mkdir -p eager_ws/src
-    cd ${EAGER_WS}/src
-    ln -s ${EAGER_HOME}/eager_core
+  echo "Creating eager_ws"
+  cd ${HOME}
+  mkdir -p eager_ws/src
+  cd ${EAGER_WS}/src
+  ln -s ${EAGER_HOME}/eager_core
+fi
+
+if [ ! -d ${EAGER_WS}/src/eager_core ]; then
+  cd ${EAGER_WS}/src
+  ln -s ${EAGER_HOME}/eager_core
 fi
 
 echo "Do you wish to install all EAGER packages? (y/n)"
 invalid_input=true
 full_install=false
 while [[ $invalid_input = true ]]; do
-    read input
-    if [[ "$input" = "y" ]]; then
-       full_install=true
-       invalid_input=false
-       cd ${EAGER_WS}/src
-       ln -s ${EAGER_HOME}/examples
-    elif [[ "$input" = "n" ]]; then
-       invalid_input=false
-    fi
+  read input
+  if [[ "$input" = "y" ]]; then
+    full_install=true
+    invalid_input=false
+    cd ${EAGER_WS}/src
+    ln -s ${EAGER_HOME}/examples
+  elif [[ "$input" = "n" ]]; then
+    invalid_input=false
+  fi
 done
 
 cd ${EAGER_WS}/src
 packages_to_install=()
-package_types="bridge process robot sensor"
+package_types="bridge process robot sensor solid"
 for package_type in $package_types; do
-    installed=$(ls | grep eager_$package_type)
-    echo Installed $package_type packages: $installed
-    available=$(ls ${EAGER_HOME} | grep eager_$package_type)
-    not_installed=()
-    for available_package in $available; do
-        if [[ ! " $installed " =~ $available_package ]]; then
-           not_installed+=("$available_package")
-        fi
-    done
-    if [ ${#not_installed[@]} -ge 1 ]; then
-       if [ $full_install = true ]; then
-          packages_to_install+=" ${not_installed[@]}"
-       else
-           invalid_input=true
-           input=0
-           echo Packages of type $package_type that can be installed are: ${not_installed[@]}
-           echo Enter the packages you wish to install, seperated by spaces:
-           echo If you wish to install none, press enter.
-           while [[ $invalid_input = true && ${#input} -ge 1 ]]; do
-               for entry in $input; do
-                  if [[ ! " ${not_installed[@]} " =~ " ${entry} " ]]; then
-                      read input
-                      invalid_input=true
-                      echo Invalid input given: $input
-                  else
-                      packages_to_install+=("${entry}")
-                      invalid_input=false
-                  fi
-               done
-           done
-        fi
+  installed=$(ls | grep eager_$package_type)
+  echo Installed $package_type packages:
+  echo $installed
+  available=$(ls ${EAGER_HOME} | grep eager_$package_type)
+  not_installed=()
+  for available_package in $available; do
+    if [[ ! " $installed " =~ $available_package ]]; then
+      not_installed+=("$available_package")
     fi
+  done
+  if [ ${#not_installed[@]} -ge 1 ]; then
+    if [ $full_install = true ]; then
+      packages_to_install+=" ${not_installed[@]}"
+    else
+      not_installed_names=()
+      for installed_package in ${not_installed[@]}; do
+        IFS='_' read -ra ADDR <<< "$installed_package"
+        name=$(echo ${ADDR[@]:2} | tr ' ' '_')
+        not_installed_names+=("$name")
+      done
+      invalid_input=true
+      input=0
+      echo Packages of type $package_type that can be installed are:
+      echo ${not_installed_names[@]}
+      echo Enter the packages you wish to install, seperated by spaces:
+      echo If you wish to install none, press enter.
+      while [[ $invalid_input = true && ${#input} -ge 1 ]]; do
+        read input
+        for entry in $input; do
+          if [[ ! " ${not_installed_names[@]} " =~ " ${entry} " ]]; then
+            invalid_input=true
+            echo Invalid input given: $input
+          else
+            packages_to_install+=("eager_${package_type}_${entry}")
+            invalid_input=false
+          fi
+        done
+      done
+    fi
+  fi
 done
 
 
 for package_to_install in ${packages_to_install[@]}; do
-    ln -s ${EAGER_HOME}/$package_to_install
+  ln -s ${EAGER_HOME}/$package_to_install
 done
 
 cd ${EAGER_WS}/src
@@ -87,13 +132,13 @@ if [[ " $packages " =~ "eager_bridge_gazebo" && " $packages " =~ "eager_robot_ur
   # install universal robot packages UR5 robot package
   echo "Installing UR robot packages"
   if [ ! -d ${EAGER_WS}/src/universal_robot ]; then
-      cd ${EAGER_WS}/src
-      git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
+    cd ${EAGER_WS}/src
+    git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
   fi
   # install universal robot packages UR5 robot package
   if [ ! -d ${EAGER_WS}/src/ur_modern_driver ]; then
-      cd ${EAGER_WS}/src
-      git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
+    cd ${EAGER_WS}/src
+    git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
   fi
 fi
 
