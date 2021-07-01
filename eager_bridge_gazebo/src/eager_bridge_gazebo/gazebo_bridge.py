@@ -91,7 +91,6 @@ class GazeboBridge(PhysicsBridge):
         else:
             ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
-        rospy.logwarn((pos + " " + ori))
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % topic,
                     'name:=%s' % name,
