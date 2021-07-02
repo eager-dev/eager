@@ -10,12 +10,14 @@ from eager_bridge_webots.webots_engine import WebotsEngine
 
 from eager_core.utils.env_checker import check_env
 
+
 def reset_func(env: EagerEnv):
     for obj in env.objects:
         if obj.name == 'can':
-            #WeBots cannot handle exactly 0 rotations
+            # WeBots cannot handle exactly 0 rotations
             states = dict(position=[random(), 0, random()], orientation=[0.0000001, 0, 0, 0.9999999])
             obj.reset(states)
+
 
 if __name__ == '__main__':
 
@@ -38,5 +40,5 @@ if __name__ == '__main__':
         env.render()
         if done:
             obs = env.reset()
-    
+
     env.close()

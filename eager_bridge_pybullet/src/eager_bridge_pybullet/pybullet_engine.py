@@ -1,6 +1,6 @@
 from eager_core.engine_params import EngineParams
-from eager_core.utils.file_utils import substitute_xml_args
 import pybullet_data
+
 
 class PyBulletEngine(EngineParams):
     """
@@ -15,6 +15,7 @@ class PyBulletEngine(EngineParams):
     :param num_solver_iterations: Choose the maximum number of constraint solver iterations
     :param contact_erp: Contact error reduction parameter
     """
+
     def __init__(self,
                  world: str = '%s/%s.urdf' % (pybullet_data.getDataPath(), 'plane'),
                  dt: float = 0.08,

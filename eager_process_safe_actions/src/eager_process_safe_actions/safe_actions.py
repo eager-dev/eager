@@ -12,15 +12,17 @@ import numpy as np
 class SafeActions(ActionProcessor):
     '''
     Custom action processing node for manipulators that are not allowed to move below a certain height.
-    Can be used for collision avoidance, for example for manipulators that are mounted on a table or other sort of base surface.
-    Checks velocity limits, prevents self-collision and collision with the base surface.
-    
+    Can be used for collision avoidance, for example for manipulators that are mounted on a table or other sort of base
+    surface. Checks velocity limits, prevents self-collision and collision with the base surface.
+
     !!!
-    Be careful! Implementation assumes constant velocity based on the difference between the start and goal position and the duration parameter.
-    If this assumption does not hold, velocity limit checking and collision avoidance will not work!
+    Be careful! Implementation assumes constant velocity based on the difference between the start and goal position
+    and the duration parameter. If this assumption does not hold, velocity limit checking and collision avoidance will
+    not work!
     !!!
-    
+
     '''
+
     def __init__(self):
         # Get params
         object_frame = rospy.get_param('~object_frame')
@@ -29,34 +31,34 @@ class SafeActions(ActionProcessor):
         self.checks_per_rad = rospy.get_param('~checks_per_rad')
         self.vel_limit = rospy.get_param('~vel_limit')
         self.duration = rospy.get_param('~duration')
-    	
+
         # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface(synchronous=True)
-        
+
         # Add a collision object to the scenes
         p = PoseStamped()
         p.header.frame_id = object_frame
         p.pose.position.z = -0.05
         p.pose.orientation.w = 1
         scene.add_cylinder('base', p, 0.1, 1.5)
-        
+
         # Initialize state validity check service
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
         self.state_validity_service.wait_for_service()
-        
+
         super(SafeActions, self).__init__()
-    
+
     def _get_space(self):
         space = {}
-        space['low'] = [-3.14]*len(self.joint_names)
-        space['high'] = [3.14]*len(self.joint_names)
+        space['low'] = [-3.14] * len(self.joint_names)
+        space['high'] = [3.14] * len(self.joint_names)
         space['type'] = 'boxf32'
         return space
-        
+
     def _close(self):
         pass
-    
+
     def _reset(self):
         pass
 
@@ -73,7 +75,7 @@ class SafeActions(ActionProcessor):
 
     def _getSafeAction(self, goal_position, current_position):
         '''
-        Given a goal_position, check if this satisfies the velocity limit 
+        Given a goal_position, check if this satisfies the velocity limit
         and whether the path is collision free
         return a collision free action
         '''
@@ -94,7 +96,7 @@ class SafeActions(ActionProcessor):
 
         # We also check joint limits on velocity
         dif = goal_position - current_position
-        too_fast = np.abs(dif/self.duration) > self.vel_limit
+        too_fast = np.abs(dif / self.duration) > self.vel_limit
         if np.any(too_fast):
             goal_position[too_fast] = current_position[too_fast] + \
                 np.sign(dif[too_fast]) * self.duration * self.vel_limit
@@ -105,9 +107,9 @@ class SafeActions(ActionProcessor):
 
         n_checks = int(np.ceil(self.checks_per_rad * max_angle_dif))
         way_points = cs(np.linspace(0, self.duration, n_checks))
-        
+
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]
             if not self.state_validity_service.call(gsvr).valid:
-                return way_points[max(i-1, 0)]
+                return way_points[max(i - 1, 0)]
         return goal_position

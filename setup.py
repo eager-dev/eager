@@ -1,4 +1,3 @@
-import os
 from setuptools import setup
 
 setup(name='eager',
@@ -7,5 +6,5 @@ setup(name='eager',
       url='https://github.com/eager-dev/eager',
       author="Bas van der Heijden, Alexander Keijzer, Jelle Luijkx",
       author_email="j.d.luijkx@tudelft.nl",
-      scripts = ['bin/install_eager'],
-)
+      scripts=['bin/install_eager'],
+      )

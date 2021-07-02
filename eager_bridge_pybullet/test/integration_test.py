@@ -14,6 +14,7 @@ import pybullet_data
 PKG = 'eager_bridge_pybullet'
 NAME = 'integration_test'
 
+
 class IntegrationTest(unittest.TestCase):
 
     def __init__(self, *args):
@@ -41,6 +42,7 @@ class IntegrationTest(unittest.TestCase):
                 "Check env failed"
                 " Msg: {}".format(e)
             )
+
 
 if __name__ == '__main__':
     print("start")

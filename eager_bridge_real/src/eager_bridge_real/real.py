@@ -13,7 +13,7 @@ class RealBridge(PhysicsBridge):
     def __init__(self):
         action_rate = rospy.get_param('physics_bridge/action_rate', 30)
         self.rate = rospy.Rate(action_rate)
-        
+
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
         self._sensor_services = []
@@ -36,14 +36,14 @@ class RealBridge(PhysicsBridge):
         roslaunch.configure_logging(uuid)
         self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         self._launch.start()
-        
+
         self._init_sensors(topic, name, config['sensors'])
-        
+
         self._init_actuators(topic, name, config['actuators'])
 
         self._init_states(topic, name, config['states'])
         return True
-    
+
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
         for sensor in sensors:
@@ -58,11 +58,19 @@ class RealBridge(PhysicsBridge):
             rospy.logdebug("Sensor {} received message from topic {}".format(sensor, msg_topic))
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
-                msg_type, 
+                msg_type,
                 functools.partial(self._sensor_callback, name=name, sensor=sensor)))
-            self._sensor_services.append(rospy.Service(topic + "/" + sensor, get_message_from_def(space), functools.partial(self._service, buffer=self._sensor_buffer, name=name, obs_name=sensor, message_type=get_response_from_def(space))))
+            self._sensor_services.append(
+                rospy.Service(
+                    topic + "/" + sensor,
+                    get_message_from_def(space),
+                    functools.partial(
+                        self._service,
+                        buffer=self._sensor_buffer,
+                        name=name,
+                        obs_name=sensor,
+                        message_type=get_response_from_def(space))))
 
-    
     def _init_actuators(self, topic, name, actuators):
         actuator_services = dict()
         for actuator in actuators:
@@ -81,7 +89,7 @@ class RealBridge(PhysicsBridge):
             rospy.logdebug("Initializing state {}".format(state))
             state_params = states[state]
             space = state_params['space']
-            robot_states[state] = [get_value_from_def(space)]*len(states[state])
+            robot_states[state] = [get_value_from_def(space)] * len(states[state])
             # msg_topic = name + "/" + state_params["topic"]
             # msg_name = state_params["msg_name"]
             # msg_type = getattr(state_msgs.msg, msg_name)
@@ -92,9 +100,18 @@ class RealBridge(PhysicsBridge):
             #     msg_topic,
             #     msg_type,
             #     functools.partial(self._state_callback, state=state)))
-            self._sensor_services.append(rospy.Service(topic + "/" + state, get_message_from_def(space), functools.partial(self._service, buffer=self._state_buffer, name=name, obs_name=state, message_type=get_response_from_def(space))))
+            self._sensor_services.append(
+                rospy.Service(
+                    topic + "/" + state,
+                    get_message_from_def(space),
+                    functools.partial(
+                        self._service,
+                        buffer=self._state_buffer,
+                        name=name,
+                        obs_name=state,
+                        message_type=get_response_from_def(space))))
         self._state_buffer[name] = robot_states
-        
+
     def _sensor_callback(self, data, name, sensor):
         data_list = data.position
         self._sensor_buffer[name][sensor] = data_list
@@ -125,6 +142,6 @@ class RealBridge(PhysicsBridge):
     def _close(self):
         self._launch.shutdown()
         return True
-    
+
     def _seed(self, seed):
         pass

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from __future__ import print_function
-import sys
 
 import rospy
 from eager_bridge_pybullet.pybullet_bridge import PyBulletBridge

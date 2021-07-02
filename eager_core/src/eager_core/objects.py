@@ -1,4 +1,5 @@
-import gym, gym.spaces
+import gym
+import gym.spaces
 from eager_core.utils.file_utils import load_yaml, substitute_xml_args
 from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_from_space,
                                         get_def_from_space, get_response_from_space,
@@ -11,6 +12,7 @@ import rospy
 import roslaunch
 import rosservice
 import numpy as np
+
 
 class BaseRosObject():
 
@@ -25,7 +27,7 @@ class BaseRosObject():
 
     def init_node(self, base_topic: str = '') -> None:
         raise NotImplementedError
-    
+
     def get_topic(self, base_topic: str = '') -> str:
         if base_topic == '':
             return self.name
@@ -60,24 +62,29 @@ class Sensor(BaseRosObject):
 
         if self.observation_space is None:
             self.observation_space = self._infer_space(base_topic)
-        
-        self._get_sensor_service = rospy.ServiceProxy(self.get_topic(base_topic + '/sensors'), get_message_from_space(self.observation_space))
 
-    def get_obs(self) -> object: #Type depends on space
+        self._get_sensor_service = rospy.ServiceProxy(
+            self.get_topic(
+                base_topic + '/sensors'),
+            get_message_from_space(
+                self.observation_space))
+
+    def get_obs(self) -> object:  # Type depends on space
         response = self._get_sensor_service()
         if self.observation_space.dtype == np.dtype(np.uint8):
             buf = np.frombuffer(response.value, np.uint8).reshape(self.observation_space.shape)
             return buf
         return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
-    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile', node_type='service', stateless=True):
+    def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile',
+                       node_type='service', stateless=True) -> None:
         self.assert_not_yet_initialized('preprocess')
 
         self.observation_space = processed_space
         self.launch_path = launch_path
         self.node_type = node_type
         self.stateless = stateless
-    
+
     def close(self):
         self._get_sensor_service.close()
 
@@ -98,13 +105,17 @@ class State(BaseRosObject):
         self._buffer = None
 
         self._get_state_service = rospy.ServiceProxy(self.get_topic(base_topic + '/states'),
-                                                 get_message_from_space(self.state_space))
+                                                     get_message_from_space(self.state_space))
 
-        self._send_state_service = rospy.Service(self.get_topic(base_topic + '/resets'), get_message_from_space(self.state_space),
-                                                  self._send_state)
+        self._send_state_service = rospy.Service(
+            self.get_topic(
+                base_topic + '/resets'),
+            get_message_from_space(
+                self.state_space),
+            self._send_state)
 
     def get_state(self) -> object:  # Type depends on space
-        if not self._get_state_service.resolved_name in rosservice.get_service_list():
+        if self._get_state_service.resolved_name not in rosservice.get_service_list():
             if not self._has_warned:
                 rospy.logwarn('State "{}" cannot be retrieved in this environment.'.format(self.name))
                 self._has_warned = True
@@ -121,7 +132,7 @@ class State(BaseRosObject):
     def _send_state(self, request: object) -> object:
         msg_class = get_response_from_space(self.state_space)
         return msg_class(self._buffer)
-    
+
     def close(self):
         self._get_state_service.close()
         self._send_state_service.shutdown()
@@ -152,55 +163,67 @@ class Actuator(BaseRosObject):
             roslaunch.configure_logging(uuid)
             launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
             launch.start()
-            
+
             # Register processor
-            self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(base_topic + '/actuators') + "/register_processor", RegisterActionProcessor)
+            self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(
+                base_topic + '/actuators') + "/register_processor", RegisterActionProcessor)
             self._register_action_processor_service.wait_for_service()
             response = self._register_action_processor_service(self.preprocess_req)
-            
+
             if self.processor_action_space is not None:
                 self.action_space = self.processor_action_space
             else:
                 self.action_space = get_space_from_space_msg(response.action_space)
-            
+
             # Initialize buffer
             self._buffer = self.action_space.sample()
-            
+
             # Create act service
-            self._act_service = rospy.Service(self.get_topic(base_topic + '/actuators') + "/raw", get_message_from_space(self.action_space), self._send_action)
+            self._act_service = rospy.Service(
+                self.get_topic(
+                    base_topic + '/actuators') + "/raw",
+                get_message_from_space(
+                    self.action_space),
+                self._send_action)
         else:
             self._buffer = self.action_space.sample()
-            
-            self._act_service = rospy.Service(self.get_topic(base_topic + '/actuators'), get_message_from_space(self.action_space), self._send_action)
-    
+
+            self._act_service = rospy.Service(
+                self.get_topic(
+                    base_topic + '/actuators'),
+                get_message_from_space(
+                    self.action_space),
+                self._send_action)
+
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, launch_path: str, launch_args: dict = {}, observations_from_objects: list = [], action_space: gym.Space = None):
+    def add_preprocess(self, launch_path: str, launch_args: dict = {}, observations_from_objects: list = [],
+                       action_space: gym.Space = None) -> None:
         self.assert_not_yet_initialized('preprocess')
 
         cli_args = [substitute_xml_args(launch_path)]
         for key, value in launch_args.items():
             cli_args.append('{}:={}'.format(key, value))
         self.preprocess_launch = cli_args
-        
+
         observation_objects = []
         for object in observations_from_objects:
             object_msg = Object_msg()
             object_msg.type = object.type
             object_msg.name = object.name
             observation_objects.append(object_msg)
-        
+
         req = RegisterActionProcessorRequest()
         if action_space is not None:
             req.raw_action_type = get_def_from_space(action_space)['type']
         req.action_type = get_def_from_space(self.action_space)['type']
         req.observation_objects = observation_objects
         self.preprocess_req = req
-        
+
         if action_space is not None:
             self.processor_action_space = action_space
-        
+
     def reset(self) -> None:
         pass
 
@@ -230,9 +253,10 @@ class Object(BaseRosObject):
     :param fixed_base: Fix the base position and orientation (for manipulators)
     :param self_collision: Collide with own collision boxes (for manipulators)
     """
-    def __init__(self, type: str, name: str, 
+
+    def __init__(self, type: str, name: str,
                  sensors: Union[List[Sensor], Dict[str, Sensor]],
-                 actuators: Union[List[Actuator], Dict[str, Actuator]], 
+                 actuators: Union[List[Actuator], Dict[str, Actuator]],
                  states: Union[List[State], Dict[str, State]],
                  reset: Callable[['Object'], None] = None,
                  position: List[float] = [0, 0, 0],
@@ -241,7 +265,8 @@ class Object(BaseRosObject):
                  self_collision: bool = True,
                  **kwargs
                  ) -> None:
-        super().__init__(type, name, position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
+        super().__init__(type, name, position=position, orientation=orientation,
+                         fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
         if isinstance(sensors, List):
             sensors = OrderedDict(zip([sensor.name for sensor in sensors], sensors))
@@ -303,7 +328,7 @@ class Object(BaseRosObject):
                 states.append(State(None, state_name, state_space))
 
         return cls(package_name + '/' + object_type, name, sensors, actuators, states,
-            position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
+                   position=position, orientation=orientation, fixed_base=fixed_base, self_collision=self_collision, **kwargs)
 
     def init_node(self, base_topic: str = '') -> None:
         self.assert_not_yet_initialized('init')
@@ -311,18 +336,18 @@ class Object(BaseRosObject):
 
         for sensor in self.sensors.values():
             sensor.init_node(self.get_topic(base_topic))
-        
+
         for actuator in self.actuators.values():
             actuator.init_node(self.get_topic(base_topic))
 
         for state in self.states.values():
             state.init_node(self.get_topic(base_topic))
 
-    def set_action(self, actions: 'OrderedDict[str, object]') -> None: # Error return?
+    def set_action(self, actions: 'OrderedDict[str, object]') -> None:  # Error return?
 
         for act_name, actuator in self.actuators.items():
             actuator.set_action(actions[act_name])
-    
+
     def get_obs(self, sensors: List[str] = None) -> 'OrderedDict[str, object]':
         if sensors is not None:
             obs = OrderedDict([(sensor, self.sensors[sensor].get_obs()) for sensor in sensors])
@@ -343,7 +368,7 @@ class Object(BaseRosObject):
                 if state_val is not None:
                     state_dict[state_name] = state_val
         return state_dict
-    
+
     @property
     def action_space(self) -> gym.spaces.Dict:
         if not self.actuators:
@@ -374,7 +399,7 @@ class Object(BaseRosObject):
 
         return gym.spaces.Dict(spaces=spaces)
 
-    def reset(self, states: 'OrderedDict[str, object]') -> None: # Error return?
+    def reset(self, states: 'OrderedDict[str, object]') -> None:  # Error return?
         for actuator in self.actuators.values():
             actuator.reset()
 
@@ -383,7 +408,7 @@ class Object(BaseRosObject):
 
         if self.reset_func is not None:
             self.reset_func(self)
-    
+
     def close(self):
         for sensor in self.sensors.values():
             sensor.close()

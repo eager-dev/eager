@@ -5,8 +5,8 @@ import rospy
 from eager_core.eager_env import BaseEagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_bridge_webots.webots_engine import WebotsEngine
-from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
+from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
+from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 
 from gym import spaces
