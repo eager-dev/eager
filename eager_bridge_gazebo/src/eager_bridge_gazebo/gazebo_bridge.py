@@ -7,8 +7,10 @@ from operator import add
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
-from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import FollowJointTrajectoryActionServer
-from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
+from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import \
+    FollowJointTrajectoryActionServer
+from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
+                             SetPhysicsPropertiesRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
 
 
@@ -17,14 +19,14 @@ class GazeboBridge(PhysicsBridge):
     def __init__(self):
         self._start_simulator()
         self.stepped = False
-        
+
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
-        
+
         physics_parameters_service = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
         physics_parameters_service.wait_for_service()
-        
+
         physics_parameters = physics_parameters_service(GetPhysicsPropertiesRequest())
-        
+
         new_physics_parameters = SetPhysicsPropertiesRequest()
         new_physics_parameters.time_step = rospy.get_param('physics_bridge/solver_time_step', 0.001)
         new_physics_parameters.max_update_rate = rospy.get_param('physics_bridge/solver_max_update_rate', 0.0)
@@ -33,14 +35,14 @@ class GazeboBridge(PhysicsBridge):
 
         set_physics_properties_service = rospy.ServiceProxy('/gazebo/set_physics_properties', SetPhysicsProperties)
         set_physics_properties_service.wait_for_service()
-        
+
         set_physics_properties_service(new_physics_parameters)
-        
+
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         self._step_world.wait_for_service()
-        
-        self.step_request = SetIntRequest(int(round(step_time/physics_parameters.time_step)))
-        
+
+        self.step_request = SetIntRequest(int(round(step_time / physics_parameters.time_step)))
+
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
         self._sensor_services = []
@@ -52,7 +54,7 @@ class GazeboBridge(PhysicsBridge):
         self._state_services = []
 
         super(GazeboBridge, self).__init__("gazebo")
-        
+
     def _start_simulator(self):
         str_launch_sim = '$(find eager_bridge_gazebo)/launch/gazebo_sim.launch'
         cli_args = [substitute_xml_args(str_launch_sim),
@@ -70,24 +72,25 @@ class GazeboBridge(PhysicsBridge):
 
     def _register_object(self, topic, name, package, object_type, args, config):
         self._add_robot(topic, name, package, args, config)
-        
+
         if 'sensors' in config:
             self._init_sensors(topic, name, config['sensors'])
-       
+
         if 'actuators' in config:
             self._init_actuators(topic, name, config['actuators'])
-        
+
         if 'states' in config:
             self._init_states(topic, name, config['states'])
         return True
-    
+
     def _add_robot(self, topic, name, package, args, config):
         if 'default_translation' in config:
             pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*map(add, config['default_translation'], args['position']))
         else:
             pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*args['position'])
         if 'default_orientation' in config:
-            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
+            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(
+                *euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
         else:
             ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
@@ -101,7 +104,7 @@ class GazeboBridge(PhysicsBridge):
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
-        
+
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
         for sensor in sensors:
@@ -115,17 +118,17 @@ class GazeboBridge(PhysicsBridge):
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
-                msg_type, 
+                msg_type,
                 functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
-                                                       functools.partial(self._service, 
-                                                                         buffer=self._sensor_buffer, 
-                                                                         name=name, obs_name=sensor, 
+                                                       functools.partial(self._service,
+                                                                         buffer=self._sensor_buffer,
+                                                                         name=name, obs_name=sensor,
                                                                          message_type=get_response_from_def(space)
                                                                          )
                                                        )
                                          )
-    
+
     def _init_actuators(self, topic, name, actuators):
         self._actuator_services[name] = {}
         for actuator in actuators:
@@ -145,15 +148,15 @@ class GazeboBridge(PhysicsBridge):
             space = state_params['space']
             self._state_buffer[name][state] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space),
-                                                       functools.partial(self._service, 
-                                                                         buffer=self._state_buffer, 
-                                                                         name=name, 
-                                                                         obs_name=state, 
+                                                       functools.partial(self._service,
+                                                                         buffer=self._state_buffer,
+                                                                         name=name,
+                                                                         obs_name=state,
                                                                          message_type=get_response_from_def(space)
                                                                          )
                                                        )
                                          )
-        
+
     def _sensor_callback(self, data, name, sensor, attribute):
         self._sensor_buffer[name][sensor] = getattr(data, attribute)
 
@@ -181,6 +184,6 @@ class GazeboBridge(PhysicsBridge):
     def _close(self):
         self._launch.shutdown()
         return True
-    
+
     def _seed(self, seed):
         pass

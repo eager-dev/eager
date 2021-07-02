@@ -1,17 +1,19 @@
 from eager_core.engine_params import EngineParams
 
+
 class GazeboEngine(EngineParams):
     """
     Gazebo engine parameters for EAGER environments.
 
     This class includes all settings available for the Gazebo physics engine.
 
-    :param world: A path to a Gazebo world (.world) file. 
+    :param world: A path to a Gazebo world (.world) file.
     :param dt: The time step when :func:`eager_core.eager_env.EagerEnv.step` is called
     :param max_update_rate: The maximum amount of steps within a second
     :param no_gui: For Webots this will launch minimized and without rendering
     :param seed: The seed for the physics simulation
     """
+
     def __init__(self,
                  world: str = '$(find eager_bridge_gazebo)/worlds/eager_empty.world',
                  dt: float = 0.08,

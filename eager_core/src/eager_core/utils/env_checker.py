@@ -101,6 +101,7 @@ def _check_unsupported_spaces(env: gym.Env, observation_space: spaces.Space, act
             "action using a wrapper."
         )
 
+
 def _check_obs(obs: Union[tuple, dict, np.ndarray, int], observation_space: spaces.Space, method_name: str) -> None:
     """
     Check that the observation returned by the environment
@@ -197,7 +198,8 @@ def _check_render(env: gym.Env, warn: bool = True, headless: bool = False) -> No
         for render_mode in render_modes:
             env.render(mode=render_mode)
         env.close()
-    
+
+
 def _check_steps(env: gym.Env):
     for _ in range(10):
         action = env.action_space.sample()
