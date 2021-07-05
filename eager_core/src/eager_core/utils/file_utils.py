@@ -1,4 +1,7 @@
-import rospkg, rosparam, rosservice, rostopic, rospy
+import rospkg
+import rosparam
+import rosservice
+import rostopic
 from roslaunch.substitution_args import resolve_args
 from six import raise_from
 
@@ -28,6 +31,7 @@ def substitute_xml_args(param):
             # Otherwise, add the element to the result
             elif isinstance(param[key], str):
                 param[key] = resolve_args(param[key])
+
 
 def is_namespace_empty(ns):
     # Verifies that there are no topics/services registered to the namespace

@@ -8,6 +8,7 @@ from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
 
+
 class RealBridge(PhysicsBridge):
 
     def __init__(self):
@@ -70,7 +71,8 @@ class RealBridge(PhysicsBridge):
             if attribute_name in valid_attributes:
                 attribute = attribute_name
             else:
-                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(msg_name, attribute_name, valid_attributes))
+                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
+                    msg_name, attribute_name, valid_attributes))
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
@@ -97,7 +99,8 @@ class RealBridge(PhysicsBridge):
             if action_server_name in valid_servers:
                 action_server = getattr(eager_core.action_server, action_server_name)
             else:
-                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(action_server_name, valid_servers))
+                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
+                    action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = action_server(names, server_name).act
             self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)

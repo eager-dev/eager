@@ -1,13 +1,14 @@
 # ROS packages required
 # from genpy import message
-import rospy, xacro
+import rospy
+import xacro
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
 from eager_bridge_pybullet.pybullet_robot import URDFBasedRobot
-from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def, get_dtype_from_def
+from eager_core.utils.message_utils import (get_value_from_def, get_message_from_def, get_response_from_def,
+                                            get_length_from_def, get_dtype_from_def)
 
-import tempfile
 import re
 import numpy as np
 import functools
@@ -18,12 +19,11 @@ os.environ['PYBULLET_EGL'] = "1"
 try:
     if os.environ["PYBULLET_EGL"]:
         import pkgutil
-except:
+except BaseException:
     pass
 
 try:
     import pybullet
-    import pybullet_data
     from pybullet_utils import bullet_client
 except ImportError as e:
     from gym import error
@@ -72,7 +72,7 @@ class PyBulletBridge(PhysicsBridge):
             p = bullet_client.BulletClient()
         else:
             p = bullet_client.BulletClient(connection_mode=pybullet.GUI)
-            
+
         physics_client_id = p._client
         p.resetSimulation()
         p.setPhysicsEngineParameter(deterministicOverlappingPairs=1)
@@ -88,7 +88,7 @@ class PyBulletBridge(PhysicsBridge):
                         p.loadPlugin("eglRendererPlugin")
                     # STRANGE! Must pre-render atleast nun_runs=2 images, else crash in _camera_callback(...)
                     self._test_fps_rendering(p, physics_client_id, num_runs=100)
-        except:
+        except BaseException:
             pass
 
         return p, physics_client_id
@@ -100,8 +100,14 @@ class PyBulletBridge(PhysicsBridge):
             start = time.time()
             (_, _, rgb, depth, seg) = p.getCameraImage(width=640,
                                                        height=480,
-                                                       viewMatrix=(0.0, -0.7071068286895752, 0.7071067690849304, 0.0, 1.0, 0.0, -0.0, 0.0, 0.0, 0.7071067690849304, 0.7071068286895752, 0.0, -0.0, 0.141421377658844, -0.841421365737915, 1.0),
-                                                       projectionMatrix=(1.299038052558899, 0.0, 0.0, 0.0, 0.0, 1.7320507764816284, 0.0, 0.0, 0.0, 0.0, -1.0020020008087158, -1.0, 0.0, 0.0, -0.20020020008087158, 0.0),
+                                                       viewMatrix=(0.0, -0.7071068286895752, 0.7071067690849304, 0.0,
+                                                                   1.0, 0.0, -0.0, 0.0,
+                                                                   0.0, 0.7071067690849304, 0.7071068286895752, 0.0,
+                                                                   -0.0, 0.141421377658844, -0.841421365737915, 1.0),
+                                                       projectionMatrix=(1.299038052558899, 0.0, 0.0, 0.0,
+                                                                         0.0, 1.7320507764816284, 0.0, 0.0,
+                                                                         0.0, 0.0, -1.0020020008087158, -1.0,
+                                                                         0.0, 0.0, -0.20020020008087158, 0.0),
                                                        flags=pybullet.ER_NO_SEGMENTATION_MASK,
                                                        renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
                                                        physicsClientId=physics_client_id)
@@ -136,8 +142,7 @@ class PyBulletBridge(PhysicsBridge):
                     rospy.logfatal('Failed to run xacro with error: \n%s', str(e))
                     sys.exit(1)
                 re_expr = re.compile(r"package\:\/\/[a-z\_]*")
-                m = re.findall(re_expr, robot_urdf)
-                description_pkg_path = substitute_xml_args(re.search('\$\((.*)\)', config['xacro'])[0])
+                description_pkg_path = substitute_xml_args(re.search('\\$\\((.*)\\)', config['xacro'])[0])
                 str_urdf_full = re.sub(re_expr, description_pkg_path, robot_urdf)
                 with open(urdf_filename, 'w') as file:
                     file.write(str_urdf_full)
@@ -355,13 +360,18 @@ class PyBulletBridge(PhysicsBridge):
             else:
                 raise ValueError('State type ("%s") must contain either {joint, link, base}.' % states[state]['type'])
             state_cb[state] = callback
-            # self._set_state_services.append(rospy.Service(topic + "/states/" + state, BoxSpace, functools.partial(self._service,
-            self._set_state_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space), functools.partial(self._service,
-                                                                                                         buffer=self._state_buffer,
-                                                                                                         name=name,
-                                                                                                         obs_name=state,
-                                                                                                         message_type=get_response_from_def(
-                                                                                                             space))))
+            # self._set_state_services.append(rospy.Service(topic + "/states/" +
+            # state, BoxSpace, functools.partial(self._service,
+            self._set_state_services.append(
+                rospy.Service(
+                    topic + "/states/" + state,
+                    get_message_from_def(space),
+                    functools.partial(
+                        self._service,
+                        buffer=self._state_buffer,
+                        name=name,
+                        obs_name=state,
+                        message_type=get_response_from_def(space))))
         self._state_cbs[name] = state_cb
         self._state_buffer[name] = robot_states
 
@@ -412,7 +422,9 @@ class PyBulletBridge(PhysicsBridge):
             for i, (pos, vel, force_torque, applied_torque) in enumerate(states):
                 obs.append(applied_torque)
         else:
-            raise ValueError('Type of [%s][%s] in .yaml robot description (%s) must contain either {"pos", "vel", "force_torque", "applied_torque"}.' % (name, obs_name, obs_type))
+            raise ValueError(
+                'Type of [%s][%s] in .yaml robot description (%s) must contain either \
+                    {"pos", "vel", "force_torque", "applied_torque"}.' % (name, obs_name, obs_type))
         buffer[name][obs_name] = obs
 
     def _link_callback(self, buffer, name, obs_name, obs_type, bodyUniqueId, linkIndices, physicsClientId):
@@ -440,18 +452,31 @@ class PyBulletBridge(PhysicsBridge):
                 obs += vel
         else:
             raise ValueError(
-                'Type of [%s][%s] in .yaml robot description (%s) must contain either {"pos", "vel", "orientation", "angular_vel"}.' % (name, obs_name, obs_type))
+                'Type of [%s][%s] in .yaml robot description (%s) must contain either \
+                    {"pos", "vel", "orientation", "angular_vel"}.' % (name, obs_name, obs_type))
         buffer[name][obs_name] = obs
 
-    def _camera_callback(self, buffer, name, obs_name, obs_type, dtype, width, height, viewMatrix, projectionMatrix, renderer, physicsClientId):
+    def _camera_callback(
+            self,
+            buffer,
+            name,
+            obs_name,
+            obs_type,
+            dtype,
+            width,
+            height,
+            viewMatrix,
+            projectionMatrix,
+            renderer,
+            physicsClientId):
         obs = []
         (_, _, rgba, depth, seg) = self._p.getCameraImage(width=width,
-                                                         height=height,
-                                                         viewMatrix=viewMatrix,
-                                                         projectionMatrix=projectionMatrix,
-                                                         flags=pybullet.ER_NO_SEGMENTATION_MASK,
-                                                         renderer=renderer,
-                                                         physicsClientId=physicsClientId,)
+                                                          height=height,
+                                                          viewMatrix=viewMatrix,
+                                                          projectionMatrix=projectionMatrix,
+                                                          flags=pybullet.ER_NO_SEGMENTATION_MASK,
+                                                          renderer=renderer,
+                                                          physicsClientId=physicsClientId,)
         # todo: infer order via 'type' description
         if 'rgb' in obs_type[7:]:
             obs.append(rgba[:, :, :3])
@@ -484,28 +509,63 @@ class PyBulletBridge(PhysicsBridge):
         if type == 'joint_pos':  # Only 1-dof joints are supported here.
             # https://github.com/bulletphysics/bullet3/issues/2803
             velocities = []
-            states = self._p.getJointStates(bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+            states = self._p.getJointStates(
+                bodyUniqueId=bodyUniqueId,
+                jointIndices=jointIndices,
+                physicsClientId=physicsClientId)
             for i, (pos, vel, _, _) in enumerate(states):
                 velocities.append([vel])
-            self._p.resetJointStatesMultiDof(targetValues=[[s] for s in reset_state], targetVelocities=velocities, bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+            self._p.resetJointStatesMultiDof(
+                targetValues=[
+                    [s] for s in reset_state],
+                targetVelocities=velocities,
+                bodyUniqueId=bodyUniqueId,
+                jointIndices=jointIndices,
+                physicsClientId=physicsClientId)
         elif type == 'joint_vel':
             positions = []
-            states = self._p.getJointStates(bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+            states = self._p.getJointStates(
+                bodyUniqueId=bodyUniqueId,
+                jointIndices=jointIndices,
+                physicsClientId=physicsClientId)
             for i, (pos, vel, _, _) in enumerate(states):
                 positions.append([pos])
-            self._p.resetJointStatesMultiDof(targetValues=positions, targetVelocities=[[s] for s in reset_state], bodyUniqueId=bodyUniqueId, jointIndices=jointIndices, physicsClientId=physicsClientId)
+            self._p.resetJointStatesMultiDof(
+                targetValues=positions,
+                targetVelocities=[
+                    [s] for s in reset_state],
+                bodyUniqueId=bodyUniqueId,
+                jointIndices=jointIndices,
+                physicsClientId=physicsClientId)
         elif type == 'base_pos':
-            _, base_orientation = self._p.getBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
-            self._p.resetBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, posObj=reset_state, ornObj=base_orientation, physicsClientId=physicsClientId)
+            _, base_orientation = self._p.getBasePositionAndOrientation(
+                bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
+            self._p.resetBasePositionAndOrientation(
+                bodyUniqueId=bodyUniqueId,
+                posObj=reset_state,
+                ornObj=base_orientation,
+                physicsClientId=physicsClientId)
         elif type == 'base_orientation':
             base_pos, _ = self._p.getBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
-            self._p.resetBasePositionAndOrientation(bodyUniqueId=bodyUniqueId, posObj=base_pos, ornObj=reset_state, physicsClientId=physicsClientId)
+            self._p.resetBasePositionAndOrientation(
+                bodyUniqueId=bodyUniqueId,
+                posObj=base_pos,
+                ornObj=reset_state,
+                physicsClientId=physicsClientId)
         elif type == 'base_angular_vel':
             base_vel, _ = self._p.getBaseVelocity(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
-            self._p.resetBaseVelocity(objectUniqueId=bodyUniqueId, linearVelocity=base_vel, angularVelocity=reset_state, physicsClientId=physicsClientId)
+            self._p.resetBaseVelocity(
+                objectUniqueId=bodyUniqueId,
+                linearVelocity=base_vel,
+                angularVelocity=reset_state,
+                physicsClientId=physicsClientId)
         elif type == 'base_vel':
             _, base_rate = self._p.getBaseVelocity(bodyUniqueId=bodyUniqueId, physicsClientId=physicsClientId)
-            self._p.resetBaseVelocity(objectUniqueId=bodyUniqueId, linearVelocity=reset_state, angularVelocity=base_rate, physicsClientId=physicsClientId)
+            self._p.resetBaseVelocity(
+                objectUniqueId=bodyUniqueId,
+                linearVelocity=reset_state,
+                angularVelocity=base_rate,
+                physicsClientId=physicsClientId)
         else:
             raise ValueError('Type ("%s") not recognized.' % type)
 
@@ -554,6 +614,6 @@ class PyBulletBridge(PhysicsBridge):
 
     def _close(self):
         return True
-    
+
     def _seed(self, seed):
         pass

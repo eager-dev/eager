@@ -13,6 +13,7 @@ from eager_core.utils.env_checker import check_env
 PKG = 'eager_bridge_webots'
 NAME = 'integration_test'
 
+
 class IntegrationTest(unittest.TestCase):
 
     def __init__(self, *args):
@@ -34,6 +35,7 @@ class IntegrationTest(unittest.TestCase):
                 "Check env failed"
                 " Msg: {}".format(e)
             )
+
 
 if __name__ == '__main__':
     import rostest

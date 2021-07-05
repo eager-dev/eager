@@ -8,9 +8,11 @@ import eager_core.action_server
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
-from gazebo_msgs.srv import GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties, SetPhysicsPropertiesRequest
+from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
+                             SetPhysicsPropertiesRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
+
 
 class GazeboBridge(PhysicsBridge):
 
@@ -38,7 +40,7 @@ class GazeboBridge(PhysicsBridge):
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         self._step_world.wait_for_service()
 
-        self.step_request = SetIntRequest(int(round(step_time/physics_parameters.time_step)))
+        self.step_request = SetIntRequest(int(round(step_time / physics_parameters.time_step)))
 
         self._sensor_buffer = dict()
         self._sensor_subscribers = []
@@ -86,7 +88,8 @@ class GazeboBridge(PhysicsBridge):
         else:
             pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*args['position'])
         if 'default_orientation' in config:
-            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
+            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(
+                *euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
         else:
             ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
@@ -119,7 +122,8 @@ class GazeboBridge(PhysicsBridge):
             if attribute_name in valid_attributes:
                 attribute = attribute_name
             else:
-                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(msg_name, attribute_name, valid_attributes))
+                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
+                    msg_name, attribute_name, valid_attributes))
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
@@ -146,7 +150,8 @@ class GazeboBridge(PhysicsBridge):
             if action_server_name in valid_servers:
                 action_server = getattr(eager_core.action_server, action_server_name)
             else:
-                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(action_server_name, valid_servers))
+                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
+                    action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = action_server(names, server_name).act
             self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)

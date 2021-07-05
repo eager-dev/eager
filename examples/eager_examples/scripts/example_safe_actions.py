@@ -19,14 +19,15 @@ import rospy
 from eager_core.eager_env import BaseEagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_bridge_webots.webots_engine import WebotsEngine
-from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
-from eager_bridge_gazebo.gazebo_engine import GazeboEngine
+from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
+from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
+from eager_bridge_gazebo.gazebo_engine import GazeboEngine  # noqa: F401
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 
 from gym import spaces
 import numpy as np
 from stable_baselines3 import PPO
+
 
 class MyEnv(BaseEagerEnv):
 
@@ -70,7 +71,7 @@ class MyEnv(BaseEagerEnv):
         # Define the spaces
         self.observation_space = self.ur5e.observation_space
         self.action_space = self.ur5e.action_space
-    
+
     def step(self, action):
         # Set actions before stepping
         self.ur5e.set_action(action)
@@ -83,13 +84,13 @@ class MyEnv(BaseEagerEnv):
         obs = self.ur5e.get_obs()
 
         return obs, self._get_reward(obs), self._is_done(obs), self.ur5e.get_state()
-    
+
     def reset(self) -> object:
         self.steps = 0
 
         # Set desired reset state
         reset_states = dict()
-        reset_states['joint_pos'] = np.array([0, -np.pi/2, 0, 0, 0, 0], dtype='float32')
+        reset_states['joint_pos'] = np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')
         reset_states['joint_vel'] = np.array([0, 0, 0, 0, 0, 0], dtype='float32')
         self.ur5e.reset(states=reset_states)
 
@@ -106,7 +107,7 @@ class MyEnv(BaseEagerEnv):
 
     def _get_reward(self, obs):
         # Quadratic reward - move to goal position [0, -np.pi/2, 0, 0, 0, 0]
-        return -((obs['joint_sensors'] - np.array([0, -np.pi/2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
+        return -((obs['joint_sensors'] - np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
 
     def _is_done(self, obs):
         return self.steps >= self.STEPS_PER_ROLLOUT

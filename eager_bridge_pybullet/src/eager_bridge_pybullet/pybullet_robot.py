@@ -3,7 +3,6 @@ import os
 
 try:
     import pybullet
-    import pybullet_data
 except ImportError as e:
     from gym import error
     raise error.DependencyNotInstalled("{}. (HINT: you need to install pybullet)".format(e))
@@ -69,7 +68,8 @@ class XmlBasedRobot:
                 joint_name = joint_name.decode("utf8")
                 part_name = part_name.decode("utf8")
 
-                if dump: print("ROBOT PART '%s'" % part_name)
+                if dump:
+                    print("ROBOT PART '%s'" % part_name)
                 if dump:
                     print(
                         "ROBOT JOINT '%s'" % joint_name
@@ -245,6 +245,7 @@ class BodyPart:
 
     def get_bodyid_linkindex(self):
         return self.bodies[self.bodyIndex], self.bodyPartIndex
+
 
 class Joint:
     def __init__(self, bullet_client, joint_name, bodies, bodyIndex, jointIndex):
