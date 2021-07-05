@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/github/license/eager-dev/eager?label=license)](https://github.com/eager-dev/eager/blob/master/LICENSE)
 [![Documentation Status](https://readthedocs.org/projects/eager-control/badge/?version=latest)](https://eager-control.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://img.shields.io/github/workflow/status/eager-dev/eager/CI)](https://github.com/eager-dev/eager/actions/workflows/ros_tests.yaml)
-
+[![PEP8 Style Test](https://img.shields.io/github/workflow/status/eager-dev/eager/Lint?label=PEP8)](https://github.com/eager-dev/eager/actions/workflows/lint.yaml)
 
 # EAGER
 
@@ -148,15 +148,16 @@ if __name__ == '__main__':
     env.close()
 ```
 
-## Supported Hardware
+## Implemented Objects
 
-The following robots and sensors are currently implemented in EAGER. We are working on extending the number of supported devices.
+The following objects are currently implemented in EAGER. We are currently working on extending the number of supported objects.
 
-| **Device**     | **PyBullet**       | **Webots**         | **Gazebo**         | **Real-World**      |
-| -------------- | ------------------ | ------------------ | ------------------ | ------------------- |
-| UR5e           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                 |
-| Panda          | :heavy_check_mark: | :x:                | :x:                | :x:                 |
-| MultiSense S21 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                 |
+| **Object**                                                              | **Type** | **PyBullet**       | **Webots**         | **Gazebo**         | **Real-World**     |
+| ----------------------------------------------------------------------- | -------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [UR5e](https://www.universal-robots.com/nl/producten/ur5-robot/)        | Robot    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [Panda](https://www.franka.de/robot-system/)                            | Robot    | :heavy_check_mark: | :x:                | :x:                | :x:                |
+| [MultiSense S21](https://carnegierobotics.com/products/multisense-s21/) | Sensor   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                |
+| Can                                                                     | Solid    | :x:                | :heavy_check_mark: | :x:                | :x:                |
 
 ## Citing the Project
 
