@@ -17,3 +17,13 @@ webots:
   states:
     position: {}
     orientation: {}
+
+gazebo:
+  node_type_name: Can
+  default_translation: [0, 0, 0]
+  default_orientation: [0, 0, 0, 1]
+  model_name: coke_can
+
+  states:
+    position: {}
+    orientation: {}

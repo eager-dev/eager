@@ -10,8 +10,9 @@ from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_fro
 from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import \
     FollowJointTrajectoryActionServer
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
-                             SetPhysicsPropertiesRequest)
+                             SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
+from geometry_msgs.msg import Point, Quaternion
 
 
 class GazeboBridge(PhysicsBridge):
@@ -38,6 +39,9 @@ class GazeboBridge(PhysicsBridge):
 
         set_physics_properties_service(new_physics_parameters)
 
+        self._set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        self._set_model_state.wait_for_service()
+
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         self._step_world.wait_for_service()
 
@@ -52,6 +56,8 @@ class GazeboBridge(PhysicsBridge):
         self._state_buffer = dict()
         self._state_subscribers = []
         self._state_services = []
+
+        self._reset_services = dict()
 
         super(GazeboBridge, self).__init__("gazebo")
 
@@ -81,6 +87,7 @@ class GazeboBridge(PhysicsBridge):
 
         if 'states' in config:
             self._init_states(topic, name, config['states'])
+            self._init_resets(topic, name, config['states'])
         return True
 
     def _add_robot(self, topic, name, package, args, config):
@@ -98,6 +105,8 @@ class GazeboBridge(PhysicsBridge):
                     'ns:=%s' % topic,
                     'name:=%s' % name,
                     'configuration:=%s' % (pos + " " + ori)]
+        if package == "eager_solid_other":
+            cli_args.append('model_name:=%s' % config['model_name'])
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -157,6 +166,26 @@ class GazeboBridge(PhysicsBridge):
                                                        )
                                          )
 
+    def _init_resets(self, topic, name, states):
+        self._reset_services[name] = dict()
+        for state_name in states:
+            state = states[state_name]
+            space = state['space']
+            request = SetModelStateRequest()
+            request.model_state.model_name = name
+            if state_name == 'position':
+                def set_reset_srv(value):
+                    request.model_state.pose.position = Point(*value)
+                    return self._set_model_state(request)
+            elif state_name == 'orientation':
+                def set_reset_srv(value):
+                    request.model_state.pose.orientation = Quaternion(*value)
+                    return self._set_model_state(request)
+            else:
+                continue
+            get_reset_srv = rospy.ServiceProxy(topic + "/resets/" + state_name, get_message_from_def(space))
+            self._reset_services[name][state_name] = (get_reset_srv, set_reset_srv)
+
     def _sensor_callback(self, data, name, sensor, attribute):
         self._sensor_buffer[name][sensor] = getattr(data, attribute)
 
@@ -179,6 +208,20 @@ class GazeboBridge(PhysicsBridge):
         return True
 
     def _reset(self):
+        # Set all actions before stepping the world
+        for robot in self._reset_services:
+            robot_resets = self._reset_services[robot]
+            for state in robot_resets:
+                (get_state_srv, set_reset_srvs) = robot_resets[state]
+                state = get_state_srv()
+                if state.value:
+                    set_reset_srvs(list(state.value))
+
+        # update all observation & state buffers
+        # Sensors are topics here, no quarantee for update, reset to 0?
+        # There is no state buffer
+        return True
+
         return True
 
     def _close(self):

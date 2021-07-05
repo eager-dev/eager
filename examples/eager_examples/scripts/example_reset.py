@@ -7,6 +7,7 @@ from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_webots.webots_engine import WebotsEngine
+from eager_bridge_gazebo.gazebo_engine import GazeboEngine
 
 from eager_core.utils.env_checker import check_env
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
 
     # Engine specific parameters
     engine = WebotsEngine(physics_step=0.01, seed=42)
+    # engine = GazeboEngine(seed=42)
 
     # Initialize environment
     robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
