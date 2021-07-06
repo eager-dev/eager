@@ -17,6 +17,8 @@ from eager_core.utils.message_utils import get_value_from_def, get_message_from_
 class GazeboBridge(PhysicsBridge):
 
     def __init__(self):
+        self.stepped = False
+
         self._start_simulator()
 
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
@@ -70,6 +72,10 @@ class GazeboBridge(PhysicsBridge):
         self._launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
+        if self.stepped:
+            rospy.logwarn("Training has started, cannot add {}".format(name))
+            return False
+
         self._add_robot(topic, name, package, args, config)
 
         if 'sensors' in config:
@@ -186,6 +192,9 @@ class GazeboBridge(PhysicsBridge):
         return message_type(buffer[name][obs_name])
 
     def _step(self):
+        if not self.stepped:
+            self._step_world(self.step_request)
+            self.stepped = True
         for robot in self._actuator_services:
             for actuator in self._actuator_services[robot]:
                 (get_action_srv, set_action_srv) = self._actuator_services[robot][actuator]
