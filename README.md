@@ -24,9 +24,8 @@ customized bridge for robots without ROS support.
 | PyBullet integration                                                | :heavy_check_mark: |
 | Webots integration                                                  | :heavy_check_mark: |
 | Gazebo integration                                                  | :heavy_check_mark: |
-| Preprocessing of actions and observations                           | :heavy_check_mark: |
+| Preprocessing of actions                                            | :heavy_check_mark: |
 | Switching between and/or combining physics engines                  | :heavy_check_mark: |
-| Adding reset procedures                                             | :heavy_check_mark: |
 | Documentation                                                       | :heavy_check_mark: |
 
 #### Planned Functionalities and Features
@@ -34,6 +33,9 @@ We are currently working on the following features and functionalities:
 - Guaranteed synchronization of actions and observations in simulators
 - Demos
 - Increasing the number of supported robots and sensors
+- Preprocessing of observations
+- Adding reset procedures
+- More efficient communcation protocol
 
 ## Documentation
 
