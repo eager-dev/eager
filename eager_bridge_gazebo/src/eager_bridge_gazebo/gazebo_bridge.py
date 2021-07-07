@@ -122,13 +122,13 @@ class GazeboBridge(PhysicsBridge):
             if msg_name in valid_msgs:
                 msg_type = getattr(sensor_msgs.msg, msg_name)
             else:
-                rospy.logerror("Sensor message {} does not exist. Valid messages are: {}".format(msg_name, valid_msgs))
+                rospy.logerr("Sensor message {} does not exist. Valid messages are: {}".format(msg_name, valid_msgs))
             attribute_name = sensor_params["type"]
             valid_attributes = [i[0] for i in getmembers(msg_type) if not isroutine(i[1])]
             if attribute_name in valid_attributes:
                 attribute = attribute_name
             else:
-                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
+                rospy.logerr("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
                     msg_name, attribute_name, valid_attributes))
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
@@ -156,7 +156,7 @@ class GazeboBridge(PhysicsBridge):
             if action_server_name in valid_servers:
                 action_server = getattr(eager_core.action_server, action_server_name)
             else:
-                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
+                rospy.logerr("Action server {} not implemented. Valid action servers are: {}".format(
                     action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = action_server(names, server_name).act

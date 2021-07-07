@@ -20,17 +20,17 @@ webots:
       type: camera
       names:
         - MultiSense_S21_left_camera
-        
+
 gazebo:
   default_translation: [5, -5, 2]
   default_orientation: [-0.12692773, 0.05257522, 0.91511888, 0.37905491]
   sensors:
     camera_left:
-      topic: multisense_s21/aligned_depth_to_color/image_raw
+      topic: left_depth_camera/aligned_depth_to_color/image_raw
       msg_name: Image
       type: data
     camera_right:
-      topic: multisense_s21/aligned_depth_to_color/image_raw
+      topic: right_depth_camera/aligned_depth_to_color/image_raw
       msg_name: Image
       type: data
 
