@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     # Define the engine
     # engine = WebotsEngine()
-    engine = PyBulletEngine(no_gui=False)
+    engine = PyBulletEngine(gui=True)
     # engine = GazeboEngine(seed=42)
 
     # Create environment
