@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     # Engine specific parameters
     # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e_cam.wbt')
-    engine = PyBulletEngine(no_gui=False)
+    engine = PyBulletEngine(gui=True)
 
     env = MyEnv(engine, name="my_env")
     env = Flatten(env)
