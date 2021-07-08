@@ -58,7 +58,7 @@ class GazeboBridge(PhysicsBridge):
     def _start_simulator(self):
         str_launch_sim = '$(find eager_bridge_gazebo)/launch/gazebo_sim.launch'
         cli_args = [substitute_xml_args(str_launch_sim),
-                    'no_gui:=%s' % rospy.get_param('physics_bridge/no_gui', False),
+                    'gui:=%s' % rospy.get_param('physics_bridge/gui', False),
                     'world:=%s' % rospy.get_param('physics_bridge/world')]
         seed = rospy.get_param('physics_bridge/seed', None)
         if seed is not None:

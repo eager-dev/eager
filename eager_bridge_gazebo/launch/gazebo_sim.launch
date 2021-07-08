@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <launch>
-	<arg name="no_gui" default="false" doc="Starts gazebo gui" />
+	<arg name="gui" default="true" doc="Starts gazebo gui" />
 	<arg name="world" default="$(find eager_bridge_gazebo)/worlds/eager_empty.world" doc="Gazebo world" />
 	<arg name="extra_gazebo_args" default="" doc="Extra Gazebo args, e.g. for setting seed of the physics engine." />
 
-  <include ns="/" file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(arg world)"/>
-    <arg if="$(arg no_gui)" name="gui" value="false"/>
-    <arg name="paused" value="true"/>
+  	<include ns="/" file="$(find gazebo_ros)/launch/empty_world.launch">
+		<arg name="world_name" value="$(arg world)"/>
+		<arg name="gui" value="$(arg gui)"/>
+		<arg name="paused" value="true"/>
 		<arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>
-  </include>
+  	</include>
 </launch>
