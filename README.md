@@ -180,9 +180,6 @@ To cite this repository in publications:
 EAGER is currently maintained by [Bas van der Heijden](https://github.com/bheijden) (@bheijden), [Alexander Keijzer](https://github.com/AlexanderKeijzer) (@AlexanderKeijzer) and [Jelle Luijkx](https://github.com/jelledouwe) (@jelledouwe).
 
 ---
-**NOTE:** We do not provide technical support, nor consulting and don't answer personal questions via email.
-
----
 
 
 ## Acknowledgments
