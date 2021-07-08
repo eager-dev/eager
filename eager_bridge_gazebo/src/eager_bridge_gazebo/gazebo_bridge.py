@@ -10,7 +10,8 @@ from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_fro
 from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import \
     FollowJointTrajectoryActionServer
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
-                             SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest)
+                             SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest, SetModelConfiguration,
+                             SetModelConfigurationRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
 from geometry_msgs.msg import Point, Quaternion
 
@@ -41,6 +42,8 @@ class GazeboBridge(PhysicsBridge):
 
         self._set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         self._set_model_state.wait_for_service()
+        self._set_model_configuration = rospy.ServiceProxy('/gazebo/set_model_configuration', SetModelConfiguration)
+        self._set_model_configuration.wait_for_service()
 
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         self._step_world.wait_for_service()
@@ -171,18 +174,32 @@ class GazeboBridge(PhysicsBridge):
         for state_name in states:
             state = states[state_name]
             space = state['space']
-            request = SetModelStateRequest()
-            request.model_state.model_name = name
-            if state_name == 'position':
-                def set_reset_srv(value):
-                    request.model_state.pose.position = Point(*value)
-                    return self._set_model_state(request)
-            elif state_name == 'orientation':
-                def set_reset_srv(value):
-                    request.model_state.pose.orientation = Quaternion(*value)
-                    return self._set_model_state(request)
+            if 'joint' in state['type']:
+                if state['type'] == 'joint_pos':
+                    request = SetModelConfigurationRequest()
+                    request.model_name = name
+                    request.joint_names = state['names']
+
+                    def set_reset_srv(value):
+                        request.joint_positions = value
+                        return self._set_model_configuration(request)
+                elif state['type'] == 'joint_vel':
+                    raise ValueError('State type ("%s") cannot be reset in gazebo.' % states[state]['type'])
+            elif 'link' in state['type']:
+                raise ValueError('State type ("%s") cannot be reset in Gazebo.' % states[state]['type'])
+            elif 'base' in state['type']:
+                request = SetModelStateRequest()
+                request.model_state.model_name = name
+                if state['type'] == 'base_pos':
+                    def set_reset_srv(value):
+                        request.model_state.pose.position = Point(*value)
+                        return self._set_model_state(request)
+                elif state['type'] == 'base_orientation':
+                    def set_reset_srv(value):
+                        request.model_state.pose.orientation = Quaternion(*value)
+                        return self._set_model_state(request)
             else:
-                continue
+                raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
             get_reset_srv = rospy.ServiceProxy(topic + "/resets/" + state_name, get_message_from_def(space))
             self._reset_services[name][state_name] = (get_reset_srv, set_reset_srv)
 

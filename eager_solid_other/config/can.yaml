@@ -25,5 +25,7 @@ gazebo:
   model_name: coke_can
 
   states:
-    position: {}
-    orientation: {}
+    position:
+      type: base_pos # OPTIONS: {base_pos, base_orientation
+    orientation:
+      type: base_orientation # OPTIONS: {base_pos, base_orientation
