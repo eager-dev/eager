@@ -1,0 +1,5 @@
+[flake8]
+ignore = W503,W504,E203,E231,F821
+max-line-length = 127
+exclude = .git, docs/, .github/, bin/
+max-complexity = 15

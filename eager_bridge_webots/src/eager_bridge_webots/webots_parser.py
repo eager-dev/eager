@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# flake8: noqa
 
 # Copyright 1996-2021 Cyberbotics Ltd.
 #
@@ -13,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 # Adapted for Python 2 compatibility for EAGER by Alexander Keijzer
 
 """Parse Webots world files."""
@@ -24,6 +25,7 @@ import sys
 class WebotsParser:
     """This class reads a world file and parser its structure."""
     """It assumes the world file was saved with Webots and the indentation written by Webots was not changed."""
+
     def __init__(self):
         self.content = {}
 
@@ -46,7 +48,7 @@ class WebotsParser:
             self.file.write(self.content['header'] + '\n')
             for node in self.content['root']:
                 self._write_node(node)
-    
+
     def save_in_file(self, file):
         self.indentation = 0
         self.file = file
@@ -54,7 +56,6 @@ class WebotsParser:
         for node in self.content['root']:
             self._write_node(node)
         self.file = None
-        
 
     @staticmethod
     def str(value):

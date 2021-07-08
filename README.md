@@ -1,39 +1,195 @@
+[![License](https://img.shields.io/github/license/eager-dev/eager?label=license)](https://github.com/eager-dev/eager/blob/master/LICENSE)
+[![Documentation Status](https://readthedocs.org/projects/eager-control/badge/?version=latest)](https://eager-control.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://img.shields.io/github/workflow/status/eager-dev/eager/CI)](https://github.com/eager-dev/eager/actions/workflows/ros_tests.yaml)
+[![PEP8 Style Test](https://img.shields.io/github/workflow/status/eager-dev/eager/Lint?label=PEP8)](https://github.com/eager-dev/eager/actions/workflows/lint.yaml)
+
 # EAGER
-Engine Agnostic Gym Environment for Robotics.
 
-## Toolkit's advantages (current implementation)
-- Assurances on action execution by using services (if simulator has same assurance, i.e. does not use topics for communication)
-- Ability to use a python debugger (because we use services)
-- Ability to train faster than real time in simulation environments.
-- Ability to step environments in simulation. In this way the simulation time between actions is constant and performance is not affected by calculation time.
-- Ability to use different physics engines: WeBots, PyBullet, Gazebo (which supports Open Dynamics Engine (ODE), Bullet, Dynamic Animation and Robotics Toolkit (DART), Simbody)
+Engine Agnostic Gym Environment for Robotics (EAGER) is a toolkit that
+will allow users to apply (deep) reinforcement learning for both simulated
+and real robots as well as combinations thereof. The toolkit serves as
+bridge between the popular reinforcement learning toolkit [OpenAI
+Gym](https://gym.openai.com/) and robots that can either be real or
+simulated. The EAGER toolkit makes use of the widely used ROS
+framework for communication. Nonetheless, thanks to
+the flexible design of the toolkit, it is possible for users to create a
+customized bridge for robots without ROS support.
 
-## Package building
-- Create a symbolic link in your `catkin_ws/src` to the `ros` directory.
+## Key Functionalities and Features
 
-## Launch python training script with a different python interpreter (e.g. with an Anaconda virtual environment)
-- Point the shebang `#!` line in the beginning of a python script to the correct python interpreter (e.g. `#!/home/bas/anaconda3/envs/py37tf23/bin/python3`). 
 
-## Run python training script dynamically (e.g. via PyCharm debugger)
-- If you would like to start-up your python script without a launch file, make sure to source the `devel/setup.bash` (e.g. inside your `~/.bashrc`) right before you run your python script inside the IDE.
-- For PyCharm, add `source ~/eager_ws/devel/setup.bash` to `~/.bashrc` and follow [this](http://wiki.ros.org/IDEs#PyCharm_.28community_edition.29).
-- Make sure to have the python package `defusedxml` installed. `pip install defusedxml`.
-- Before running the python script in your IDE, start up a roscore in a separate terminal.
+| **Functionality/Feature**                                           | **EAGER**          |
+| ------------------------------------------------------------------- | -------------------|
+| User-friendly creation of Gym environments for robot control tasks. | :heavy_check_mark: |
+| PyBullet integration                                                | :heavy_check_mark: |
+| Webots integration                                                  | :heavy_check_mark: |
+| Gazebo integration                                                  | :heavy_check_mark: |
+| Preprocessing of actions                                            | :heavy_check_mark: |
+| Switching between and/or combining physics engines                  | :heavy_check_mark: |
+| Documentation                                                       | :heavy_check_mark: |
 
-## WeBots
-Troubleshooting:
+#### Planned Functionalities and Features
+We are currently working on the following features and functionalities:
+- Guaranteed synchronization of actions and observations in simulators
+- Demos
+- Increasing the number of supported robots and sensors
+- Preprocessing of observations
+- Adding reset procedures
+- More efficient communcation protocol
+
+## Documentation
+
+Documentation is available online: [https://eager-control.readthedocs.io](https://eager-control.readthedocs.io)
+
+
+## Installation
+
+At this time ***no stable version has been released yet***, only a bleeding-edge version is available.
+
+#### Bleeding-edge version
+
+**Prerequisites**: EAGER requires ROS Melodic or Noetic and Python 3.6+ to be installed.
+
+---
+**NOTE**
+Running in ROS Melodic is supported but may cause issues in some cases.
+Make sure you have installed all modules needed to run ROS on Python 3.
+
+In Melodic, the gym environment side of EAGER will need to be run in
+Python 3 but the physics bridge side can be run in both Python 2 or
+Python 3. This should allow users to run robotics hardware that does not
+support Noetic and Python 3.
+
+---
+
+We provide two ways to install the bleeding-edge version, i.e. (1) cloning the repository into a catkin workspace and (2) installation with pip.
+
+
+**(1) Cloning the repository into a catkin workspace**
+
+If you do not have a ROS workspace yet create one:
+```
+  mkdir -p catkin_ws/src
+  cd catkin_ws/src
+```
+Clone the eager repository into the ``src`` folder:
+```
+  git clone https://github.com/eager-dev/eager.git
+```
+
+---
+**NOTE**
+At this time two requirements to run the UR5e cannot be retreived using rosdep.
+Please clone these into the ``src`` folder using the following commands:
+```
+  git clone -b melodic-devel https://github.com/ros-industrial/universal_robot.git
+  git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
+```
+
+---
+Move to your workspace folder and run rosdep to install any
+requirements:
+```
+cd ..
+rosdep install --from-paths src --ignore-src -r -y
+```
+Then build and source the packages:
+```
+catkin_make
+source devel/setup.bash
+```
+
+**(2) Install using pip**
+
+This also provides the possibility to perform a custom installation rather than full installation with all EAGER packages. This can done via HTTPS or SSH.
+- Using HTTPS, run:
+```
+pip install git+https://github.com/eager-dev/eager
+```
+- Using SSH, run:
+```
+pip install git+ssh://git@github.com/eager-dev/eager.git
+```
+
+Now install EAGER by running:
+```
+install_eager
+```
+The bash script ```install_eager``` will clone the repository and create a catkin
+workspace at desired locations. It also asks for input in order to create links to the desired packages in this workspace. Afterwards, it will build the workspace. In order to use EAGER, the only thing that is required is sourcing:
+```
+source [EAGER_WORKSPACE_LOCATION]/devel/setup.bash
+```
+It is possible to run ```install_eager``` multiple times in order to install
+additional packages later.
+
+## Example
+In this example we create a Webots environment with a single UR5e robot. Once started we step the environment with random actions from the action space and then close the environment.
+
+```python
+#!/usr/bin/env python3
+
+import rospy
+from eager_core.eager_env import EagerEnv
+from eager_core.objects import Object
+from eager_bridge_webots.webots_engine import WebotsEngine
+
+
+if __name__ == '__main__':
+
+    rospy.init_node('ur5e_example')
+
+    engine = WebotsEngine()
+
+    ur5e_robot = Object.create('robot1', 'eager_robot_ur5e', 'ur5e')
+    env = EagerEnv(engine, objects=[ur5e_robot])
+
+    for _ in range(1000):
+        env.step(env.action_space.sample())
+
+    env.close()
+```
+
+## Implemented Objects
+
+The following objects are currently implemented in EAGER. We are currently working on extending the number of supported objects.
+
+| **Object**                                                              | **Type** | **PyBullet**       | **Webots**         | **Gazebo**         | **Real-World**     |
+| ----------------------------------------------------------------------- | -------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| [UR5e](https://www.universal-robots.com/nl/producten/ur5-robot/)        | Robot    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [Panda](https://www.franka.de/robot-system/)                            | Robot    | :heavy_check_mark: | :x:                | :x:                | :x:                |
+| [MultiSense S21](https://carnegierobotics.com/products/multisense-s21/) | Sensor   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                |
+| Can                                                                     | Solid    | :x:                | :heavy_check_mark: | :x:                | :x:                |
+
+## Citing the Project
+
+To cite this repository in publications:
+```bibtex
+@misc{eager-control,
+  author = {Van der Heijden, Bas and Keijzer, Alexander and Luijkx, Jelle},
+  title = {EAGER: Engine Agnostic Gym Environment for Robotics},
+  year = {2021},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/eager-dev/eager}},
+}
+```
+
+## Maintainers
+
+EAGER is currently maintained by [Bas van der Heijden](https://github.com/bheijden) (@bheijden), [Alexander Keijzer](https://github.com/AlexanderKeijzer) (@AlexanderKeijzer) and [Jelle Luijkx](https://github.com/jelledouwe) (@jelledouwe).
+
+---
+
+
+## Acknowledgments
+
+
+EAGER is funded by the [OpenDR](https://opendr.eu/) Horizon 2020 project.
+
+## Troubleshooting
+
+#### Webots
 - Make sure WEBOTS_HOME is defined
-- Make sure every robot to be controlled has 'ros' as its controller with flags '--synchronize' and 'name=NAME' where NAME is the name of the robot in you ros_env
+- Make sure every robot to be controlled has 'ros' as its controller with flags '--synchronize' and 'name=NAME' where NAME is the name of the robot in you EAGER environment
 - Make sure at least one robot has the supervisor flag set to true
-
-## TEMPORARY HACKS TO MAKE CODE WORK :(
-- In `physics_bridge/src/engines/gazebo/gazebo.py` in `_register_object(...)` function, change hardcoded object type.
-
-
-## Python dependencies (listing them here, don't how to list in CMakeList if ros-<module> does not exist...)
-- defusedxml
-- stable-baselines3
-- six
-- gazebo (this probably does exist, check!)
-- opencv==4.3.0.36
-- pybullet==3.1.7

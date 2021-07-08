@@ -4,13 +4,13 @@ import ast
 from eager_core.srv import Register, StepEnv, ResetEnv
 from eager_core.msg import Seed
 from eager_core.utils.file_utils import load_yaml
-from eager_core.utils.message_utils import get_message_from_def, get_response_from_def
 
 # Abstract Base Class compatible with Python 2 and 3
-ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()}) 
+ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
+
 
 class PhysicsBridge(ABC):
-    
+
     def __init__(self, bridge_type):
         self._bridge_type = bridge_type
         self.__register_service = rospy.Service('register', Register, self.__register_handler)
@@ -58,22 +58,22 @@ class PhysicsBridge(ABC):
             if 'states' in br_params:
                 for state in br_params['states']:
                     br_params['states'][state]['space'] = params['states'][state]
-                    
+
             self._register_object("objects/" + object.name, object.name, object_type[0], object_type[1], args, br_params)
 
-        return () # Success
+        return ()  # Success
 
     def __step_handler(self, req):
         if self._step():
-            return False # Success
+            return False  # Success
         else:
-            return None # Error
+            return None  # Error
 
     def __reset_handler(self, req):
         if self._reset():
-            return () # Success
+            return ()  # Success
         else:
-            return None # Error
-    
+            return None  # Error
+
     def __seed_handler(self, data):
         self._seed(data.seed)

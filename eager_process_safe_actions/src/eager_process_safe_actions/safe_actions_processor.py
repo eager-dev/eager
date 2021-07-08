@@ -1,5 +1,6 @@
 from eager_core.engine_params import EngineParams
 
+
 class SafeActionsProcessor(EngineParams):
     def __init__(self,
                  moveit_package: str,

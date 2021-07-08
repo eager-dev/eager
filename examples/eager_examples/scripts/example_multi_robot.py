@@ -19,7 +19,8 @@ import rospy
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_bridge_pybullet.pybullet_engine import PyBulletEngine
+from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
+from eager_bridge_gazebo.gazebo_engine import GazeboEngine  # noqa: F401
 
 from stable_baselines3 import PPO
 
@@ -29,6 +30,7 @@ if __name__ == '__main__':
 
     # Define the engine
     engine = PyBulletEngine(no_gui=False)
+    # engine = GazeboEngine(seed=42)
 
     # Create a grid of ur5e robots
     objects = []
@@ -52,7 +54,13 @@ if __name__ == '__main__':
     objects.append(cam)
 
     # Create environment
-    env = EagerEnv(engine=engine, objects=objects, name='multi_env', render_obs=cam.sensors['camera_right'].get_obs, max_steps=100, reward_fn=reward_fn)
+    env = EagerEnv(
+        engine=engine,
+        objects=objects,
+        name='multi_env',
+        render_obs=cam.sensors['camera_right'].get_obs,
+        max_steps=100,
+        reward_fn=reward_fn)
     env = Flatten(env)
 
     env.seed(42)
