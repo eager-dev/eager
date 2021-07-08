@@ -19,7 +19,7 @@ class GazeboEngine(EngineParams):
                  dt: float = 0.08,
                  max_update_rate: float = 0.0,  # 0.0 --> simulate as fast as possible
                  gui: bool = True,
-                 seed = None):
+                 seed=None):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'gazebo'
         launch_file = '$(find eager_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)

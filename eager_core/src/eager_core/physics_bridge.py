@@ -45,7 +45,8 @@ class PhysicsBridge(ABC):
             args = ast.literal_eval(object.args)
             params = load_yaml(object_type[0], object_type[1])
             if self._bridge_type not in params:
-                str_err = 'Cannot register object "%s", because config (.yaml) file of object is not defined for "%s".' % (object.name, self._bridge_type)
+                str_err = ('Cannot register object "%s",' % object.name +
+                           ' because config (.yaml) file of object is not defined for "%s".' % self._bridge_type)
                 rospy.logfatal(str_err)
                 raise Exception(str_err)
             br_params = params[self._bridge_type]
