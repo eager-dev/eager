@@ -19,6 +19,7 @@
 
   <group ns="$(arg ns)/camera">
     <node name="stereo_image_proc" pkg="stereo_image_proc" type="stereo_image_proc" respawn="false" output="screen"/>
+    <node name="rgbd_from_disparity" pkg="eager_sensor_multisense_s21" type="rgbd_node.py" respawn="false" output="screen"/>
   </group>
 
 </launch>

@@ -26,11 +26,11 @@ gazebo:
   default_orientation: [-0.12692773, 0.05257522, 0.91511888, 0.37905491]
   sensors:
     camera_left:
-      topic: left_depth_camera/aligned_depth_to_color/image_raw
+      topic: camera/left_rgbd
       msg_name: Image
       type: data
     camera_right:
-      topic: right_depth_camera/aligned_depth_to_color/image_raw
+      topic: camera/right_rgbd
       msg_name: Image
       type: data
 

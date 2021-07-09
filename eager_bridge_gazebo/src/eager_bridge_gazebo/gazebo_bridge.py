@@ -2,6 +2,7 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
+from cv_bridge import CvBridge
 from operator import add
 from inspect import getmembers, isclass, isroutine
 import eager_core.action_server
@@ -20,6 +21,8 @@ class GazeboBridge(PhysicsBridge):
         self.stepped = False
 
         self._start_simulator()
+
+        self.cv_bridge = CvBridge()
 
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
 
@@ -134,7 +137,7 @@ class GazeboBridge(PhysicsBridge):
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+                functools.partial(self._sensor_callback, name=name, sensor=sensor, msg_name=msg_name, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
@@ -179,7 +182,10 @@ class GazeboBridge(PhysicsBridge):
                                                        )
                                          )
 
-    def _sensor_callback(self, data, name, sensor, attribute):
+    def _sensor_callback(self, data, name, sensor, msg_name, attribute):
+        if msg_name == "Image":
+            image = self.cv_bridge.imgmsg_to_cv2(data)
+            self._sensor_buffer[name][sensor] = image.tolist()
         self._sensor_buffer[name][sensor] = getattr(data, attribute)
 
     def _state_callback(self, data, state):
