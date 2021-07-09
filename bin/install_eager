@@ -128,7 +128,10 @@ done
 
 cd ${EAGER_WS}/src
 packages=$(ls)
-if [[ " $packages " =~ "eager_bridge_gazebo" && " $packages " =~ "eager_robot_ur5e" ]]; then
+if [[ " $packages " =~ "eager_bridge_gazebo"  ||
+    " $packages " =~ "eager_bridge_pybullet" ||
+    " $packages " =~ "eager_bridge_real" ]] &&
+    [[ " $packages " =~ "eager_robot_ur5e" ]]; then
   # install universal robot packages UR5 robot package
   echo "Installing UR robot packages"
   if [ ! -d ${EAGER_WS}/src/universal_robot ]; then
