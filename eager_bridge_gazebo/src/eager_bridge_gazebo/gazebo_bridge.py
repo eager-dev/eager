@@ -2,7 +2,6 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
-from cv_bridge import CvBridge
 from operator import add
 from inspect import getmembers, isclass, isroutine
 import eager_core.action_server
@@ -21,8 +20,6 @@ class GazeboBridge(PhysicsBridge):
         self.stepped = False
 
         self._start_simulator()
-
-        self.cv_bridge = CvBridge()
 
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
 
@@ -125,19 +122,19 @@ class GazeboBridge(PhysicsBridge):
             if msg_name in valid_msgs:
                 msg_type = getattr(sensor_msgs.msg, msg_name)
             else:
-                rospy.logerr("Sensor message {} does not exist. Valid messages are: {}".format(msg_name, valid_msgs))
+                rospy.logerror("Sensor message {} does not exist. Valid messages are: {}".format(msg_name, valid_msgs))
             attribute_name = sensor_params["type"]
             valid_attributes = [i[0] for i in getmembers(msg_type) if not isroutine(i[1])]
             if attribute_name in valid_attributes:
                 attribute = attribute_name
             else:
-                rospy.logerr("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
+                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
                     msg_name, attribute_name, valid_attributes))
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, msg_name=msg_name, attribute=attribute)))
+                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
@@ -159,7 +156,7 @@ class GazeboBridge(PhysicsBridge):
             if action_server_name in valid_servers:
                 action_server = getattr(eager_core.action_server, action_server_name)
             else:
-                rospy.logerr("Action server {} not implemented. Valid action servers are: {}".format(
+                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
                     action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = action_server(names, server_name).act
@@ -182,10 +179,7 @@ class GazeboBridge(PhysicsBridge):
                                                        )
                                          )
 
-    def _sensor_callback(self, data, name, sensor, msg_name, attribute):
-        if msg_name == "Image":
-            image = self.cv_bridge.imgmsg_to_cv2(data)
-            self._sensor_buffer[name][sensor] = image.tolist()
+    def _sensor_callback(self, data, name, sensor, attribute):
         self._sensor_buffer[name][sensor] = getattr(data, attribute)
 
     def _state_callback(self, data, state):
