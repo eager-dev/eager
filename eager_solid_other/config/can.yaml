@@ -26,6 +26,6 @@ gazebo:
 
   states:
     position:
-      type: base_pos # OPTIONS: {base_pos, base_orientation
+      type: base_pos # OPTIONS: {base_pos}
     orientation:
-      type: base_orientation # OPTIONS: {base_pos, base_orientation
+      type: base_orientation # OPTIONS: {base_orientation}

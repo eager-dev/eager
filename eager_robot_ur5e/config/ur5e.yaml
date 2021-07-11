@@ -101,16 +101,9 @@ gazebo:
   actuators:
     joints:
       server_name: arm_controller/follow_joint_trajectory
-      names:
-      - shoulder_pan_joint
-      - shoulder_lift_joint
-      - elbow_joint
-      - wrist_1_joint
-      - wrist_2_joint
-      - wrist_3_joint
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
 
-  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
-  # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, base_vel, joint_pos, joint_vel)
+  # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, joint_pos)
   states:
     joint_pos:
       type: joint_pos # OPTIONS: joint_pos
