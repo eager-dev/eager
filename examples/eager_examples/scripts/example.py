@@ -15,9 +15,9 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    engine = WebotsEngine(physics_step=0.01, seed=42)
-    # engine = GazeboEngine(seed=42)
-    # engine = PyBulletEngine(dt=0.0165)
+    engine = WebotsEngine(physics_step=0.01, seed=42, gui=True)
+    # engine = GazeboEngine(seed=42, gui=True)
+    # engine = PyBulletEngine(dt=0.0165, gui=True)
 
     # Initialize environment
     robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e', fixed_base=False)

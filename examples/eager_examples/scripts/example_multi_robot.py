@@ -28,7 +28,7 @@ if __name__ == '__main__':
     rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    engine = PyBulletEngine(no_gui=False)
+    engine = PyBulletEngine(gui=True)
 
     # Create a grid of ur5e robots
     objects = []
