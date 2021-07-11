@@ -21,19 +21,6 @@ webots:
       names:
         - MultiSense_S21_left_camera
 
-gazebo:
-  default_translation: [5, -5, 2]
-  default_orientation: [-0.12692773, 0.05257522, 0.91511888, 0.37905491]
-  sensors:
-    camera_left:
-      topic: camera/left_rgbd
-      msg_name: Image
-      type: data
-    camera_right:
-      topic: camera/right_rgbd
-      msg_name: Image
-      type: data
-
 pybullet:
   urdf:
   sensors:

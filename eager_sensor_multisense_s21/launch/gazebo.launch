@@ -2,24 +2,18 @@
 <launch>
   <arg name="ns" default="multisense_s21"  doc="Namespace of the robot." />
   <arg name="name" default="robot" doc="Name of the robot. This should be unique." />
-  <arg name="configuration" default="-z 1"/>
+  <arg name="configuration" default="-z 0"/>
 
   <!-- Robot state publisher -->
   <group ns="$(arg ns)">
     <param name="robot_description"
           command="$(find xacro)/xacro '$(find eager_sensor_multisense_s21)/urdf/multisense_s21.urdf.xacro'"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
-      <param name="publish_frequency" type="double" value="10.0" />
+      <param name="publish_frequency" type="double" value="50.0" />
     </node>
 
     <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
     <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
       args="-urdf -param robot_description -model $(arg name) $(arg configuration)"/>
   </group>
-
-  <group ns="$(arg ns)/camera">
-    <node name="stereo_image_proc" pkg="stereo_image_proc" type="stereo_image_proc" respawn="false" output="screen"/>
-    <node name="rgbd_from_disparity" pkg="eager_sensor_multisense_s21" type="rgbd_node.py" respawn="false" output="screen"/>
-  </group>
-
 </launch>

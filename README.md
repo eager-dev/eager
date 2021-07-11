@@ -156,7 +156,7 @@ The following robots and sensors are currently implemented in EAGER. We are work
 | -------------- | ------------------ | ------------------ | ------------------ | ------------------- |
 | UR5e           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                 |
 | Panda          | :heavy_check_mark: | :x:                | :x:                | :x:                 |
-| MultiSense S21 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                 |
+| MultiSense S21 | :heavy_check_mark: | :heavy_check_mark: | :x:                | :x:                 |
 
 ## Citing the Project
 
