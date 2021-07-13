@@ -4,7 +4,7 @@ from gym.spaces.box import Box
 from typing import Type
 from eager_core.utils.message_utils import get_def_from_space_msg, get_space_msg_from_def
 from eager_core.srv import BoxFloat32Data, BoxFloat32DataResponse
-from eager_core.srv import BoxUInt8Data, BoxUInt8DataResponse
+from eager_core.srv import BoxUInt8Data, BoxUInt8DataResponse, BoxUInt16Data, BoxUInt16DataResponse
 from eager_core.msg import Space
 
 
@@ -29,6 +29,16 @@ def get_space_from_def(object: dict) -> gym.Space:
             high = np.array(object['high'], dtype=np.uint8)
             low = np.array(object['low'], dtype=np.uint8)
             return Box(low, high, dtype=np.uint8)
+    elif object['type'] == 'boxu16':
+        if 'shape' in object:
+            high = object['high']
+            low = object['low']
+            shape = object['shape']
+            return Box(low, high, shape, dtype=np.uint16)
+        else:
+            high = np.array(object['high'], dtype=np.uint16)
+            low = np.array(object['low'], dtype=np.uint16)
+            return Box(low, high, dtype=np.uint8)
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
@@ -44,6 +54,9 @@ def get_def_from_space(space: gym.Space) -> dict:
         elif space.dtype is np.dtype(np.uint8):
             object['type'] = 'boxu8'
             return object
+        elif space.dtype is np.dtype(np.uint16):
+            object['type'] = 'boxu16'
+            return object
         else:
             raise NotImplementedError('Unknown space type:', space.dtype)
     else:
@@ -56,6 +69,8 @@ def get_message_from_space(space: gym.Space) -> Type:
             return BoxFloat32Data
         elif space.dtype is np.dtype(np.uint8):
             return BoxUInt8Data
+        elif space.dtype is np.dtype(np.uint16):
+            return BoxUInt16Data
         else:
             raise NotImplementedError('Unknown space type:', space.dtype)
     else:
@@ -68,6 +83,8 @@ def get_response_from_space(space: gym.Space) -> Type:
             return BoxFloat32DataResponse
         elif space.dtype is np.dtype(np.uint8):
             return BoxUInt8DataResponse
+        elif space.dtype is np.dtype(np.uint16):
+            return BoxUInt16DataResponse
         else:
             raise NotImplementedError('Unknown space type:', space.dtype)
     else:

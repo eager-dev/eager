@@ -1,6 +1,6 @@
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.srv import BoxFloat32Data, BoxFloat32DataResponse
-from eager_core.srv import BoxUInt8Data, BoxUInt8DataResponse
+from eager_core.srv import BoxUInt8Data, BoxUInt8DataResponse, BoxUInt16DataResponse, BoxUInt16Data
 from eager_core.msg import Space
 
 
@@ -9,6 +9,8 @@ def get_message_from_def(object):
         return BoxFloat32Data
     elif object['type'] == 'boxu8':
         return BoxUInt8Data
+    elif object['type'] == 'boxu16':
+        return BoxUInt16Data
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
@@ -18,6 +20,8 @@ def get_response_from_def(object):
         return BoxFloat32DataResponse
     elif object['type'] == 'boxu8':
         return BoxUInt8DataResponse
+    elif object['type'] == 'boxu16':
+        return BoxUInt16DataResponse
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
@@ -25,7 +29,7 @@ def get_response_from_def(object):
 def get_value_from_def(object):
     if object['type'] == 'boxf32':
         return 0.0
-    elif object['type'] == 'boxu8':
+    elif object['type'] in ['boxu8', 'boxu16']:
         return 0
     else:
         raise NotImplementedError('Unknown message type:', object['type'])
@@ -46,6 +50,8 @@ def get_dtype_from_def(object):
         return 'float32'
     elif 'u8' in object['type']:
         return 'uint8'
+    elif 'u16' in object['type']:
+        return 'uint16'
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 

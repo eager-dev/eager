@@ -3,6 +3,7 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
+from cv_bridge import CvBridge
 from operator import add
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
@@ -19,6 +20,8 @@ class GazeboBridge(PhysicsBridge):
     def __init__(self):
         self._start_simulator()
         self.stepped = False
+
+        self._cv_bridge = CvBridge()
 
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
 
@@ -116,10 +119,17 @@ class GazeboBridge(PhysicsBridge):
             msg_type = getattr(sensor_msgs.msg, msg_name)
             attribute = sensor_params["type"]
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
-            self._sensor_subscribers.append(rospy.Subscriber(
-                msg_topic,
-                msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+
+            if msg_name == "Image":
+                self._sensor_subscribers.append(rospy.Subscriber(
+                    msg_topic,
+                    msg_type,
+                    functools.partial(self._camera_callback, name=name, sensor=sensor)))
+            else:
+                self._sensor_subscribers.append(rospy.Subscriber(
+                            msg_topic,
+                            msg_type,
+                            functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
@@ -159,6 +169,10 @@ class GazeboBridge(PhysicsBridge):
 
     def _sensor_callback(self, data, name, sensor, attribute):
         self._sensor_buffer[name][sensor] = getattr(data, attribute)
+
+    def _camera_callback(self, data, name, sensor):
+        image = self._cv_bridge.imgmsg_to_cv2(data)
+        self._sensor_buffer[name][sensor] = image.tolist()
 
     def _state_callback(self, data, state):
         # todo: implement routine to update state buffer.
