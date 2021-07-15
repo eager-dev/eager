@@ -77,10 +77,12 @@ real:
     joint_sensors:
       topic: joint_states
       msg_name: JointState
+      type: position
 
   actuators:
     joints:
       server_name: follow_joint_trajectory
+      action_server: FollowJointTrajectoryActionServer
       names:
       - shoulder_pan_joint
       - shoulder_lift_joint
@@ -101,6 +103,7 @@ gazebo:
   actuators:
     joints:
       server_name: arm_controller/follow_joint_trajectory
+      action_server: FollowJointTrajectoryActionServer
       names:
       - shoulder_pan_joint
       - shoulder_lift_joint

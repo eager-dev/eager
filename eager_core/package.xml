@@ -59,6 +59,10 @@
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>python-six</exec_depend>
   <exec_depend>gym-pip</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>actionlib</exec_depend> 
+  <exec_depend>control_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
