@@ -11,7 +11,7 @@ from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_se
     FollowJointTrajectoryActionServer
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
                              SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest, SetModelConfiguration,
-                             SetModelConfigurationRequest)
+                             SetModelConfigurationRequest, GetModelState, GetModelStateRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
 from geometry_msgs.msg import Point, Quaternion
 
@@ -40,6 +40,8 @@ class GazeboBridge(PhysicsBridge):
 
         set_physics_properties_service(new_physics_parameters)
 
+        self._get_model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+        self._get_model_state.wait_for_service()
         self._set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         self._set_model_state.wait_for_service()
         self._set_model_configuration = rospy.ServiceProxy('/gazebo/set_model_configuration', SetModelConfiguration)
@@ -59,6 +61,7 @@ class GazeboBridge(PhysicsBridge):
         self._state_buffer = dict()
         self._state_subscribers = []
         self._state_services = []
+        self._get_state_services = []
 
         self._reset_services = dict()
 
@@ -154,16 +157,27 @@ class GazeboBridge(PhysicsBridge):
 
     def _init_states(self, topic, name, states):
         self._state_buffer[name] = {}
-        for state in states:
-            rospy.logdebug("Initializing state {}".format(state))
-            state_params = states[state]
-            space = state_params['space']
-            self._state_buffer[name][state] = [get_value_from_def(space)] * get_length_from_def(space)
-            self._sensor_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space),
+        for state_name in states:
+            rospy.logdebug("Initializing state {}".format(state_name))
+            state = states[state_name]
+            space = state['space']
+            self._state_buffer[name][state_name] = [get_value_from_def(space)] * get_length_from_def(space)
+            if state['type'] == 'joint_pos' or state['type'] == 'joint_vel':
+                msg_topic = topic + '/joint_states'
+                msg_type = sensor_msgs.msg.JointState
+                if state['type'] == 'joint_pos':
+                    attribute = 'position'
+                elif state['type'] == 'joint_vel':
+                    attribute = 'velocity'
+                self._state_subscribers.append(rospy.Subscriber(
+                    msg_topic,
+                    msg_type,
+                    functools.partial(self._state_callback, name=name, state=state_name, attribute=attribute)))
+            self._sensor_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._state_buffer,
                                                                          name=name,
-                                                                         obs_name=state,
+                                                                         obs_name=state_name,
                                                                          message_type=get_response_from_def(space)
                                                                          )
                                                        )
@@ -174,6 +188,7 @@ class GazeboBridge(PhysicsBridge):
         for state_name in states:
             state = states[state_name]
             space = state['space']
+            get_state_srv = None
             if 'joint' in state['type']:
                 if state['type'] == 'joint_pos':
                     request = SetModelConfigurationRequest()
@@ -188,29 +203,42 @@ class GazeboBridge(PhysicsBridge):
             elif 'link' in state['type']:
                 raise ValueError('State type ("%s") cannot be reset in Gazebo.' % states[state]['type'])
             elif 'base' in state['type']:
-                request = SetModelStateRequest()
-                request.model_state.model_name = name
+                set_request = SetModelStateRequest()
+                get_request = GetModelStateRequest()
+
+                set_request.model_state.model_name = name
+                get_request.model_name = name
                 if state['type'] == 'base_pos':
                     def set_reset_srv(value):
-                        request.model_state.pose.position = Point(*value)
-                        return self._set_model_state(request)
+                        set_request.model_state.pose.position = Point(*value)
+                        return self._set_model_state(set_request)
+
+                    def get_state_srv():
+                        response = self._get_model_state(get_request)
+                        position = [response.pose.position.x, response.pose.position.y, response.pose.position.z]
+                        self._state_buffer[name][state_name] = position
                 elif state['type'] == 'base_orientation':
                     def set_reset_srv(value):
-                        request.model_state.pose.orientation = Quaternion(*value)
-                        return self._set_model_state(request)
+                        set_request.model_state.pose.orientation = Quaternion(*value)
+                        return self._set_model_state(set_request)
+
+                    def get_state_srv():
+                        response = self._get_model_state(get_request)
+                        orientation = [response.pose.orientation.x, response.pose.orientation.y, response.pose.orientation.z,
+                                       response.pose.orientation.w]
+                        self._state_buffer[name][state_name] = orientation
             else:
                 raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
             get_reset_srv = rospy.ServiceProxy(topic + "/resets/" + state_name, get_message_from_def(space))
             self._reset_services[name][state_name] = (get_reset_srv, set_reset_srv)
+            if get_state_srv is not None:
+                self._get_state_services.append(get_state_srv)
 
     def _sensor_callback(self, data, name, sensor, attribute):
         self._sensor_buffer[name][sensor] = getattr(data, attribute)
 
-    def _state_callback(self, data, state):
-        # todo: implement routine to update state buffer.
-        # data_list = data.position
-        # self._state_buffer[state] = data_list
-        pass
+    def _state_callback(self, data, name, state, attribute):
+        self._state_buffer[name][state] = getattr(data, attribute)
 
     def _service(self, req, buffer, name, obs_name, message_type):
         return message_type(buffer[name][obs_name])
@@ -222,6 +250,9 @@ class GazeboBridge(PhysicsBridge):
                 actions = get_action_srv()
                 set_action_srv(actions.value)
         self._step_world(self.step_request)
+        # Get states from services
+        for get_state_service in self._get_state_services:
+            get_state_service()
         return True
 
     def _reset(self):
