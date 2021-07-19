@@ -74,6 +74,11 @@ class Sensor(BaseRosObject):
         if self.observation_space.dtype == np.dtype(np.uint8):
             buf = np.frombuffer(response.value, np.uint8).reshape(self.observation_space.shape)
             return buf
+        elif self.observation_space.dtype == np.dtype(np.uint16):
+            if type(response.value) is tuple:
+                return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
+            buf = np.frombuffer(response.value, np.uint16).reshape(self.observation_space.shape)
+            return buf
         return np.array(response.value, dtype=self.observation_space.dtype).reshape(self.observation_space.shape)
 
     def add_preprocess(self, processed_space: gym.Space = None, launch_path='/path/to/custom/sensor_preprocess/ros_launchfile',
@@ -123,6 +128,9 @@ class State(BaseRosObject):
         response = self._get_state_service()
         if self.state_space.dtype == np.dtype(np.uint8):
             buf = np.frombuffer(response.value, np.uint8).reshape(self.state_space.shape)
+            return buf
+        elif self.state_space.dtype == np.dtype(np.uint16):
+            buf = np.frombuffer(response.value, np.uint16).reshape(self.state_space.shape)
             return buf
         return np.array(response.value, dtype=self.state_space.dtype).reshape(self.state_space.shape)
 

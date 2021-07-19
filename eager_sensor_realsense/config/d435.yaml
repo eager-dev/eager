@@ -5,21 +5,21 @@ sensors:
     low: 0
     shape: [1920, 1080, 3]
   camera_depth:
-    type: uint16
+    type: boxu16
     high: 65535
     low: 0
-    shape: [1280, 720, 1]
+    shape: [1280, 720, 4]
 
 gazebo:
   default_translation: [5, -5, 2]
   default_orientation: [-0.12692773, 0.05257522, 0.91511888, 0.37905491]
   sensors:
-    camera_left:
-      topic: /camera/color/image_raw
+    camera_rgb:
+      topic: camera/color/image_raw
       msg_name: Image
       type: data
-    camera_right:
-      topic: /camera/depth/image_rect_raw
+    camera_depth:
+      topic: camera/depth/image_rect_raw
       msg_name: Image
       type: data
 
@@ -28,10 +28,10 @@ real:
   default_orientation: [0, 0, 0, 0]
   sensors:
     camera_rgb:
-      topic: /camera/color/image_raw
+      topic: camera/color/image_raw
       msg_name: Image
       type: data
     camera_depth:
-      topic: /camera/depth/image_rect_raw
+      topic: camera/depth/image_rect_raw
       msg_name: Image
       type: data

@@ -29,7 +29,9 @@ def get_response_from_def(object):
 def get_value_from_def(object):
     if object['type'] == 'boxf32':
         return 0.0
-    elif object['type'] in ['boxu8', 'boxu16']:
+    elif object['type'] == 'boxu8':
+        return 0
+    elif object['type'] == 'boxu16':
         return 0
     else:
         raise NotImplementedError('Unknown message type:', object['type'])

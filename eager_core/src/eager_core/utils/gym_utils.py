@@ -38,7 +38,7 @@ def get_space_from_def(object: dict) -> gym.Space:
         else:
             high = np.array(object['high'], dtype=np.uint16)
             low = np.array(object['low'], dtype=np.uint16)
-            return Box(low, high, dtype=np.uint8)
+            return Box(low, high, dtype=np.uint16)
     else:
         raise NotImplementedError('Unknown space type:', object['type'])
 
