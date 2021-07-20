@@ -120,6 +120,11 @@ class GazeboBridge(PhysicsBridge):
                     'configuration:=%s' % (pos + " " + ori)]
         if package == "eager_solid_other":
             cli_args.append('model_name:=%s' % config['model_name'])
+        if 'fixed_base' in args:
+            if args['fixed_base'] in ['true', 'True', 1, '1']:
+                cli_args.append('world_joint:=fixed')
+            elif args['fixed_base'] in ['false', 'False', 0, '0']:
+                cli_args.append('world_joint:=floating')
         roslaunch_args = cli_args[1:]
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -127,7 +132,7 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-        rospy.sleep(3)
+        # rospy.sleep(3)
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}

@@ -2,13 +2,12 @@
 <launch>
   <arg name="ns" default="ur5e"  doc="Namespace of the robot." />
   <arg name="name" default="robot" doc="Name of the robot. This should be unique." />
+  <arg name="world_joint" default="fixed" doc="Fix base to world"/>
   <arg name="configuration" default="-z 0"/>
 
 	<group ns="$(arg ns)">
 		<!-- send robot urdf to param server -->
-		<include file="$(find ur_e_description)/launch/ur5e_upload.launch">
-		  <arg name="limited" value="true"/>
-		</include>
+		<param name="robot_description" command="$(find xacro)/xacro --inorder '$(find eager_robot_ur5e)/urdf/robot.urdf.xacro' world_joint:=$(arg world_joint) transmission_hw_interface:=hardware_interface/PositionJointInterface" />
 
 		<!-- push robot_description to factory and spawn robot in gazebo -->
 		<node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model $(arg name) $(arg configuration)" respawn="false" output="screen" />
