@@ -158,7 +158,7 @@ The following objects are currently implemented in EAGER. We are currently worki
 | ----------------------------------------------------------------------- | -------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | [UR5e](https://www.universal-robots.com/nl/producten/ur5-robot/)        | Robot    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [Panda](https://www.franka.de/robot-system/)                            | Robot    | :heavy_check_mark: | :x:                | :x:                | :x:                |
-| [MultiSense S21](https://carnegierobotics.com/products/multisense-s21/) | Sensor   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :x:                |
+| [MultiSense S21](https://carnegierobotics.com/products/multisense-s21/) | Sensor   | :heavy_check_mark: | :heavy_check_mark: | :x:                | :x:                |
 | Can                                                                     | Solid    | :x:                | :heavy_check_mark: | :x:                | :x:                |
 
 ## Citing the Project

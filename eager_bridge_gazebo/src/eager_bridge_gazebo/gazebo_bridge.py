@@ -1,26 +1,29 @@
-from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
 import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
 from operator import add
+from inspect import getmembers, isclass, isroutine
+import eager_core.action_server
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
-from eager_bridge_gazebo.action_server.servers.follow_joint_trajectory_action_server import \
-    FollowJointTrajectoryActionServer
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
                              SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest, SetModelConfiguration,
                              SetModelConfigurationRequest, GetModelState, GetModelStateRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
 from geometry_msgs.msg import Point, Quaternion
+from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
 
 
 class GazeboBridge(PhysicsBridge):
 
     def __init__(self):
-        self._start_simulator()
         self.stepped = False
+
+        self._start_simulator()
+
+        rospy.set_param('/use_sim_time', 'False')
 
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
 
@@ -83,6 +86,10 @@ class GazeboBridge(PhysicsBridge):
         self._launch.start()
 
     def _register_object(self, topic, name, package, object_type, args, config):
+        if self.stepped:
+            rospy.logwarn("Training has started, cannot add {}".format(name))
+            return False
+
         self._add_robot(topic, name, package, args, config)
 
         if 'sensors' in config:
@@ -120,6 +127,8 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
+        rospy.sleep(3)
+
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
         for sensor in sensors:
@@ -128,8 +137,18 @@ class GazeboBridge(PhysicsBridge):
             msg_topic = topic + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
             space = sensor_params['space']
-            msg_type = getattr(sensor_msgs.msg, msg_name)
-            attribute = sensor_params["type"]
+            valid_msgs = [i[0] for i in getmembers(sensor_msgs.msg) if isclass(i[1])]
+            if msg_name in valid_msgs:
+                msg_type = getattr(sensor_msgs.msg, msg_name)
+            else:
+                rospy.logerror("Sensor message {} does not exist. Valid messages are: {}".format(msg_name, valid_msgs))
+            attribute_name = sensor_params["type"]
+            valid_attributes = [i[0] for i in getmembers(msg_type) if not isroutine(i[1])]
+            if attribute_name in valid_attributes:
+                attribute = attribute_name
+            else:
+                rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
+                    msg_name, attribute_name, valid_attributes))
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
@@ -148,11 +167,18 @@ class GazeboBridge(PhysicsBridge):
         self._actuator_services[name] = {}
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
-            joint_names = actuators[actuator]["names"]
+            names = actuators[actuator]["names"]
             space = actuators[actuator]['space']
             server_name = topic + "/" + actuators[actuator]["server_name"]
+            action_server_name = actuators[actuator]["action_server"]
+            valid_servers = [i[0] for i in getmembers(eager_core.action_server) if isclass(i[1])]
+            if action_server_name in valid_servers:
+                action_server = getattr(eager_core.action_server, action_server_name)
+            else:
+                rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
+                    action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
-            set_action_srv = FollowJointTrajectoryActionServer(joint_names, server_name).act
+            set_action_srv = action_server(names, server_name).act
             self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)
 
     def _init_states(self, topic, name, states):
@@ -244,6 +270,10 @@ class GazeboBridge(PhysicsBridge):
         return message_type(buffer[name][obs_name])
 
     def _step(self):
+        if not self.stepped:
+            self._step_world(self.step_request)
+            self.stepped = True
+            rospy.set_param('/use_sim_time', 'True')
         for robot in self._actuator_services:
             for actuator in self._actuator_services[robot]:
                 (get_action_srv, set_action_srv) = self._actuator_services[robot][actuator]
