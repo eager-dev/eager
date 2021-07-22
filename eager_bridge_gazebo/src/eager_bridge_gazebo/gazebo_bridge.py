@@ -5,9 +5,10 @@ import sensor_msgs.msg
 from operator import add
 from inspect import getmembers, isclass, isroutine
 import eager_core.action_server
+from scipy.spatial.transform import Rotation as R
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
-from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
+from eager_bridge_gazebo.orientation_utils import quaternion_multiply
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
                              SetPhysicsPropertiesRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest
@@ -94,10 +95,11 @@ class GazeboBridge(PhysicsBridge):
         else:
             pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*args['position'])
         if 'default_orientation' in config:
-            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(
-                *euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
+            r = R.from_quat(quaternion_multiply(config['default_orientation'], args['orientation']))
         else:
-            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
+            r = R.from_quat(args['orientation'])
+        euler = r.as_euler('zyx')
+        ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler)
         str_launch_object = '$(find %s)/launch/gazebo.launch' % package
         cli_args = [substitute_xml_args(str_launch_object),
                     'ns:=%s' % topic,

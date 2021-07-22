@@ -11,8 +11,6 @@ sensors:
     shape: [1280, 720, 4]
 
 gazebo:
-  default_translation: [5, -5, 2]
-  default_orientation: [-0.12692773, 0.05257522, 0.91511888, 0.37905491]
   sensors:
     camera_rgb:
       topic: camera/color/image_raw
@@ -24,8 +22,6 @@ gazebo:
       type: data
 
 real:
-  default_translation: [0, 0, 0]
-  default_orientation: [0, 0, 0, 0]
   sensors:
     camera_rgb:
       topic: camera/color/image_raw

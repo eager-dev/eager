@@ -92,8 +92,6 @@ real:
       - wrist_3_joint
 
 gazebo:
-  default_translation: [0, 0, 0]
-  default_orientation: [0, 0, 0, 0]
   sensors:
     joint_sensors:
       topic: joint_states
