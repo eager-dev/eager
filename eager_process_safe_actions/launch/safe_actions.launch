@@ -12,6 +12,9 @@
   <arg name="checks_per_rad" doc="Specifies the number of collision checks per radian"/>
   <arg name="vel_limit" doc="Specifies the joint velocity limit in rad/s"/>
   <arg name="duration" doc="Specifies the duration for the joint trajectory point action in s"/>
+	<arg name="collision_height" doc="Specifies the height with respect to the base where the robot is assumed to be in collision."/>
+	<arg name="base_length" doc="Specifies the length around the base that is not considered as collision object. "/>
+	<arg name="workspace_length" doc="Specifies the size of the collision object."/>
 
 	<!-- MoveIt arguments -->
 	<arg name="allow_trajectory_execution" default="false" doc="Specifies whether MoveIt trajectory execution should be launched"/>
@@ -38,6 +41,9 @@
 	    <param name="vel_limit" value="$(arg vel_limit)"/>
 	    <param name="duration" value="$(arg duration)"/>
 			<param name="object_frame" value="$(arg object_frame)"/>
+			<param name="collision_height" value="$(arg collision_height)"/>
+			<param name="base_length" value="$(arg base_length)"/>
+			<param name="workspace_length" value="$(arg workspace_length)"/>
 	  </node>
 	</group>
 
