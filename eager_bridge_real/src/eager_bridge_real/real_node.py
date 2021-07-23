@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from eager_bridge_real.real import RealBridge
+from eager_bridge_real.real_bridge import RealBridge
 
 if __name__ == '__main__':
 
