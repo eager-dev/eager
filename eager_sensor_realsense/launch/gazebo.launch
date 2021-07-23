@@ -9,7 +9,7 @@
     <param name="robot_description"
           command="$(find xacro)/xacro '$(find eager_sensor_realsense)/urdf/realsense.urdf.xacro'"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
-      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="publish_frequency" type="double" value="30.0" />
     </node>
 
     <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
