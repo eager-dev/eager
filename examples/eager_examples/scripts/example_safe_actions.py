@@ -54,6 +54,9 @@ class MyEnv(BaseEagerEnv):
                                             checks_per_rad=15,
                                             vel_limit=2.0,
                                             robot_type='ur5e',
+                                            collision_height=0.01,
+                                            base_length=0.4,
+                                            workspace_length=2.4,
                                             )
         self.ur5e.actuators['joints'].add_preprocess(
             launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
