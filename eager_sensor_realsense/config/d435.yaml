@@ -1,0 +1,33 @@
+sensors:
+  camera_rgb:
+    type: boxu8
+    high: 255
+    low: 0
+    shape: [1920, 1080, 3]
+  camera_depth:
+    type: boxu16
+    high: 65535
+    low: 0
+    shape: [1280, 720, 4]
+
+gazebo:
+  sensors:
+    camera_rgb:
+      topic: camera/color/image_raw
+      msg_name: Image
+      type: data
+    camera_depth:
+      topic: camera/depth/image_rect_raw
+      msg_name: Image
+      type: data
+
+real:
+  sensors:
+    camera_rgb:
+      topic: camera/color/image_raw
+      msg_name: Image
+      type: data
+    camera_depth:
+      topic: camera/depth/image_rect_raw
+      msg_name: Image
+      type: data

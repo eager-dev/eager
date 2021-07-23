@@ -1,0 +1,30 @@
+<robot name="multisense" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- import the camera -->
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro" />
+  <xacro:include filename="$(find eager_sensor_realsense)/urdf/camera.gazebo.xacro" />
+
+  <!-- camera params-->
+  <xacro:arg name="camera_name"             default="rs_d435"/>
+  <xacro:arg name="camera_origin_xyz"       default="0 0 0"/>
+  <xacro:arg name="camera_origin_rpy"       default="0 0 0"/>
+  <xacro:arg name="use_nominal_extrinsics"  default="true"/>
+  <xacro:arg name="depth_width"             default="1280"/>
+  <xacro:arg name="depth_height"            default="720"/>
+  <xacro:arg name="color_width"             default="1920"/>
+  <xacro:arg name="color_height"            default="1080"/>
+
+  <link name="world"/>
+
+  <!-- camera -->
+  <xacro:sensor_d435 parent="world" name="$(arg camera_name)" use_nominal_extrinsics="$(arg use_nominal_extrinsics)">
+    <origin xyz="$(arg camera_origin_xyz)" rpy="$(arg camera_origin_rpy)" />
+  </xacro:sensor_d435>
+
+  <xacro:my_camera
+    name="$(arg camera_name)"
+    depth_width="$(arg depth_width)"
+    depth_height="$(arg depth_height)"
+    color_width="$(arg color_width)"
+    color_height="$(arg color_height)"
+  />
+</robot>
