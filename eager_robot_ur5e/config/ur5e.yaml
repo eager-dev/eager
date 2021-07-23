@@ -81,7 +81,7 @@ real:
 
   actuators:
     joints:
-      server_name: follow_joint_trajectory
+      server_name: vel_based_pos_traj_controller/follow_joint_trajectory
       action_server: FollowJointTrajectoryActionServer
       names:
       - shoulder_pan_joint
@@ -90,6 +90,14 @@ real:
       - wrist_1_joint
       - wrist_2_joint
       - wrist_3_joint
+
+  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
+    joint_pos:
+      names:
+      -
+    joint_vel:
+      names:
+      -
 
 gazebo:
   sensors:
