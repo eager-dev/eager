@@ -5,8 +5,8 @@ sensors:
     low: 0
     shape: [1920, 1080, 3]
   camera_depth:
-    type: boxu16
-    high: 65535
+    type: boxu8
+    high: 255
     low: 0
     shape: [1280, 720, 4]
 
