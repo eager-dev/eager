@@ -2,7 +2,7 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
-from operator import add
+from operator import add, itemgetter
 from inspect import getmembers, isclass, isroutine
 import eager_core.action_server
 from eager_core.physics_bridge import PhysicsBridge
@@ -130,11 +130,12 @@ class GazeboBridge(PhysicsBridge):
             else:
                 rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
                     msg_name, attribute_name, valid_attributes))
+            entries = sensor_params['entries']
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute, entries=entries)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
@@ -179,8 +180,9 @@ class GazeboBridge(PhysicsBridge):
                                                        )
                                          )
 
-    def _sensor_callback(self, data, name, sensor, attribute):
-        self._sensor_buffer[name][sensor] = getattr(data, attribute)
+    def _sensor_callback(self, data, name, sensor, attribute, entries):
+        data_list = getattr(data, attribute)
+        self._sensor_buffer[name][sensor] = list(map(data_list.__getitem__, entries))
 
     def _state_callback(self, data, state):
         # todo: implement routine to update state buffer.

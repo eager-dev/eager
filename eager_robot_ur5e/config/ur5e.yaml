@@ -99,6 +99,7 @@ gazebo:
       topic: joint_states
       msg_name: JointState
       type: position
+      entries: [2, 1, 0, 3, 4, 5]
 
   actuators:
     joints:
