@@ -39,7 +39,7 @@ class SafeActions(ActionProcessor):
         # Add a collision object to the scenes
         p = PoseStamped()
         p.header.frame_id = object_frame
-        p.pose.position.z = -0.05
+        p.pose.position.z = -0.06
         p.pose.orientation.w = 1
         scene.add_cylinder('base', p, 0.1, 1.5)
 
