@@ -10,6 +10,7 @@
     </include>
 
     <!-- reference to your plugin -->
-    <plugin name="eager_bridge_gazebo" filename="libeager_bridge_gazebo.so"/>
+    <plugin name="gazebo_step_world_plugin" filename="libgazebo_step_world_plugin.so"/>
+    <plugin name="gazebo_set_joint_state_plugin" filename="libgazebo_set_joint_state_plugin.so"/>
   </world>
 </sdf>

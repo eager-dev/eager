@@ -11,7 +11,7 @@ from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_fro
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
                              SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest, SetModelConfiguration,
                              SetModelConfigurationRequest, GetModelState, GetModelStateRequest)
-from eager_bridge_gazebo.srv import SetInt, SetIntRequest
+from eager_bridge_gazebo.srv import SetInt, SetIntRequest, SetJointState, SetJointStateRequest
 from geometry_msgs.msg import Point, Quaternion
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
 
@@ -22,9 +22,7 @@ class GazeboBridge(PhysicsBridge):
         self.stepped = False
 
         self._start_simulator()
-
-        rospy.set_param('/use_sim_time', 'False')
-
+        
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
 
         physics_parameters_service = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
@@ -49,6 +47,8 @@ class GazeboBridge(PhysicsBridge):
         self._set_model_state.wait_for_service()
         self._set_model_configuration = rospy.ServiceProxy('/gazebo/set_model_configuration', SetModelConfiguration)
         self._set_model_configuration.wait_for_service()
+        self._set_joint_state = rospy.ServiceProxy('/gazebo/set_joint_state', SetJointState)
+        self._set_joint_state.wait_for_service()
 
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         self._step_world.wait_for_service()
@@ -137,7 +137,10 @@ class GazeboBridge(PhysicsBridge):
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
         launch.start()
 
-        rospy.sleep(3)
+        # Wait for model to be present
+        rospy.set_param('/use_sim_time', 'False')
+        rospy.sleep(1)
+        rospy.set_param('/use_sim_time', 'True')
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
@@ -235,7 +238,13 @@ class GazeboBridge(PhysicsBridge):
                         request.joint_positions = value
                         return self._set_model_configuration(request)
                 elif state['type'] == 'joint_vel':
-                    raise ValueError('State type ("%s") cannot be reset in gazebo.' % states[state]['type'])
+                    request = SetJointStateRequest()
+                    request.model_name = name
+                    request.joint_names = state['names']
+
+                    def set_reset_srv(value):
+                        request.joint_velocities = value
+                        return self._set_joint_state(request)
             elif 'link' in state['type']:
                 raise ValueError('State type ("%s") cannot be reset in Gazebo.' % states[state]['type'])
             elif 'base' in state['type']:
@@ -283,7 +292,6 @@ class GazeboBridge(PhysicsBridge):
         if not self.stepped:
             self._step_world(self.step_request)
             self.stepped = True
-            rospy.set_param('/use_sim_time', 'True')
         for robot in self._actuator_services:
             for actuator in self._actuator_services[robot]:
                 (get_action_srv, set_action_srv) = self._actuator_services[robot][actuator]
