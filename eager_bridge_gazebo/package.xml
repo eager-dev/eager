@@ -42,5 +42,13 @@
   <exec_depend>gazebo_msgs</exec_depend>
   <exec_depend>roslaunch</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  
+  <export>
+    <!-- required for loading gazebo models from this package-->
+    <gazebo_ros
+      gazebo_model_path="${prefix}/models"
+      gazebo_media_path="${prefix}/models"
+      />
+  </export>
 
 </package>

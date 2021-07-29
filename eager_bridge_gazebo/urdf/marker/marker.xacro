@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find eager_bridge_gazebo)/urdf/marker/marker.gazebo.xacro" />
+
+  <xacro:macro name="marker" params="parent_link size ID *origin">
+    <xacro:property name = "xyz" value="0 0 0"/>
+    <xacro:property name = "rpy" value="0 0 0"/>
+    <xacro:property name = "t" value="0.001"/>
+    <xacro:property name = "c" value="${1 + 2/15}"/>
+    <xacro:property name = "dim" value="${c * size} ${c * size} ${t}"/>
+
+
+    <joint name="marker__${ID}_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent_link}"/>
+      <child link="marker_${ID}" />
+    </joint>
+
+    <link name="marker_${ID}">
+      <inertial>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <mass value="0.001"/>
+        <inertia ixx="0"  ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
+      </inertial>
+
+      <visual>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <geometry>
+          <box size="${dim}"/>
+        </geometry>
+        <material name="CustomMarker"/> <!-- Aruco/marker26_8cm -->
+      </visual>
+
+      <collision>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <geometry>
+          <box size="${dim}"/>
+        </geometry>
+      </collision>
+
+    </link>
+
+
+    <xacro:marker_gazebo ID="${ID}"/>
+  </xacro:macro>
+</robot>
