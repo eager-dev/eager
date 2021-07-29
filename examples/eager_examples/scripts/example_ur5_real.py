@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
 
+# Copyright 2021 - present, OpenDR European Project
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # ROS packages required
 import rospy
 from eager_core.eager_env import BaseEagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
-from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
+from eager_bridge_real.real_engine import RealEngine
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 
 from gym import spaces
@@ -23,11 +36,11 @@ class MyEnv(BaseEagerEnv):
         self.steps = 0
 
         # Create ur5e object
-        self.ur5e = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e')
+        self.ur5e = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e', position=[0, 0, 0])
 
         # Add preprocessing so that commanded actions are safe
-        process_args = SafeActionsProcessor(moveit_package='ur5_e_moveit_config',
-                                            urdf_path='$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro',
+        process_args = SafeActionsProcessor(moveit_package='ur5_moveit_config',
+                                            urdf_path='$(find ur_description)/urdf/ur5_robot.urdf.xacro',
                                             joint_names=['shoulder_pan_joint',
                                                          'shoulder_lift_joint',
                                                          'elbow_joint',
@@ -35,12 +48,12 @@ class MyEnv(BaseEagerEnv):
                                                          'wrist_2_joint',
                                                          'wrist_3_joint'],
                                             group_name='manipulator',
-                                            duration=0.1,
+                                            duration=0.5,
                                             object_frame='base_link',
                                             checks_per_rad=15,
-                                            vel_limit=3.0,
+                                            vel_limit=0.05,
                                             robot_type='ur5e',
-                                            collision_height=0.01,
+                                            collision_height=0.1,
                                             base_length=0.4,
                                             workspace_length=2.4,
                                             )
@@ -70,24 +83,6 @@ class MyEnv(BaseEagerEnv):
 
         return obs, self._get_reward(obs), self._is_done(obs), self.ur5e.get_state()
 
-    def reset(self) -> object:
-        self.steps = 0
-
-        # Set desired reset state
-        reset_states = dict()
-        reset_states['joint_pos'] = np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')
-        reset_states['joint_vel'] = np.array([0, 0, 0, 0, 0, 0], dtype='float32')
-        self.ur5e.reset(states=reset_states)
-
-        # Reset the environment
-        self._reset()
-
-        # Get new observations
-        return self.ur5e.get_obs()
-
-    def render(self, mode, **kwargs):
-        return None
-
     def _get_reward(self, obs):
         # Quadratic reward - move to goal position [0, -np.pi/2, 0, 0, 0, 0]
         return -((obs['joint_sensors'] - np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
@@ -95,14 +90,16 @@ class MyEnv(BaseEagerEnv):
     def _is_done(self, obs):
         return self.steps >= self.STEPS_PER_ROLLOUT
 
+    def reset(self) -> object:
+        pass
+
 
 if __name__ == '__main__':
 
     rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    engine = WebotsEngine()
-    # engine = PyBulletEngine()
+    engine = RealEngine(dt=0.3)
 
     # Create environment
     env = MyEnv(engine, name="my_env")
@@ -110,13 +107,9 @@ if __name__ == '__main__':
 
     env.seed(42)
 
-    obs = env.reset()
     for i in range(1000):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-        env.render()
-        if done:
-            obs = env.reset()
 
     model = PPO('MlpPolicy', env, verbose=1)
 

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="ns" default="realsense"  doc="Namespace of the robot." />
+  <arg name="name" default="robot" doc="Name of the robot. This should be unique." />
+
+  <!-- Robot state publisher -->
+  <group ns="$(arg ns)">
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch" />
+  </group>
+</launch>
