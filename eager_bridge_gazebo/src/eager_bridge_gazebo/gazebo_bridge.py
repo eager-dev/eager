@@ -10,7 +10,7 @@ from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
                              SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest, SetModelConfiguration,
-                             SetModelConfigurationRequest, GetModelState, GetModelStateRequest)
+                             GetModelState, GetModelStateRequest)
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest, SetJointState, SetJointStateRequest
 from geometry_msgs.msg import Point, Quaternion
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
@@ -22,7 +22,7 @@ class GazeboBridge(PhysicsBridge):
         self.stepped = False
 
         self._start_simulator()
-        
+
         step_time = rospy.get_param('physics_bridge/step_time', 0.1)
 
         physics_parameters_service = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
@@ -230,19 +230,21 @@ class GazeboBridge(PhysicsBridge):
             get_state_srv = None
             if 'joint' in state['type']:
                 if state['type'] == 'joint_pos':
-                    request = SetModelConfigurationRequest()
+                    request = SetJointStateRequest()
                     request.model_name = name
                     request.joint_names = state['names']
 
                     def set_reset_srv(value):
+                        rospy.logwarn("Reset of joint positions not yet working!")
                         request.joint_positions = value
-                        return self._set_model_configuration(request)
+                        return self._set_joint_state(request)
                 elif state['type'] == 'joint_vel':
                     request = SetJointStateRequest()
                     request.model_name = name
                     request.joint_names = state['names']
 
                     def set_reset_srv(value):
+                        rospy.logwarn("Reset of joint velocities not yet working!")
                         request.joint_velocities = value
                         return self._set_joint_state(request)
             elif 'link' in state['type']:
