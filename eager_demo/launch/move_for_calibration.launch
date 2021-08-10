@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="ns" default="/vx300s"/>
+  <node name="move_robot" pkg="eager_bridge_gazebo" type="move_for_calibration.py" ns="$(arg ns)"/>
+</launch>

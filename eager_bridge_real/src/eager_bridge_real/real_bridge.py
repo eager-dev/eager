@@ -2,8 +2,8 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
-import eager_core.action_server
 from inspect import getmembers, isclass, isroutine
+import eager_core.action_server
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
@@ -51,7 +51,7 @@ class RealBridge(PhysicsBridge):
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+        # launch.start()
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
@@ -75,9 +75,10 @@ class RealBridge(PhysicsBridge):
                     msg_name, attribute_name, valid_attributes))
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
-                msg_topic,
-                msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+                                            msg_topic,
+                                            msg_type,
+                                            functools.partial(self._sensor_callback, name=name, sensor=sensor,
+                                                              attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,

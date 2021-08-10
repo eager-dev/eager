@@ -1,0 +1,20 @@
+<library path="src">
+  <class name="EAGER Demo" type="eager_demo_rqt.eager_demo_rqt.EagerDemoRqt" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      GUI for EAGER demo.
+    </description>
+    <qtgui>
+      <!-- optional grouping...
+      <group>
+        <label>Group</label>
+      </group>
+      <group>
+        <label>Subgroup</label>
+      </group>
+      -->
+      <label>Robot Tools</label>
+      <icon type="theme">system-help</icon>
+      <statustip>EAGER demo system.</statustip>
+    </qtgui>
+  </class>
+</library>

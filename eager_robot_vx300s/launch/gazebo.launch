@@ -27,6 +27,13 @@
                                                                add_marker:=$(arg add_marker)" />
 
     <node
+      name="robot_state_publisher"
+      pkg="robot_state_publisher"
+      type="robot_state_publisher"
+      ns="$(arg robot_name)">
+    </node>
+
+    <node
       name="urdf_spawner"
       pkg="gazebo_ros"
       type="spawn_model"

@@ -19,27 +19,38 @@ if __name__ == '__main__':
     engine = GazeboEngine(seed=42, gui=True)
 
     # Initialize environment
-    robot = Object.create('vx300s', 'eager_robot_vx300s', 'vx300s')
+    robot = Object.create('vx300s',
+                          'eager_robot_vx300s',
+                          'vx300s')
+
+    camera = Object.create('realsense',
+                           'eager_sensor_realsense',
+                           'd435',
+                           position=[1, 0, 0.5],
+                           orientation=[0, 0.1246747, 0.9921977, 0]
+                           )
 
     process_args = SafeActionsProcessor(moveit_package='eager_robot_vx300s',
                                         urdf_path='$(find interbotix_xsarm_descriptions)/urdf/vx300s.urdf.xacro',
-                                        joint_names=['waist', 'shoulder', 'elbow', 'forearm_roll', 'wrist_angle',
-                                                     'wrist_rotate'],
-                                        group_name='manipulator',
-                                        duration=0.1,
+                                        joint_names=['waist', 'shoulder', 'elbow',
+                                                     'forearm_roll', 'wrist_angle', 'wrist_rotate'],
+                                        group_name='interbotix_arm',
+                                        duration=0.5,
                                         object_frame='vx300s/base_link',
                                         checks_per_rad=15,
                                         vel_limit=2.0,
                                         robot_type='vx300s',
+                                        collision_height=0.1,
+                                        base_length=0.4,
+                                        workspace_length=2.4,
                                         )
     robot.actuators['joints'].add_preprocess(
             launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
             launch_args=process_args.__dict__,
-            observations_from_objects=[robot],
+            observations_from_objects=[robot, camera],
             action_space=spaces.Box(low=-np.pi, high=np.pi, shape=(6,)))
 
-
-    env = EagerEnv(engine=engine, objects=[robot], name='ros_env')
+    env = EagerEnv(engine=engine, objects=[robot, camera], name='ros_env')
     env = Flatten(env)
 
     check_env(env)

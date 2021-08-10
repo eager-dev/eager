@@ -31,17 +31,58 @@ class SafeActions(ActionProcessor):
         self.checks_per_rad = rospy.get_param('~checks_per_rad')
         self.vel_limit = rospy.get_param('~vel_limit')
         self.duration = rospy.get_param('~duration')
+        self.collision_height = rospy.get_param('~collision_height')
+        self.base_length = rospy.get_param('~base_length')
+        self.workspace_length = rospy.get_param('~workspace_length')
 
         # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface(synchronous=True)
 
+        # Five collision objects are added to the scene, such that the base is
+        # not in collision, while the rest of the surface is a collision object.
+
+        object_length = (self.workspace_length - self.base_length) / 2.0
+
         # Add a collision object to the scenes
-        p = PoseStamped()
-        p.header.frame_id = object_frame
-        p.pose.position.z = -0.06
-        p.pose.orientation.w = 1
-        scene.add_cylinder('base', p, 0.1, 1.5)
+        p0 = PoseStamped()
+        p0.header.frame_id = object_frame
+        p0.pose.position.z = -0.051
+        p0.pose.orientation.w = 1
+
+        # Add a collision object to the scenes
+        p1 = PoseStamped()
+        p1.header.frame_id = object_frame
+        p1.pose.position.x = (object_length + self.base_length) / 2.0
+        p1.pose.position.z = self.collision_height / 2.0
+        p1.pose.orientation.w = 1
+
+        # Add a collision object to the scenes
+        p2 = PoseStamped()
+        p2.header.frame_id = object_frame
+        p2.pose.position.x = - (object_length + self.base_length) / 2.0
+        p2.pose.position.z = self.collision_height / 2.0
+        p2.pose.orientation.w = 1
+
+        # Add a collision object to the scenes
+        p3 = PoseStamped()
+        p3.header.frame_id = object_frame
+        p3.pose.position.y = (object_length + self.base_length) / 2.0
+        p3.pose.position.z = self.collision_height / 2.0
+        p3.pose.orientation.w = 1
+
+        # Add a collision object to the scenes
+        p4 = PoseStamped()
+        p4.header.frame_id = object_frame
+        p4.pose.position.y = - (object_length + self.base_length) / 2.0
+        p4.pose.position.z = self.collision_height / 2.0
+        p4.pose.orientation.w = 1
+
+        scene.add_box('base0', p0, size=(self.workspace_length, self.workspace_length, 0.1))
+        scene.add_box('base1', p1, size=(object_length, self.base_length, self.collision_height))
+        scene.add_box('base2', p2, size=(object_length, self.base_length, self.collision_height))
+        scene.add_box('base3', p3, size=(self.workspace_length, object_length, self.collision_height))
+        scene.add_box('base4', p4, size=(self.workspace_length, object_length, self.collision_height))
 
         # Initialize state validity check service
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
@@ -111,5 +152,7 @@ class SafeActions(ActionProcessor):
         for i in range(n_checks):
             gsvr.robot_state.joint_state.position = way_points[i, :]
             if not self.state_validity_service.call(gsvr).valid:
+                if i == 0:
+                    rospy.logwarn("Current state in collision!")
                 return way_points[max(i - 1, 0)]
         return goal_position

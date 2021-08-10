@@ -1,0 +1,5 @@
+string object_type                          # Type of object that should be detected
+---
+geometry_msgs/PoseStamped[] object_poses    # Object Poses
+bool success				                        # Indicate success of triggered service
+string message			                        # Informational, e.g. for error messages

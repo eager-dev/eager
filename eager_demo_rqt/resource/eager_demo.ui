@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DemoUI</class>
+ <widget class="QWidget" name="DemoUI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>451</width>
+    <height>454</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Demo UI</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="1" column="1">
+    <widget class="QPushButton" name="pose2Button">
+     <property name="text">
+      <string>Pose 2</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QPushButton" name="pose6Button">
+     <property name="text">
+      <string>Pose 6</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="3">
+    <widget class="QLabel" name="manipulatorLabel">
+     <property name="text">
+      <string>Command Manipulator</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0" colspan="3">
+    <widget class="QLabel" name="gripperLabel">
+     <property name="text">
+      <string>Command Gripper</string>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0" colspan="3">
+    <widget class="QLabel" name="torqueLabel">
+     <property name="text">
+      <string>Command Torque (disable can result in robot falling!)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="12" column="0">
+    <widget class="QLabel" name="demoLabel">
+     <property name="text">
+      <string>Demo</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="2">
+    <widget class="QPushButton" name="pose3Button">
+     <property name="text">
+      <string>Pose 3</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QPushButton" name="homeButton">
+     <property name="text">
+      <string>Home</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="2">
+    <widget class="QPushButton" name="sleepButton">
+     <property name="text">
+      <string>Sleep</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QPushButton" name="pose7Button">
+     <property name="text">
+      <string>Pose 7</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QPushButton" name="pose4Button">
+     <property name="text">
+      <string>Pose 4</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QPushButton" name="pose1Button">
+     <property name="text">
+      <string>Pose 1</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0" colspan="3">
+    <widget class="QLabel" name="calibrationLabel">
+     <property name="text">
+      <string>Calibration</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QPushButton" name="pose9Button">
+     <property name="text">
+      <string>Pose 9</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="2">
+    <widget class="QPushButton" name="closeButton">
+     <property name="text">
+      <string>Close</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QPushButton" name="pose5Button">
+     <property name="text">
+      <string>Pose 5</string>
+     </property>
+    </widget>
+   </item>
+   <item row="11" column="2">
+    <widget class="QPushButton" name="disableButton">
+     <property name="text">
+      <string>Disable</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QPushButton" name="uprightButton">
+     <property name="text">
+      <string>Upright</string>
+     </property>
+    </widget>
+   </item>
+   <item row="13" column="1">
+    <widget class="QPushButton" name="graspButton">
+     <property name="text">
+      <string>Grasp</string>
+     </property>
+    </widget>
+   </item>
+   <item row="11" column="0">
+    <widget class="QPushButton" name="enableButton">
+     <property name="text">
+      <string>Enable</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0">
+    <widget class="QPushButton" name="openButton">
+     <property name="text">
+      <string>Open</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="pose8Button">
+     <property name="text">
+      <string>Pose 8 </string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QPushButton" name="pose10Button">
+     <property name="text">
+      <string>Pose 10</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QPushButton" name="pose11Button">
+     <property name="text">
+      <string>Pose 11</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="pose12Button">
+     <property name="text">
+      <string>Pose 12</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
