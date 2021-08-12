@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="ns" default="solid"  doc="Namespace of the solid." />
+  <arg name="name" default="solid" doc="Name of the solid. This should be unique." />
+  <arg name="configuration" default="-z 0" doc="Configuration of the object in xyz and RPY coordinates."/>
+  <arg name="model_name" default="coke_can"/>
+
+  <!-- Robot state publisher -->
+  <group ns="$(arg ns)">
+    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+    <node name="model_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+      args="-sdf -database $(arg model_name) -model $(arg name) $(arg configuration)"/>
+  </group>
+</launch>

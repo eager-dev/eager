@@ -6,10 +6,12 @@ import tf2_geometry_msgs
 import sys
 import moveit_commander
 import copy
+import numpy as np
 from geometry_msgs.msg import PoseStamped, Pose
 from std_msgs.msg import String
 from eager_demo.msg import EagerDemoErrorCodes
 from eager_demo.srv import DetectObject, DetectObjectRequest
+from scipy.spatial.transform import Rotation as R
 
 
 class EagerDemo(object):
@@ -19,7 +21,7 @@ class EagerDemo(object):
 
         rospy.init_node('eager_demo', log_level=rospy.INFO)
 
-        self.rate = rospy.Rate(2)
+        self.rate = rospy.Rate(5)
 
         sim = rospy.get_param('~sim')
 
@@ -40,12 +42,11 @@ class EagerDemo(object):
 
         self.ee_step = rospy.get_param('~ee_step', 0.01)
         self.jump_threshold = rospy.get_param('~jump_threshold', 0.0)
-        self.checks_per_rad = rospy.get_param('~checks_per_rad', 15)
-        self.vel_limit = rospy.get_param('~vel_limit', 0.1)
-        self.duration = rospy.get_param('~duration', 0.5)
         self.collision_height = rospy.get_param('~collision_height', 0.08)
         self.base_length = rospy.get_param('~base_length', 0.4)
         self.workspace_length = rospy.get_param('~workspace_length', 2.4)
+        self.velocity_scaling_factor = rospy.get_param('~velocity_scaling_factor', 0.2)
+        self.acceleration_scaling_factor = rospy.get_param('~acceleration_scaling_factor', 0.2)
 
         # Calibration poses
         self.calibration_pose_1 = rospy.get_param('~calibration_pose_1',
@@ -87,7 +88,8 @@ class EagerDemo(object):
 
         # Grasp parameters
         self.pre_grasp_height = rospy.get_param('~pre_grasp_height', 0.2)
-        self.grasp_height = rospy.get_param('~grasp_height', 0.11)
+        self.pre_grasp_distance = rospy.get_param('~pre_grasp_distance', 0.1)
+        self.grasp_height = rospy.get_param('~grasp_height', 0.05)
         detect_topic = rospy.get_param('~pose_topic', 'gem_l515/detect')
         self.object_name = rospy.get_param('~object_name', 'can')
 
@@ -99,8 +101,8 @@ class EagerDemo(object):
         self.end_effector_group = moveit_commander.MoveGroupCommander(self.end_effector_group_name)
 
         if not sim:
-            self.manipulator_group.set_max_velocity_scaling_factor(0.2)
-            self.manipulator_group.set_max_acceleration_scaling_factor(0.2)
+            self.manipulator_group.set_max_velocity_scaling_factor(self.velocity_scaling_factor)
+            self.manipulator_group.set_max_acceleration_scaling_factor(self.acceleration_scaling_factor)
 
         # Five collision objects are added to the scene, such that the base is
         # not in collision, while the rest of the surface is a collision object.
@@ -186,8 +188,8 @@ class EagerDemo(object):
         )
         retimed_plan = self.manipulator_group.retime_trajectory(self.manipulator_group.get_current_state(),
                                                                 plan,
-                                                                velocity_scaling_factor=0.2,
-                                                                acceleration_scaling_factor=0.2,
+                                                                velocity_scaling_factor=0.1,
+                                                                acceleration_scaling_factor=0.1,
                                                                 )
         move_group.execute(retimed_plan, wait=True)
 
@@ -204,16 +206,37 @@ class EagerDemo(object):
         return tf2_geometry_msgs.do_transform_pose(pose_stamped, transform)
 
     def _get_grasp_poses(self, object_pose):
-        pre_grasp_pose = Pose()
-        pre_grasp_pose.orientation.y = 0.7071068
-        pre_grasp_pose.orientation.w = 0.7071068
-        pre_grasp_pose.position.x = object_pose.pose.position.x
-        pre_grasp_pose.position.y = object_pose.pose.position.y
-        pre_grasp_pose.position.z = self.pre_grasp_height
+        # We get object x and y position
+        object_x = object_pose.pose.position.x
+        object_y = object_pose.pose.position.y
 
-        grasp_pose = copy.deepcopy(pre_grasp_pose)
-        grasp_pose.position.z = self.grasp_height
-        return pre_grasp_pose, grasp_pose
+        # Next we calculate the distance from the base to the object
+        object_distance = np.linalg.norm([object_x, object_y])
+
+        # We approach the object with the same angle as between the object and base in the xy plane
+        pre_grasp_distance = object_distance - self.pre_grasp_distance
+        angle = np.arctan2(object_y, object_x)
+        rotation = R.from_euler('z', angle, degrees=False)
+        quaternion = rotation.as_quat()
+
+        pre_grasp_pose_1 = Pose()
+        pre_grasp_pose_1.orientation.x = quaternion[0]
+        pre_grasp_pose_1.orientation.y = quaternion[1]
+        pre_grasp_pose_1.orientation.z = quaternion[2]
+        pre_grasp_pose_1.orientation.w = quaternion[3]
+        pre_grasp_pose_1.position.x = np.cos(angle) * pre_grasp_distance
+        pre_grasp_pose_1.position.y = np.sin(angle) * pre_grasp_distance
+        pre_grasp_pose_1.position.z = self.pre_grasp_height
+
+        # First we move down
+        pre_grasp_pose_2 = copy.deepcopy(pre_grasp_pose_1)
+        pre_grasp_pose_2.position.z = self.grasp_height
+
+        # Then we move in the xy plane
+        grasp_pose = copy.deepcopy(pre_grasp_pose_2)
+        grasp_pose.position.x = object_x
+        grasp_pose.position.y = object_y
+        return pre_grasp_pose_1, pre_grasp_pose_2, grasp_pose
 
     def _command_home(self):
         target = self.manipulator_group.get_named_target_values('Home')
@@ -251,14 +274,17 @@ class EagerDemo(object):
         # Transform object pose to robot base frame
         transformed_pose = self._transform_pose(pose, self.base_frame)
 
-        # Get pre grasp pose
-        pre_grasp_pose, grasp_pose = self._get_grasp_poses(transformed_pose)
+        # Get pre grasp poses
+        pre_grasp_pose_1, pre_grasp_pose_2, grasp_pose = self._get_grasp_poses(transformed_pose)
         # Move to pregrasp pose
-        self._move_to_pose_goal(self.manipulator_group, pre_grasp_pose)
+        self._move_to_pose_goal(self.manipulator_group, pre_grasp_pose_1)
         # Open gripper
         self._command_open()
         # Move down
-        waypoints = [pre_grasp_pose, grasp_pose]
+        waypoints = [pre_grasp_pose_1, pre_grasp_pose_2]
+        self._move_along_cartesian_path(self.manipulator_group, waypoints)
+        # Move towards object
+        waypoints = [pre_grasp_pose_2, grasp_pose]
         self._move_along_cartesian_path(self.manipulator_group, waypoints)
         # TODO: Close gripper
 

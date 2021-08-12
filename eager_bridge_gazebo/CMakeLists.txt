@@ -35,7 +35,10 @@ find_package(Boost REQUIRED COMPONENTS thread)
 catkin_python_setup()
 
 # Declare ROS service
-add_service_files(FILES SetInt.srv)
+add_service_files(FILES
+                  SetInt.srv
+                  SetJointState.srv
+                  )
 generate_messages(DEPENDENCIES std_msgs)
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
@@ -58,7 +61,10 @@ install(DIRECTORY include/${PROJECT_NAME}/
   FILES_MATCHING PATTERN "*.h"
 )
 
-add_library(${PROJECT_NAME} src/eager_bridge_gazebo/gazebo_plugin/step_world.cpp)
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_library(gazebo_step_world_plugin src/eager_bridge_gazebo/gazebo_plugin/step_world.cpp)
+add_dependencies(gazebo_step_world_plugin ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(gazebo_step_world_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+add_library(gazebo_set_joint_state_plugin src/eager_bridge_gazebo/gazebo_plugin/set_joint_state.cpp)
+add_dependencies(gazebo_set_joint_state_plugin ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(gazebo_set_joint_state_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
