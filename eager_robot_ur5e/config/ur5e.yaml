@@ -120,6 +120,8 @@ gazebo:
     joint_pos:
       type: joint_pos # OPTIONS: joint_{pos, vel}
       names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      topic: joint_states
+      entries: [2, 1, 0, 3, 4, 5]
 
 pybullet:
   xacro: '$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro'

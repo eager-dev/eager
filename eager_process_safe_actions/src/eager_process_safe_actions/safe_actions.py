@@ -6,6 +6,7 @@ from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
 from geometry_msgs.msg import PoseStamped
 from scipy.interpolate import CubicSpline
+from std_msgs.msg import Bool
 import numpy as np
 
 
@@ -34,7 +35,7 @@ class SafeActions(ActionProcessor):
         self.collision_height = rospy.get_param('~collision_height')
         self.base_length = rospy.get_param('~base_length')
         self.workspace_length = rospy.get_param('~workspace_length')
-
+     
         # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface(synchronous=True)
@@ -88,6 +89,8 @@ class SafeActions(ActionProcessor):
         self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
         self.state_validity_service.wait_for_service()
 
+        self.collision_pub = rospy.Publisher('~in_collision', Bool, queue_size=1)
+
         super(SafeActions, self).__init__()
 
     def _get_space(self):
@@ -139,8 +142,7 @@ class SafeActions(ActionProcessor):
         dif = goal_position - current_position
         too_fast = np.abs(dif / self.duration) > self.vel_limit
         if np.any(too_fast):
-            goal_position[too_fast] = current_position[too_fast] + \
-                np.sign(dif[too_fast]) * self.duration * self.vel_limit
+            goal_position[too_fast] = current_position[too_fast] + np.sign(dif[too_fast]) * self.duration * self.vel_limit
             x = [current_position, goal_position]
             cs = CubicSpline(t, x)
 
@@ -154,5 +156,10 @@ class SafeActions(ActionProcessor):
             if not self.state_validity_service.call(gsvr).valid:
                 if i == 0:
                     rospy.logwarn("Current state in collision!")
+                    self.collision_pub.publish(Bool(True))
+                else:
+                    self.collision_pub.publish(Bool(False))
                 return way_points[max(i - 1, 0)]
+            else:
+                self.collision_pub.publish(Bool(False))
         return goal_position

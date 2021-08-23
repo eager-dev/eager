@@ -23,7 +23,7 @@ class EagerDemo(object):
 
         self.rate = rospy.Rate(5)
 
-        sim = rospy.get_param('~sim')
+        robot_sim = rospy.get_param('~robot_sim')
 
         # In case of fake detection, we use a predefined pose
         self.fake_detection = rospy.get_param('~fake_detection', True)
@@ -100,7 +100,7 @@ class EagerDemo(object):
         self.manipulator_group = moveit_commander.MoveGroupCommander(self.manipulator_group_name)
         self.end_effector_group = moveit_commander.MoveGroupCommander(self.end_effector_group_name)
 
-        if not sim:
+        if not robot_sim:
             self.manipulator_group.set_max_velocity_scaling_factor(self.velocity_scaling_factor)
             self.manipulator_group.set_max_acceleration_scaling_factor(self.acceleration_scaling_factor)
 

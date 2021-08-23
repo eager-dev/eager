@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="namespace_prefix"                  default="hand_eye_calibration"/>
+
+  <include file="$(find easy_handeye)/launch/publish.launch">
+    <arg name="eye_on_hand"                     value="false"/>
+    <arg name="namespace_prefix"                value="$(arg namespace_prefix)"/>
+  </include>
+</launch>

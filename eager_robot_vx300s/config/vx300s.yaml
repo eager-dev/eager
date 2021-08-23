@@ -1,5 +1,5 @@
 sensors:
-  joint_sensors:
+  joint_pos:
     type: boxf32
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
     low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
@@ -13,10 +13,6 @@ actuators:
     type: boxf32
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
     low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
-  gripper:
-    type: boxf32
-    high: [0.037, -0.015]
-    low: [0.015, -0.037]
 
 states:
   joint_pos:
@@ -30,7 +26,7 @@ states:
 
 gazebo:
   sensors:
-    joint_sensors:
+    joint_pos:
       topic: vx300s/joint_states
       msg_name: JointState
       type: position
