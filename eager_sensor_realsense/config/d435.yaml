@@ -4,11 +4,11 @@ sensors:
     high: 255
     low: 0
     shape: [1920, 1080, 3]
-  camera_depth:
-    type: boxu8
-    high: 255
-    low: 0
-    shape: [1280, 720, 4]
+#  camera_depth:
+#    type: boxu8
+#    high: 255
+#    low: 0
+#    shape: [1280, 720, 4]
 
 gazebo:
   sensors:
@@ -16,10 +16,10 @@ gazebo:
       topic: camera/color/image_raw
       msg_name: Image
       type: data
-    camera_depth:
-      topic: camera/depth/image_rect_raw
-      msg_name: Image
-      type: data
+#    camera_depth:
+#      topic: camera/depth/image_rect_raw
+#      msg_name: Image
+#      type: data
 
 real:
   sensors:
@@ -27,10 +27,10 @@ real:
       topic: camera/color/image_raw
       msg_name: Image
       type: data
-    camera_depth:
-      topic: camera/depth/image_rect_raw
-      msg_name: Image
-      type: data
+#    camera_depth:
+#      topic: camera/depth/image_rect_raw
+#      msg_name: Image
+#      type: data
 
 pybullet:
   urdf:
@@ -47,14 +47,14 @@ pybullet:
         dist: 1.0 # (m)
         up_axis: 2
 
-    camera_depth:
-      type: camera_rgbd
-      intrinsic:
-        fov: 80.21 # (deg)
-        near_val: 0.1 # (m)
-        far_val: 100 # (m)
-      extrinsic:
-        pos: [0, 0, 0.05] # (m)
-        euler: [0, -45, 0]  # [roll, pitch, yaw] (deg)
-        dist: 1.0 # (m)
-        up_axis: 2
+#    camera_depth:
+#      type: camera_rgbd
+#      intrinsic:
+#        fov: 80.21 # (deg)
+#        near_val: 0.1 # (m)
+#        far_val: 100 # (m)
+#      extrinsic:
+#        pos: [0, 0, 0.05] # (m)
+#        euler: [0, -45, 0]  # [roll, pitch, yaw] (deg)
+#        dist: 1.0 # (m)
+#        up_axis: 2
