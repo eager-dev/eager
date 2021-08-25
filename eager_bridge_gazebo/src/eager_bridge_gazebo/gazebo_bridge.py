@@ -2,6 +2,7 @@ import rospy
 import roslaunch
 import functools
 import sensor_msgs.msg
+import rosservice
 from operator import add
 from inspect import getmembers, isclass, isroutine
 import eager_core.action_server
@@ -9,19 +10,25 @@ from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_gazebo.orientation_utils import quaternion_multiply, euler_from_quaternion
 from gazebo_msgs.srv import (GetPhysicsProperties, GetPhysicsPropertiesRequest, SetPhysicsProperties,
-                             SetPhysicsPropertiesRequest)
-from eager_bridge_gazebo.srv import SetInt, SetIntRequest
+                             SetPhysicsPropertiesRequest, SetModelState, SetModelStateRequest, GetModelState,
+                             GetModelStateRequest)
+from std_srvs.srv import Empty
+from controller_manager_msgs.srv import ListControllers, ListControllersRequest, SwitchController, SwitchControllerRequest
+from eager_bridge_gazebo.srv import SetInt, SetIntRequest, SetJointState, SetJointStateRequest
+from geometry_msgs.msg import Point, Quaternion
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
+import time
 
 
 class GazeboBridge(PhysicsBridge):
 
     def __init__(self):
         self.stepped = False
+        self.ready = False
 
         self._start_simulator()
 
-        step_time = rospy.get_param('physics_bridge/step_time', 0.1)
+        step_time = rospy.get_param('physics_bridge/time_step', 0.1)
 
         physics_parameters_service = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
         physics_parameters_service.wait_for_service()
@@ -39,6 +46,20 @@ class GazeboBridge(PhysicsBridge):
 
         set_physics_properties_service(new_physics_parameters)
 
+        self._get_model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+        self._get_model_state.wait_for_service()
+        self._set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        self._set_model_state.wait_for_service()
+
+        self._set_joint_state = rospy.ServiceProxy('/gazebo/set_joint_state', SetJointState)
+        self._set_joint_state.wait_for_service()
+
+        self._pause_physics = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        self._pause_physics.wait_for_service()
+
+        self._unpause_physics = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        self._unpause_physics.wait_for_service()
+
         self._step_world = rospy.ServiceProxy('/gazebo/step_world', SetInt)
         self._step_world.wait_for_service()
 
@@ -53,6 +74,14 @@ class GazeboBridge(PhysicsBridge):
         self._state_buffer = dict()
         self._state_subscribers = []
         self._state_services = []
+        self._get_state_services = []
+
+        self._reset_services = dict()
+        self.controller_list = []
+
+        self.switch_controller_request = SwitchControllerRequest()
+        self.switch_controller_request.start_asap = True
+        self.switch_controller_request.strictness = 1
 
         super(GazeboBridge, self).__init__("gazebo")
 
@@ -86,29 +115,50 @@ class GazeboBridge(PhysicsBridge):
 
         if 'states' in config:
             self._init_states(topic, name, config['states'])
+            self._init_resets(topic, name, config['states'])
         return True
 
     def _add_robot(self, topic, name, package, args, config):
-        if 'default_translation' in config:
-            pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*map(add, config['default_translation'], args['position']))
+        if self.stepped:
+            rospy.logwarn('[{}] Cannot add robot {}, because training has started!'.format(rospy.get_name(), name))
         else:
-            pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*args['position'])
-        if 'default_orientation' in config:
-            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(
-                *euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
-        else:
-            ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
-        str_launch_object = '$(find %s)/launch/gazebo.launch' % package
-        cli_args = [substitute_xml_args(str_launch_object),
-                    'ns:=%s' % topic,
-                    'name:=%s' % name,
-                    'configuration:=%s' % (pos + " " + ori)]
-        roslaunch_args = cli_args[1:]
-        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        launch.start()
+            self.ready = False
+            if 'default_translation' in config:
+                pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*map(add, config['default_translation'], args['position']))
+            else:
+                pos = "-x {:.2f} -y {:.2f} -z {:.2f}".format(*args['position'])
+            if 'default_orientation' in config:
+                ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(
+                    *euler_from_quaternion(*quaternion_multiply(config['default_orientation'], args['orientation'])))
+            else:
+                ori = "-R {:.2f} -P {:.2f} -Y {:.2f}".format(*euler_from_quaternion(*args['orientation']))
+            str_launch_object = '$(find %s)/launch/gazebo.launch' % package
+            cli_args = [substitute_xml_args(str_launch_object),
+                        'ns:=%s' % topic,
+                        'name:=%s' % name,
+                        'configuration:=%s' % (pos + " " + ori)]
+            if package == "eager_solid_other":
+                cli_args.append('model_name:=%s' % config['model_name'])
+            if 'fixed_base' in args:
+                if package == "eager_solid_other":
+                    rospy.logwarn("Cannot process fixed base argument for solids.".format())
+                else:
+                    cli_args.append('fixed_base:=%s' % args['fixed_base'])
+            if 'self_collision' in args:
+                if package == "eager_solid_other":
+                    rospy.logwarn("Cannot process self_collision argument for solids.".format())
+                else:
+                    cli_args.append('self_collision:=%s' % args['self_collision'])
+            roslaunch_args = cli_args[1:]
+            roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+            uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+            roslaunch.configure_logging(uuid)
+            launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+            launch.start()
+            self.ready = True
+
+        # Wait for model to be present
+        time.sleep(2)
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
@@ -130,11 +180,12 @@ class GazeboBridge(PhysicsBridge):
             else:
                 rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
                     msg_name, attribute_name, valid_attributes))
+            entries = sensor_params['entries']
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             self._sensor_subscribers.append(rospy.Subscriber(
                 msg_topic,
                 msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute, entries=entries)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
@@ -164,36 +215,139 @@ class GazeboBridge(PhysicsBridge):
 
     def _init_states(self, topic, name, states):
         self._state_buffer[name] = {}
-        for state in states:
-            rospy.logdebug("Initializing state {}".format(state))
-            state_params = states[state]
-            space = state_params['space']
-            self._state_buffer[name][state] = [get_value_from_def(space)] * get_length_from_def(space)
-            self._sensor_services.append(rospy.Service(topic + "/states/" + state, get_message_from_def(space),
+        for state_name in states:
+            rospy.logdebug("Initializing state {}".format(state_name))
+            state = states[state_name]
+            space = state['space']
+            self._state_buffer[name][state_name] = [get_value_from_def(space)] * get_length_from_def(space)
+            if state['type'] == 'joint_pos' or state['type'] == 'joint_vel':
+                if 'topic' in state:
+                    msg_topic = topic + '/' + state['topic']
+                else:
+                    msg_topic = topic + '/joint_states'
+                if 'entries' in state:
+                    entries = state['entries']
+                msg_type = sensor_msgs.msg.JointState
+                if state['type'] == 'joint_pos':
+                    attribute = 'position'
+                elif state['type'] == 'joint_vel':
+                    attribute = 'velocity'
+                self._state_subscribers.append(rospy.Subscriber(
+                    msg_topic,
+                    msg_type,
+                    functools.partial(self._state_callback, name=name, state=state_name, attribute=attribute, entries=entries)))
+            self._sensor_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._state_buffer,
                                                                          name=name,
-                                                                         obs_name=state,
+                                                                         obs_name=state_name,
                                                                          message_type=get_response_from_def(space)
                                                                          )
                                                        )
                                          )
 
-    def _sensor_callback(self, data, name, sensor, attribute):
-        self._sensor_buffer[name][sensor] = getattr(data, attribute)
+    def _sensor_callback(self, data, name, sensor, attribute, entries):
+        data_list = getattr(data, attribute)
+        self._sensor_buffer[name][sensor] = list(map(data_list.__getitem__, entries))
 
-    def _state_callback(self, data, state):
-        # todo: implement routine to update state buffer.
-        # data_list = data.position
-        # self._state_buffer[state] = data_list
-        pass
+    def _init_resets(self, topic, name, states):
+        self._reset_services[name] = dict()
+        for state_name in states:
+            state = states[state_name]
+            space = state['space']
+            get_state_srv = None
+            if 'joint' in state['type']:
+                self._step_world(SetIntRequest(1))
+                # Controllers should be switched off before setting the joint states
+                controller_list_topics = [x for x in rosservice.get_service_list() if (
+                    topic in x and x.endswith('/controller_manager/list_controllers')
+                    )]
+                for controller_list_topic in controller_list_topics:
+                    controller_list_service = rospy.ServiceProxy(controller_list_topic, ListControllers)
+                    controller_list_service.wait_for_service()
+                    self._step_world(SetIntRequest(1))
+                    controller_list = controller_list_service(ListControllersRequest())
+                    controller_names = []
+                    for controller in controller_list.controller:
+                        controller_names.append(controller.name)
+                    if len(controller_names) > 0:
+                        controller_switch_topic = controller_list_topic[:-16] + 'switch_controller'
+                        self.controller_list.append(
+                            {'service': rospy.ServiceProxy(controller_switch_topic, SwitchController),
+                             'names': controller_names,
+                             }
+                                                    )
+                if state['type'] == 'joint_pos':
+                    request = SetJointStateRequest()
+                    request.model_name = name
+                    request.joint_names = state['names']
+
+                    def set_reset_srv(value, request):
+                        request.joint_positions = value
+                        return self._set_joint_state(request)
+                    set_reset_srv = functools.partial(set_reset_srv, request=request)
+                elif state['type'] == 'joint_vel':
+                    request = SetJointStateRequest()
+                    request.model_name = name
+                    request.joint_names = state['names']
+
+                    def set_reset_srv(value, request):
+                        rospy.logwarn("Reset of joint velocities is not tested yet!")
+                        request.joint_velocities = value
+                        return self._set_joint_state(request)
+                    set_reset_srv = functools.partial(set_reset_srv, request=request)
+            elif 'link' in state['type']:
+                raise ValueError('State type ("%s") cannot be reset in Gazebo.' % states[state]['type'])
+            elif 'base' in state['type']:
+                set_request = SetModelStateRequest()
+                get_request = GetModelStateRequest()
+
+                set_request.model_state.model_name = name
+                get_request.model_name = name
+                if state['type'] == 'base_pos':
+                    def set_reset_srv(value, get_request, set_request):
+                        response = self._get_model_state(get_request)
+                        set_request.model_state.pose.position = Point(*value)
+                        set_request.model_state.pose.orientation = response.pose.orientation
+                        return self._set_model_state(set_request)
+                    set_reset_srv = functools.partial(set_reset_srv, get_request=get_request, set_request=set_request)
+
+                    def get_state_srv(request, name, state_name):
+                        response = self._get_model_state(request)
+                        position = [response.pose.position.x, response.pose.position.y, response.pose.position.z]
+                        self._state_buffer[name][state_name] = position
+                    get_state_srv = functools.partial(get_state_srv, request=get_request, name=name, state_name=state_name)
+                elif state['type'] == 'base_orientation':
+                    def set_reset_srv(value, get_request, set_request):
+                        response = self._get_model_state(get_request)
+                        set_request.model_state.pose.position = response.pose.position
+                        set_request.model_state.pose.orientation = Quaternion(*value)
+                        return self._set_model_state(set_request)
+                    set_reset_srv = functools.partial(set_reset_srv, get_request=get_request, set_request=set_request)
+
+                    def get_state_srv(request, name, state_name):
+                        response = self._get_model_state(request)
+                        orientation = [response.pose.orientation.x, response.pose.orientation.y, response.pose.orientation.z,
+                                       response.pose.orientation.w]
+                        self._state_buffer[name][state_name] = orientation
+                    get_state_srv = functools.partial(get_state_srv, request=get_request, name=name, state_name=state_name)
+            else:
+                raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
+            get_reset_srv = rospy.ServiceProxy(topic + "/resets/" + state_name, get_message_from_def(space))
+            self._reset_services[name][state_name] = (get_reset_srv, set_reset_srv)
+            if get_state_srv is not None:
+                self._get_state_services.append(get_state_srv)
+
+    def _state_callback(self, data, name, state, attribute, entries):
+        data_list = getattr(data, attribute)
+        self._state_buffer[name][state] = list(map(data_list.__getitem__, entries))
 
     def _service(self, req, buffer, name, obs_name, message_type):
         return message_type(buffer[name][obs_name])
 
     def _step(self):
         if not self.stepped:
-            self._step_world(self.step_request)
+            self._step_world(SetIntRequest(1))
             self.stepped = True
         for robot in self._actuator_services:
             for actuator in self._actuator_services[robot]:
@@ -201,9 +355,38 @@ class GazeboBridge(PhysicsBridge):
                 actions = get_action_srv()
                 set_action_srv(actions.value)
         self._step_world(self.step_request)
+        # Get states from services
+        for get_state_service in self._get_state_services:
+            get_state_service()
         return True
 
     def _reset(self):
+        # First we switch off all controllers
+        for controller in self.controller_list:
+            service = controller['service']
+            names = controller['names']
+            self.switch_controller_request.stop_controllers = names
+            self._unpause_physics()
+            service(self.switch_controller_request)
+            self._pause_physics()
+        # Now we can perform the reset
+        for robot in self._reset_services:
+            robot_resets = self._reset_services[robot]
+            for state in robot_resets:
+                (get_state_srv, set_reset_srvs) = robot_resets[state]
+                state = get_state_srv()
+                if state.value:
+                    set_reset_srvs(list(state.value))
+        # Now we need to turn back on the controllers
+        for controller in self.controller_list:
+            service = controller['service']
+            names = controller['names']
+            self.switch_controller_request.start_controllers = names
+            self._unpause_physics()
+            service(self.switch_controller_request)
+            self._pause_physics()
+        # Finally, we need to step once in order to make the controllers active
+        self.stepped = False
         return True
 
     def _close(self):
