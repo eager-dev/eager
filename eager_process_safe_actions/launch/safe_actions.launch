@@ -16,11 +16,6 @@
 	<arg name="base_length" doc="Specifies the length around the base that is not considered as collision object. "/>
 	<arg name="workspace_length" doc="Specifies the size of the collision object."/>
 
-	<!-- MoveIt arguments -->
-	<arg name="allow_trajectory_execution" default="false" doc="Specifies whether MoveIt trajectory execution should be launched"/>
-	<arg name="publish_monitored_planning_scene" default="false"/>
-  <arg name="fake_execution" default="false"/>
-
 	<group ns="$(arg ns)">
 
 	  <!-- Launch moveit for collision checking -->

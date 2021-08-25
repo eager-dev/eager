@@ -1,7 +1,9 @@
 import sys
 import rospy
+import roslaunch
 import moveit_commander
 from eager_core.action_processor import ActionProcessor
+from eager_core.utils.file_utils import substitute_xml_args
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
 from geometry_msgs.msg import PoseStamped
@@ -34,6 +36,23 @@ class SafeActions(ActionProcessor):
         self.collision_height = rospy.get_param('~collision_height')
         self.base_length = rospy.get_param('~base_length')
         self.workspace_length = rospy.get_param('~workspace_length')
+
+        # Launch MoveIt
+        str_launch_sim = '$(find {})/launch/move_group.launch'.format(moveit_package)
+        cli_args = [substitute_xml_args(str_launch_sim),
+                    'allow_trajectory_execution:=false',
+                    'publish_monitored_planning_scene:=false',
+                    'fake_execution:=false',
+                    ]
+        seed = rospy.get_param('physics_bridge/seed', None)
+        if seed is not None:
+            cli_args.append('extra_gazebo_args:=--seed %d' % seed)
+        roslaunch_args = cli_args[1:]
+        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(uuid)
+        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self._launch.start()
 
         # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
