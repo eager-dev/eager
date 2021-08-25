@@ -1,0 +1,9 @@
+# Set Gazebo joint positions and velocities
+string model_name           # model to set state (position and velocities)
+
+string[] joint_names        # list of joints to set positions and velocities. If not listed, preserve current position and velocity.
+float64[] joint_positions   # set to this position.
+float64[] joint_velocities  # set to this velocity.
+---
+bool success                # return true if setting state successful
+string status_message       # comments if available

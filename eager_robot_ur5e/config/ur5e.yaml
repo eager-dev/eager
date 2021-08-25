@@ -107,26 +107,21 @@ gazebo:
       topic: joint_states
       msg_name: JointState
       type: position
+      entries: [2, 1, 0, 3, 4, 5]
 
   actuators:
     joints:
       server_name: arm_controller/follow_joint_trajectory
       action_server: FollowJointTrajectoryActionServer
-      names:
-      - shoulder_pan_joint
-      - shoulder_lift_joint
-      - elbow_joint
-      - wrist_1_joint
-      - wrist_2_joint
-      - wrist_3_joint
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
 
-  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
+  # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pos, base_orientation, joint_pos)
+  states:
     joint_pos:
-      names:
-      -
-    joint_vel:
-      names:
-      -
+      type: joint_pos # OPTIONS: joint_{pos, vel}
+      names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      topic: joint_states
+      entries: [2, 1, 0, 3, 4, 5]
 
 pybullet:
   xacro: '$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro'
