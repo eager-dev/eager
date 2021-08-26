@@ -149,7 +149,6 @@ class SafeActions(ActionProcessor):
             for sensor in observation[robot]:
                 current_position = observation[robot][sensor]
         safe_action = self._getSafeAction(np.asarray(action), np.asarray(current_position))
-        self.previous_position = current_position
         return safe_action
 
     def _getSafeAction(self, goal_position, current_position):
@@ -193,5 +192,7 @@ class SafeActions(ActionProcessor):
                 if i == 0:
                     rospy.logwarn("Current state in collision!")
                     return self.previous_position
+                self.previous_position = current_position
                 return way_points[i-1, :]
+        self.previous_position = current_position
         return goal_position
