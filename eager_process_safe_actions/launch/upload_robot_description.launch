@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="ns" doc="Namespace of the robot."/>
+	<arg name="urdf_path" doc="Path to robot description"/>
+
+	<group ns="$(arg ns)">
+	  <!-- Load universal robot description format (URDF) -->
+		<param name="robot_description" command="$(find xacro)/xacro --inorder '$(arg urdf_path)'" />
+	</group>
+
+</launch>
