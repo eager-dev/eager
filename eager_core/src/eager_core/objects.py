@@ -198,7 +198,7 @@ class Actuator(BaseRosObject):
     def set_action(self, action: object) -> None:
         self._buffer = action
 
-    def add_preprocess(self, processor, launch_args: dict = {}, observations_from_objects: list = [],
+    def add_preprocess(self, processor, observations_from_objects: list = [],
                        action_space: gym.Space = None) -> None:
         self.assert_not_yet_initialized('preprocess')
         launch_file = processor.launch_file
