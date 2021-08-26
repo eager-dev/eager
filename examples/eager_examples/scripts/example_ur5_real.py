@@ -39,27 +39,14 @@ class MyEnv(BaseEagerEnv):
         self.ur5e = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e', position=[0, 0, 0])
 
         # Add preprocessing so that commanded actions are safe
-        process_args = SafeActionsProcessor(moveit_package='ur5_moveit_config',
-                                            urdf_path='$(find ur_description)/urdf/ur5_robot.urdf.xacro',
-                                            joint_names=['shoulder_pan_joint',
-                                                         'shoulder_lift_joint',
-                                                         'elbow_joint',
-                                                         'wrist_1_joint',
-                                                         'wrist_2_joint',
-                                                         'wrist_3_joint'],
-                                            group_name='manipulator',
-                                            duration=0.5,
-                                            object_frame='base_link',
-                                            checks_per_rad=15,
-                                            vel_limit=0.05,
-                                            robot_type='ur5e',
-                                            collision_height=0.1,
-                                            base_length=0.4,
-                                            workspace_length=2.4,
-                                            )
+        processor = SafeActionsProcessor(duration=0.5,
+                                         checks_per_rad=15,
+                                         vel_limit=0.05,
+                                         robot_type='ur5e',
+                                         collision_height=0.1,
+                                         )
         self.ur5e.actuators['joints'].add_preprocess(
-            launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
-            launch_args=process_args.__dict__,
+            processor=processor,
             observations_from_objects=[self.ur5e],
             action_space=spaces.Box(low=-np.pi, high=np.pi, shape=(6,)))
 
