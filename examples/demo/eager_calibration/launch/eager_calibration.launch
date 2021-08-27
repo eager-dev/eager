@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="robot_sim" default="true"/>
+  <arg name="camera_sim" default="true"/>
+
+  <arg name="robot_model"                       default="vx300s"/>
+  <arg name="camera_model"                      default="realsense"/>
+  <arg name="robot_name"                        default="$(arg robot_model)"/>
+  <arg name="base_link_frame"                   default="$(arg robot_name)/base_link"/>
+  <arg name="show_ar_tag"                       default="false"/>
+  <arg name="use_world_frame"                   default="true"/>
+  <arg name="external_srdf_loc"                 default=""/>
+  <arg name="use_moveit_rviz"                   default="true"/>
+  <arg name="rviz_frame"                        default="world"/>
+  <arg name="use_fake"                          default="false"/>
+  <arg name="dof"                               default="6"/>
+
+  <arg name="object_frame" doc="Frame in which the collision object is placed."/>
+  <arg name="joint_names" doc="Joint names"/>
+  <arg name="group_name" doc="Specifies the name of the move_group"/>
+  <arg name="collision_height" doc="Specifies the height with respect to the base where the robot is assumed to be in collision."/>
+  <arg name="base_length" doc="Specifies the length around the base that is not considered as collision object. "/>
+  <arg name="workspace_length" doc="Specifies the size of the collision object."/>
+
+  <!-- Aruco arguments -->
+  <arg name="image_is_rectified" default="true"/>
+  <arg name="marker_size"        doc="Size of the ArUco marker used, in meters" default="0.04"/>
+  <arg name="marker_id"          doc="The ID of the ArUco marker used" default="26"/>
+  <arg name="reference_frame"    default="camera_bottom_screw_frame"/>
+  <arg name="camera_frame"       default="camera_color_optical_frame"/>
+  <arg name="marker_frame"       default="camera_marker" />
+
+  <!-- Easy Hand Eye Calibration arguments -->
+  <arg name="namespace_prefix"            default="hand_eye_calibration"/>
+  <arg name="start_rviz"                  default="false" />
+  <arg name="eye_on_hand"                 default="false"/>
+  <arg name="robot_base_frame"            default="vx300s/base_link"/>
+  <arg name="robot_effector_frame"        default="vx300s/ee_arm_link"/>
+  <arg name="tracking_base_frame"         default="$(arg reference_frame)"/>
+  <arg name="tracking_marker_frame"       default="$(arg marker_frame)"/>
+  <arg name="freehand_robot_movement"     default="true" />
+  <arg name="robot_velocity_scaling"      default="0.2" />
+  <arg name="robot_acceleration_scaling"  default="0.2" />
+
+  <group if="$(eval arg('robot_sim') or arg('camera_sim'))">
+    <!-- Launch Gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="paused" value="true"/>
+    </include>
+  </group>
+
+  <group if="$(arg robot_sim)">
+    <!-- Spawn robot -->
+    <include file="$(find eager_robot_vx300s)/launch/gazebo.launch">
+      <arg name="ns"                         value="/" />
+      <arg name="add_marker"                 value="true" />
+    </include>
+
+    <node name="model_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+      args="-sdf -database coke_can -model can -x 0.4 -y 0.1 -z 0"/>
+  </group>
+
+  <group if="$(arg camera_sim)">
+    <!-- Spawn camera -->
+    <include file="$(find eager_sensor_realsense)/launch/gazebo.launch">
+      <arg name="ns"                         value="/" />
+      <arg name="name"											 value="camera"/>
+      <arg name="configuration"              value="-x 0.7 -z 0.7 -P 1.2 -Y 3.14" />
+    </include>
+  </group>
+
+  <group unless="$(arg camera_sim)">
+    <!-- Spawn camera -->
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+      <arg name="enable_infra" value="true"/>
+      <arg name="enable_sync"  value="true"/>
+      <arg name="infra_width"  value="640"/>
+      <arg name="infra_height" value="480"/>
+      <arg name="align_depth"  value="true"/>
+    </include>
+
+    <param name="robot_description"
+          command="$(find xacro)/xacro '$(find eager_calibration)/urdf/l515.urdf.xacro'"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
+      <param name="publish_frequency" type="double" value="30.0" />
+    </node>
+  </group>
+
+  <group unless="$(arg robot_sim)">
+    <!-- Spawn robot -->
+    <include file="$(find eager_robot_vx300s)/launch/real.launch">
+      <arg name="ns"                         value="/" />
+    </include>
+  </group>
+
+  <include file="$(find interbotix_xsarm_moveit)/launch/move_group.launch" ns="$(arg robot_name)">
+    <arg name="robot_model"                       value="$(arg robot_model)"/>
+    <arg name="robot_name"                        value="$(arg robot_name)"/>
+    <arg name="base_link_frame"                   value="base_link"/>
+    <arg name="show_ar_tag"                       value="$(arg show_ar_tag)"/>
+    <arg name="external_srdf_loc"                 value="$(arg external_srdf_loc)"/>
+    <arg name="dof"                               value="$(arg dof)"/>
+    <arg name="fake_execution"                    value="$(arg use_fake)"/>
+    <arg name="publish_monitored_planning_scene"  value="true" />
+  </include>
+
+  <include if="$(arg use_moveit_rviz)" file="$(find interbotix_xsarm_moveit)/launch/moveit_rviz.launch" ns="$(arg robot_name)">
+    <arg name="rviz_frame"                        value="$(arg rviz_frame)"/>
+    <arg name="config"                            value="true"/>
+  </include>
+
+  <node name="eager_calibration" pkg="eager_calibration" type="eager_calibration_node.py" ns="$(arg robot_name)">
+    <param name="robot_sim" value="$(arg robot_sim)"/>
+  </node>
+
+  <node pkg="eager_calibration_rqt" name="eager_calibration_ui"  type="eager_calibration_rqt" ns="$(arg robot_name)" output="screen">
+    <!-- Aruco arguments -->
+    <param name="image_is_rectified"          value="$(arg image_is_rectified)"/>
+    <param name="marker_size"                 value="$(arg marker_size)"/>
+    <param name="marker_id"                   value="$(arg marker_id)"/>
+    <param name="reference_frame"             value="$(arg reference_frame)"/>
+    <param name="camera_frame"                value="$(arg camera_frame)"/>
+    <param name="marker_frame"                value="$(arg marker_frame)" />
+
+    <!-- Easy Hand Eye Calibration arguments -->
+    <param name="namespace_prefix"            value="$(arg namespace_prefix)"/>
+    <param name="start_rviz"                  value="$(arg start_rviz)" />
+    <param name="eye_on_hand"                 value="$(arg eye_on_hand)"/>
+    <param name="robot_base_frame"            value="$(arg robot_base_frame)"/>
+    <param name="robot_effector_frame"        value="$(arg robot_effector_frame)"/>
+    <param name="tracking_base_frame"         value="$(arg tracking_base_frame)"/>
+    <param name="tracking_marker_frame"       value="$(arg tracking_marker_frame)"/>
+    <param name="freehand_robot_movement"     value="$(arg freehand_robot_movement)" />
+    <param name="robot_velocity_scaling"      value="$(arg robot_velocity_scaling)" />
+    <param name="robot_acceleration_scaling"  value="$(arg robot_acceleration_scaling)" />
+  </node>
+
+</launch>

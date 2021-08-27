@@ -1,0 +1,16 @@
+<robot name="multisense" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- import the camera -->
+  <xacro:include filename="$(find realsense2_description)/urdf/_l515.urdf.xacro" />
+
+  <!-- camera params-->
+  <xacro:arg name="camera_origin_xyz"       default="0 0 0"/>
+  <xacro:arg name="camera_origin_rpy"       default="0 0 0"/>
+  <xacro:arg name="use_nominal_extrinsics"  default="true"/>
+
+  <link name="world"/>
+
+  <!-- camera -->
+  <xacro:sensor_l515 parent="world" name="camera" use_nominal_extrinsics="$(arg use_nominal_extrinsics)">
+    <origin xyz="$(arg camera_origin_xyz)" rpy="$(arg camera_origin_rpy)" />
+  </xacro:sensor_l515>
+</robot>
