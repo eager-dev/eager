@@ -78,11 +78,16 @@ done
 cd ${EAGER_WS}/src
 packages_to_install=()
 package_types="bridge process robot sensor solid"
+package_folders="bridges processors robots sensors solids"
+package_folders_array=($package_folders)
+COUNTER=0
 for package_type in $package_types; do
+  package_folder=eager_${package_folders_array[$COUNTER]}
+  cd ${EAGER_WS}/src
   installed=$(ls | grep eager_$package_type)
   echo Installed $package_type packages:
   echo $installed
-  available=$(ls ${EAGER_HOME} | grep eager_$package_type)
+  available=$(ls ${EAGER_HOME}/$package_folder | grep eager_$package_type)
   not_installed=()
   for available_package in $available; do
     if [[ ! " $installed " =~ $available_package ]]; then
@@ -112,15 +117,15 @@ for package_type in $package_types; do
             invalid_input=true
             echo Invalid input given: $input
           else
-            packages_to_install+=("eager_${package_type}_${entry}")
+            packages_to_install+=("${package_folder}/eager_${package_type}_${entry}")
             invalid_input=false
           fi
         done
       done
     fi
   fi
+  let COUNTER++
 done
-
 
 for package_to_install in ${packages_to_install[@]}; do
   ln -s ${EAGER_HOME}/$package_to_install
@@ -142,6 +147,29 @@ if [[ " $packages " =~ "eager_bridge_gazebo"  ||
   if [ ! -d ${EAGER_WS}/src/ur_modern_driver ]; then
     cd ${EAGER_WS}/src
     git clone -b kinetic-devel https://github.com/ros-industrial/ur_modern_driver.git
+  fi
+fi
+
+cd ${EAGER_WS}/src
+packages=$(ls)
+if [[ " $packages " =~ "eager_bridge_gazebo"  ||
+    " $packages " =~ "eager_bridge_pybullet" ||
+    " $packages " =~ "eager_bridge_real" ]] &&
+    [[ " $packages " =~ "eager_robot_vx300s" ]]; then
+  # install Interbotix packages
+  echo "Installing Interbotix robot packages"
+  if [ ! -d ${EAGER_WS}/src/interbotix_ros_manipulators ]; then
+    cd ${EAGER_WS}/src
+    git clone -b $ROS_DISTRO https://github.com/Interbotix/interbotix_ros_manipulators.git
+  fi
+  # Step 5: Setup Environment Variables (from https://github.com/Interbotix/interbotix_ros_manipulators/blob/main/interbotix_ros_uxarms/install/uxarm_remote_install.sh)
+  if [ -z "$ROS_IP" ]; then
+    echo "Setting up Environment Variables..."
+    echo "export ROS_MASTER_URI=http://$HOSTNAME.local:11311" >> ~/.bashrc
+    echo 'export ROS_IP=$(echo `hostname -I | cut -d" " -f1`)' >> ~/.bashrc
+    echo -e 'if [ -z "$ROS_IP" ]; then\n\texport ROS_IP=127.0.0.1\nfi' >> ~/.bashrc
+  else
+    echo "Environment variables already set!"
   fi
 fi
 
