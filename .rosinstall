@@ -6,3 +6,11 @@
     local-name: ur_modern_driver
     uri: https://github.com/ros-industrial/ur_modern_driver.git
     version: kinetic-devel
+- git:
+    local-name: ur_modern_driver
+    uri: https://github.com/ros-industrial/ur_modern_driver.git
+    version: kinetic-devel
+- git:
+    local-name: interbotix_ros_manipulators
+    uri: https://github.com/Interbotix/interbotix_ros_manipulators.git
+    version: noetic
