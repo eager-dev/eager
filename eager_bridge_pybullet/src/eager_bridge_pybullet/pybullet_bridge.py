@@ -182,13 +182,12 @@ class PyBulletBridge(PhysicsBridge):
         robot_sensors = dict()
         sensor_cb = dict()
         for sensor in sensors:
-            topic_list = sensors[sensor]['names']
             space = sensors[sensor]['space']
             robot_sensors[sensor] = [get_value_from_def(space)] * get_length_from_def(space)
             if 'joint' in sensors[sensor]['type']:
                 bodyUniqueId = []
                 jointIndices = []
-                for idx, pybullet_name in enumerate(topic_list):
+                for idx, pybullet_name in enumerate(sensors[sensor]['names']):
                     bodyid, jointindex = robot.jdict[pybullet_name].get_bodyid_jointindex()
                     bodyUniqueId.append(bodyid), jointIndices.append(jointindex)
                     if 'force_torque' in sensors[sensor]['type']:
@@ -205,7 +204,7 @@ class PyBulletBridge(PhysicsBridge):
             elif 'link' in sensors[sensor]['type']:
                 bodyUniqueId = []
                 linkIndices = []
-                for idx, pybullet_name in enumerate(topic_list):
+                for idx, pybullet_name in enumerate(sensors[sensor]['names']):
                     bodyid, linkindex = robot.parts[pybullet_name].get_bodyid_linkindex()
                     bodyUniqueId.append(bodyid), linkIndices.append(linkindex)
                 callback = functools.partial(self._link_callback,
@@ -261,12 +260,11 @@ class PyBulletBridge(PhysicsBridge):
     def _init_actuators(self, topic, name, actuators, robot):
         robot_actuators = dict()
         for actuator in actuators:
-            topic_list = actuators[actuator]['names']
             space = actuators[actuator]['space']
             bodyUniqueId = []
             if 'joint' in actuators[actuator]['type']:
                 jointIndices = []
-                for idx, pybullet_name in enumerate(topic_list):
+                for idx, pybullet_name in enumerate(actuators[actuator]['names']):
                     bodyid, jointindex = robot.jdict[pybullet_name].get_bodyid_jointindex()
                     bodyUniqueId.append(bodyid), jointIndices.append(jointindex)
                 if actuators[actuator]['control_mode'] == 'position_control':
@@ -321,13 +319,12 @@ class PyBulletBridge(PhysicsBridge):
         robot_states = dict()
         state_cb = dict()
         for state in states:
-            topic_list = states[state]['names']
             space = states[state]['space']
             robot_states[state] = [get_value_from_def(space)] * get_length_from_def(space)
             bodyUniqueId = []
             if 'joint' in states[state]['type']:
                 jointIndices = []
-                for idx, pybullet_name in enumerate(topic_list):
+                for idx, pybullet_name in enumerate(states[state]['names']):
                     bodyid, jointindex = robot.jdict[pybullet_name].get_bodyid_jointindex()
                     bodyUniqueId.append(bodyid), jointIndices.append(jointindex)
                     if 'force_torque' in states[state]['type']:
@@ -343,7 +340,7 @@ class PyBulletBridge(PhysicsBridge):
                                              physicsClientId=self.physics_client_id)
             elif 'link' in states[state]['type']:
                 linkIndices = []
-                for idx, pybullet_name in enumerate(topic_list):
+                for idx, pybullet_name in enumerate(states[state]['names']):
                     bodyid, linkindex = robot.parts[pybullet_name].get_bodyid_linkindex()
                     bodyUniqueId.append(bodyid), linkIndices.append(linkindex)
                 callback = functools.partial(self._link_callback,
@@ -378,12 +375,11 @@ class PyBulletBridge(PhysicsBridge):
     def _init_resets(self, topic, name, states, robot):
         robot_resets = dict()
         for state in states:
-            topic_list = states[state]['names']
             space = states[state]['space']
             bodyUniqueId = []
             if 'joint' in states[state]['type']:
                 jointIndices = []
-                for idx, pybullet_name in enumerate(topic_list):
+                for idx, pybullet_name in enumerate(states[state]['names']):
                     bodyid, jointindex = robot.jdict[pybullet_name].get_bodyid_jointindex()
                     bodyUniqueId.append(bodyid), jointIndices.append(jointindex)
                 set_reset_srv = functools.partial(self._reset_srvs,
@@ -477,16 +473,22 @@ class PyBulletBridge(PhysicsBridge):
                                                           flags=pybullet.ER_NO_SEGMENTATION_MASK,
                                                           renderer=renderer,
                                                           physicsClientId=physicsClientId,)
-        # todo: infer order via 'type' description
-        if 'rgb' in obs_type[7:]:
+        if 'camera_rgb' == obs_type:
             obs.append(rgba[:, :, :3])
-        if 'a' in obs_type[7:]:
-            obs.append(rgba[:, :, [3]])
-        if 'd' in obs_type[7:]:
+        elif 'camera_rgba' == obs_type:
+            obs.append(rgba[:, :, :4])
+        elif 'camera_rgbd' == obs_type:
+            obs.append(rgba[:, :, :3])
+            # todo: if float, probably calculate as value between [0, 1]
             if dtype == 'uint8':
                 depth *= 255
             obs.append(depth[:, :, np.newaxis].astype(dtype))
-        # todo: if float, probably calculate as value between [0, 1]
+        elif 'camera_depth' == obs_type:
+            # todo: if float, probably calculate as value between [0, 1]
+            if dtype == 'uint8':
+                depth *= 255
+            obs.append(depth[:, :, np.newaxis].astype(dtype))
+
         # todo: Reduce computational load
         obs = np.concatenate(obs, axis=2).astype(dtype)  # computational load:  250 fps --> 190 fps
         obs = obs.flatten()  # computational load: 190 fps --> 185 fps
