@@ -52,9 +52,9 @@
   <build_depend>rospy</build_depend>
   <build_export_depend>rospy</build_export_depend>
   <exec_depend>rospy</exec_depend>
-  <exec_depend>interbotix_xsarm_descriptions</exec_depend>
+  <!-- <exec_depend>interbotix_xsarm_descriptions</exec_depend>
   <exec_depend>interbotix_xsarm_gazebo</exec_depend>
-  <exec_depend>interbotix_xsarm_moveit</exec_depend>
+  <exec_depend>interbotix_xsarm_moveit</exec_depend> -->
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>controller_manager</exec_depend>
