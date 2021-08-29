@@ -11,6 +11,10 @@ sensors:
     shape: [1024, 544, 4]
 
 webots:
+  node_type_name: MultiSenseS21
+  default_translation: [0, 0, 0]
+  default_orientation: [0.0000001, 0, 0, 0.9999999]
+  as_child: True
   sensors:
     camera_right:
       type: camera

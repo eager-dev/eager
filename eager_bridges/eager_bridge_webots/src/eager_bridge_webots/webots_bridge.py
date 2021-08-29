@@ -266,8 +266,13 @@ class WeBotsBridge(PhysicsBridge):
         else:
             controller = ''
 
-        self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ {} {} {} {} {}}}'.format(
-            name, node_type, pos, ori, controller, self_collision, fixed_base))
+        if 'as_child' not in config or config['as_child'] is False:
+            self._import_robot_service(self._root_node_field, 0, 'DEF {} {} {{ {} {} {} {} {}}}'.format(
+                name, node_type, pos, ori, controller, self_collision, fixed_base))
+        else:
+            self._import_robot_service(self._root_node_field, 0, 'DEF {} Robot {{ children [ {} {{ }}]  {} {} {} {} {}}}'.format(
+                name, node_type, pos, ori, controller, self_collision, fixed_base))
+
 
     def _sensor_callback(self, data, name, sensor, pos):
         if data.data != data.data:
