@@ -4,7 +4,7 @@
   <xacro:include filename="$(find eager_sensor_realsense)/urdf/camera.gazebo.xacro" />
 
   <!-- camera params-->
-  <xacro:arg name="camera_name"             default="rs_d435"/>
+  <xacro:arg name="camera_name"             default="camera"/>
   <xacro:arg name="camera_origin_xyz"       default="0 0 0"/>
   <xacro:arg name="camera_origin_rpy"       default="0 0 0"/>
   <xacro:arg name="use_nominal_extrinsics"  default="true"/>
