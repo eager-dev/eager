@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot name="vx300s" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- interbotix params-->
+  <xacro:arg name="robot_name"        default="vx300s"/>
+  <xacro:arg name="load_gazebo_configs" default="true"/>
+
+  <!-- marker -->
+  <xacro:arg name="add_marker"        default="false"/>
+  <xacro:arg name="marker_origin_xyz" default="-0.02 0 0.036"/>
+  <xacro:arg name="marker_origin_rpy" default="0 0 0"/>
+
+  <xacro:property name="marker"       value="$(arg add_marker)"/>
+
+
+  <!-- Fix to world -->
+  <link name="world"/>
+
+  <!--interbotix -->
+  <joint name="fixed" type="fixed">
+    <parent link="world"/>
+    <child link="$(arg robot_name)/base_link"/>
+  </joint>
+
+  <xacro:arg name="robot_name" default="$(arg robot_name)"/>
+  <xacro:include filename="$(find interbotix_xsarm_descriptions)/urdf/$(arg robot_name).urdf.xacro"/>
+
+  <xacro:if value="${marker}">
+    <!-- Impoprt the aruco marker -->
+    <xacro:include filename="$(find eager_bridge_gazebo)/urdf/marker/marker.xacro"/>
+
+    <xacro:marker parent_link="$(arg robot_name)/ee_arm_link" size="0.04" ID ="26" >
+      <origin xyz="$(arg marker_origin_xyz)" rpy="$(arg marker_origin_rpy)" />
+    </xacro:marker>
+  </xacro:if>
+</robot>
