@@ -1,0 +1,22 @@
+material CustomMarker
+{
+	receive_shadows on
+
+	technique
+	{
+		pass
+		{
+			ambient 0.5 0.5 0.5
+			diffuse 1.0 1.0 1.0
+
+			texture_unit
+			{
+
+				// Relative to the location of the material script
+				texture ../textures/aruco-26.png
+				rotate 0
+				scale 1 1
+      }
+    }
+  }
+}
