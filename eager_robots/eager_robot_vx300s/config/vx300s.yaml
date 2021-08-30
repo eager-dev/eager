@@ -44,8 +44,24 @@ gazebo:
       names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
       topic: vx300s/joint_states
       entries: [6, 5, 0, 1, 7, 8]
-    joint_vel:
-      type: joint_vel
+
+real:
+  sensors:
+    joint_pos:
+      topic: vx300s/joint_states
+      msg_name: JointState
+      type: position
+      entries: [6, 5, 0, 1, 7, 8]
+
+  actuators:
+    joints:
+      server_name: vx300s/arm_controller/follow_joint_trajectory
+      action_server: FollowJointTrajectoryActionServer
+      names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
+
+  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
+    joint_pos:
+      type: joint_pos
       names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
       topic: vx300s/joint_states
       entries: [6, 5, 0, 1, 7, 8]
