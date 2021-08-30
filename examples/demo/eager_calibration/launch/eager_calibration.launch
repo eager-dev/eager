@@ -7,13 +7,8 @@
   <arg name="robot_model"                       default="vx300s"/>
   <arg name="camera_model"                      default="realsense"/>
   <arg name="robot_name"                        default="$(arg robot_model)"/>
-  <arg name="base_link_frame"                   default="$(arg robot_name)/base_link"/>
-  <arg name="show_ar_tag"                       default="false"/>
-  <arg name="use_world_frame"                   default="true"/>
-  <arg name="external_srdf_loc"                 default=""/>
   <arg name="use_moveit_rviz"                   default="true"/>
   <arg name="rviz_frame"                        default="world"/>
-  <arg name="use_fake"                          default="false"/>
   <arg name="dof"                               default="6"/>
 
   <arg name="object_frame" doc="Frame in which the collision object is placed."/>
@@ -72,19 +67,10 @@
 
   <group unless="$(arg camera_sim)">
     <!-- Spawn camera -->
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-      <arg name="enable_infra" value="true"/>
-      <arg name="enable_sync"  value="true"/>
-      <arg name="infra_width"  value="640"/>
-      <arg name="infra_height" value="480"/>
-      <arg name="align_depth"  value="true"/>
+    <include file="$(find eager_sensor_realsense)/launch/real.launch">
+      <arg name="ns"                         value="/" />
+      <arg name="name"											 value="camera"/>
     </include>
-
-    <param name="robot_description"
-          command="$(find xacro)/xacro '$(find eager_calibration)/urdf/l515.urdf.xacro'"/>
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
-      <param name="publish_frequency" type="double" value="30.0" />
-    </node>
   </group>
 
   <group unless="$(arg robot_sim)">
@@ -93,17 +79,6 @@
       <arg name="ns"                         value="/" />
     </include>
   </group>
-
-  <include file="$(find interbotix_xsarm_moveit)/launch/move_group.launch" ns="$(arg robot_name)">
-    <arg name="robot_model"                       value="$(arg robot_model)"/>
-    <arg name="robot_name"                        value="$(arg robot_name)"/>
-    <arg name="base_link_frame"                   value="base_link"/>
-    <arg name="show_ar_tag"                       value="$(arg show_ar_tag)"/>
-    <arg name="external_srdf_loc"                 value="$(arg external_srdf_loc)"/>
-    <arg name="dof"                               value="$(arg dof)"/>
-    <arg name="fake_execution"                    value="$(arg use_fake)"/>
-    <arg name="publish_monitored_planning_scene"  value="true" />
-  </include>
 
   <include if="$(arg use_moveit_rviz)" file="$(find interbotix_xsarm_moveit)/launch/moveit_rviz.launch" ns="$(arg robot_name)">
     <arg name="rviz_frame"                        value="$(arg rviz_frame)"/>
