@@ -5,6 +5,15 @@
 
   <!-- Robot state publisher -->
   <group ns="$(arg ns)">
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch" />
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+      <arg name="color_width"         default="1920"/>
+      <arg name="color_height"        default="1080"/>
+    </include>
+
+    <param name="robot_description"
+          command="$(find xacro)/xacro '$(find eager_sensor_realsense)/urdf/realsense.urdf.xacro'"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
+      <param name="publish_frequency" type="double" value="30.0" />
+    </node>
   </group>
 </launch>
