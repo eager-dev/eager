@@ -77,6 +77,7 @@ class RealBridge(PhysicsBridge):
 
     def _init_actuators(self, topic, name, actuators):
         self._actuator_services[name] = {}
+        self._action_servers[name] = {}
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
             names = actuators[actuator]["names"]
@@ -86,11 +87,12 @@ class RealBridge(PhysicsBridge):
             valid_servers = [i[0] for i in getmembers(eager_core.action_server) if isclass(i[1])]
             if action_server_name in valid_servers:
                 action_server = getattr(eager_core.action_server, action_server_name)
+                self._action_servers[name][actuator] = action_server(names, server_name)
             else:
                 rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
                     action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
-            set_action_srv = action_server(names, server_name).act
+            set_action_srv = self._action_servers[name][actuator].act
             self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)
 
     def _init_states(self, topic, name, states):
