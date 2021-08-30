@@ -47,27 +47,15 @@ if __name__ == '__main__':
     # Create robot
     # todo: change to Viper
     # todo: add calibrated position & orientation
-    robot = Object.create('robot', 'eager_robot_ur5e', 'ur5e')
+    robot = Object.create('robot', 'eager_robot_vx300s', 'vx300s')
 
     # Add action preprocessing
     # todo: clean-up processor arguments with object config files ('ur5e', 'viperX') inside action processor ROS package
-    process_args = SafeActionsProcessor(moveit_package='ur5_e_moveit_config',
-                                        urdf_path='$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro',
-                                        joint_names=['shoulder_pan_joint',
-                                                     'shoulder_lift_joint',
-                                                     'elbow_joint',
-                                                     'wrist_1_joint',
-                                                     'wrist_2_joint',
-                                                     'wrist_3_joint'],
-                                        group_name='manipulator',
-                                        duration=0.1,
-                                        object_frame='base_link',
+    process_args = SafeActionsProcessor(duration=0.8,
                                         checks_per_rad=15,
                                         vel_limit=2.0,
-                                        robot_type='ur5e',
-                                        collision_height=0.01,
-                                        base_length=0.4,
-                                        workspace_length=2.4,
+                                        robot_type='vx300s',
+                                        collision_height=0.1,
                                         )
     robot.actuators['joints'].add_preprocess(
         launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
