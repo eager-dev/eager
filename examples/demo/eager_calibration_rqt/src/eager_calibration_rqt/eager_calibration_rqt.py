@@ -2,10 +2,11 @@ import os
 import rospy
 import rospkg
 import roslaunch
+import yaml
 from rospy import ROSException
 from eager_core.utils.file_utils import substitute_xml_args
 from std_srvs.srv import Empty, EmptyRequest
-from easy_handeye_msgs.srv import ComputeCalibration, ComputeCalibrationRequest 
+from easy_handeye_msgs.srv import ComputeCalibration, ComputeCalibrationRequest
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtWidgets import QWidget
@@ -138,8 +139,8 @@ class EagerCalibrationRqt(Plugin):
             if self.publish_launch:
                 self.publish_launch.shutdown()
                 self.publish_launch = None
-            str_launch_sim = '$(find eager_calibration)/launch/calibrate.launch'
-            cli_args = [substitute_xml_args(str_launch_sim),
+            str_launch = '$(find eager_calibration)/launch/calibrate.launch'
+            cli_args = [substitute_xml_args(str_launch),
                         "namespace_prefix:={}".format(self.namespace_prefix),
                         "base_link_frame:={}".format(self.base_link_frame),
                         "image_is_rectified:={}".format(self.image_is_rectified),
@@ -172,8 +173,8 @@ class EagerCalibrationRqt(Plugin):
             if self.calibrate_launch:
                 self.calibrate_launch.shutdown()
                 self.calibrate_launch = None
-            str_launch_sim = '$(find eager_calibration)/launch/publish.launch'
-            cli_args = [substitute_xml_args(str_launch_sim),
+            str_launch = '$(find eager_calibration)/launch/publish.launch'
+            cli_args = [substitute_xml_args(str_launch),
                         "namespace_prefix:={}".format(self.namespace_prefix),
                         ]
             roslaunch_args = cli_args[1:]
@@ -202,7 +203,14 @@ class EagerCalibrationRqt(Plugin):
                 self._save_calibration_service()
             except rospy.ServiceException as e:
                 rospy.logwarn('[{}] Save calibration failed: {}'.format(rospy.get_name(), e))
-            rospy.logwarn(response)
+            translation = response.calibration.transform.transform.translation
+            rotation = response.calibration.transform.transform.rotation
+            calibration = {}
+            calibration['position'] = [translation.x, translation.y, translation.z]
+            calibration['rotation'] = [rotation.x, rotation.y, rotation.z, rotation.w]
+            save_path = substitute_xml_args('$(find eager_demo)/config/calibration.yaml')
+            with open(save_path, 'w') as file:
+                yaml.dump(calibration, file)
 
     def handle_pose1(self):
         msg = String('calibration_pose_1')
