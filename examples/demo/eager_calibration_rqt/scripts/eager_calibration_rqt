@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+import sys
+
+from eager_calibration_rqt.eager_calibration_rqt import EagerCalibrationRqt
+from rqt_gui.main import Main
+
+plugin = 'eager_calibration_rqt'
+main = Main(filename=plugin)
+sys.exit(main.main(standalone=plugin))
