@@ -10,8 +10,8 @@
   <xacro:arg name="use_nominal_extrinsics"  default="true"/>
   <xacro:arg name="depth_width"             default="1280"/>
   <xacro:arg name="depth_height"            default="720"/>
-  <xacro:arg name="color_width"             default="1920"/>
-  <xacro:arg name="color_height"            default="1080"/>
+  <xacro:arg name="color_width"             default="1280"/>
+  <xacro:arg name="color_height"            default="720"/>
 
   <xacro:property name="load_gazebo" value="$(arg gazebo)"/>
 

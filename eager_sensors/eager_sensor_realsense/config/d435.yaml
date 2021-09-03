@@ -3,7 +3,7 @@ sensors:
     type: boxu8
     high: 255
     low: 0
-    shape: [1920, 1080, 3]
+    shape: [480, 640, 3]
 #  camera_depth:
 #    type: boxu8
 #    high: 255
@@ -24,7 +24,7 @@ gazebo:
 real:
   sensors:
     camera_rgb:
-      topic: camera/color/image_raw
+      topic: /camera/color/image_raw
       msg_name: Image
       type: data
 #    camera_depth:
