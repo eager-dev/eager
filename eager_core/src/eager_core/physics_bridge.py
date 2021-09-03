@@ -1,7 +1,7 @@
 import abc
 import rospy
 import ast
-from eager_core.srv import Register, StepEnv, ResetEnv
+from eager_core.srv import Register, StepEnv, ResetEnv, ResetEnvResponse
 from eager_core.msg import Seed
 from eager_core.utils.file_utils import load_yaml
 
@@ -28,8 +28,8 @@ class PhysicsBridge(ABC):
         pass
 
     @abc.abstractmethod
-    def _reset(self):
-        pass
+    def _reset(self, req):
+        return None
 
     @abc.abstractmethod
     def _close(self):
@@ -71,10 +71,11 @@ class PhysicsBridge(ABC):
             return None  # Error
 
     def __reset_handler(self, req):
-        if self._reset():
-            return ()  # Success
+        response = self._reset(req)
+        if isinstance(response, ResetEnvResponse):
+            return response  # Success
         else:
-            return None  # Error
+            return ResetEnvResponse()
 
     def __seed_handler(self, data):
         self._seed(data.seed)
