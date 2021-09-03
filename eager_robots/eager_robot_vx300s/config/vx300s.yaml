@@ -78,34 +78,35 @@ real:
       reset_topic: /vx300s/goal
       check_topic: /vx300s/check
       check_type: eager_calibration.srv/SetFloat32
+
 pybullet:
 #  xacro: $(find eager_robot_vx300s)/urdf/robot.urdf.xacro
-  xacro_args:
   xacro: $(find interbotix_xsarm_descriptions)/urdf/vx300s.urdf.xacro
+  xacro_args:
     show_ar_tag: 'true'
-  urdf_name: 'd435'
-    joint_pos:
+  urdf_name: 'vx300s'
   sensors:
+    joint_pos:
       type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
       names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
 
   actuators:
     joints:
-      names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
       type: joint
+      names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
       control_mode: position_control # position_control, velocity_control, torque_control, pd_control
-      pos_gain: [0.45, 0.45, 0.65, 0.6, 0.45, 0.4]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
       vel_target: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      pos_gain: [0.45, 0.45, 0.65, 0.6, 0.45, 0.4]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
       vel_gain: [1.7, 1.7, 1.5, 1.3, 1.0, 1.0]  # work with dt=0.0165 --> still too fast (unrealistic) behavior
+    gripper:
       type: joint
       names: [left_finger, right_finger]
-    gripper:
       control_mode: position_control # position_control, velocity_control, torque_control, pd_control
       vel_target: [0.0, 0.0]
       pos_gain: [1.5, 1.5]
       vel_gain: [0.7, 0.7]
-  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
 
+  # IMPORTANT! Currently, not possible to mix states consisting of both links & joints,
   # IMPORTANT! Only add states you are able to both read and reset in the physics engine (base_pose, base_vel, joint_pos, joint_vel)
   states:
     joint_pos:

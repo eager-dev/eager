@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # Add a camera for rendering
     # todo: change 'rotation' key in calibration.yaml to 'rotation' for consistency.
     cal = load_yaml('eager_demo', 'calibration')
-    cam = Object.create('cam', 'eager_sensor_realsense', 'd435', position=cal['position'], orientation=cal['rotation'])
+    cam = Object.create('cam', 'eager_sensor_realsense', 'd435', position=cal['position'], orientation=cal['orientation'])
 
     # Create environment
     env = EagerEnv(engine=engine,
@@ -58,7 +58,7 @@ if __name__ == '__main__':
                    reward_fn=reward_fn)
     env = Flatten(env)
 
-    obs = env.reset()
+    obs = env.reset()  # TODO: if code does not close properly, render seems to keep a thread open....
     for i in range(100):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
