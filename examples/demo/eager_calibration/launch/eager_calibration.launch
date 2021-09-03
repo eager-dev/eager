@@ -52,6 +52,14 @@
       <arg name="add_marker"                 value="true" />
     </include>
 
+    <include file="$(find interbotix_xsarm_moveit)/launch/move_group.launch" ns="$(arg robot_name)">
+      <arg name="robot_model"                       value="$(arg robot_model)"/>
+      <arg name="robot_name"                        value="$(arg robot_name)"/>
+      <arg name="base_link_frame"                   value="base_link"/>
+      <arg name="dof"                               value="$(arg dof)"/>
+      <arg name="publish_monitored_planning_scene"  value="true" />
+    </include>
+
     <node name="model_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
       args="-sdf -database coke_can -model can -x 0.4 -y 0.1 -z 0"/>
   </group>
@@ -85,7 +93,7 @@
     <arg name="config"                            value="true"/>
   </include>
 
-  <node name="eager_calibration" pkg="eager_calibration" type="eager_calibration_node.py" ns="$(arg robot_name)">
+  <node name="eager_calibration" pkg="eager_calibration" type="eager_calibration_node.py" ns="$(arg robot_name)" output="screen">
     <param name="robot_sim" value="$(arg robot_sim)"/>
   </node>
 

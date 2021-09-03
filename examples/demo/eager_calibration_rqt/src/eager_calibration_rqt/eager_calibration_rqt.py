@@ -98,6 +98,7 @@ class EagerCalibrationRqt(Plugin):
         self._widget.homeButton.clicked[bool].connect(self.handle_home)
         self._widget.uprightButton.clicked[bool].connect(self.handle_upright)
         self._widget.sleepButton.clicked[bool].connect(self.handle_sleep)
+        self._widget.upButton.clicked[bool].connect(self.handle_up)
 
         # Gripper Buttons
         self._widget.openButton.clicked[bool].connect(self.handle_open)
@@ -134,7 +135,9 @@ class EagerCalibrationRqt(Plugin):
 
     def handle_calibrate(self):
         if self.calibrate_launch:
-            rospy.logwarn('[{}] Already calibrating! Ignoring input.'.format(rospy.get_name()))
+            rospy.loginfo('[{}] Stop calibrating.'.format(rospy.get_name()))
+            self.calibrate_launch.shutdown()
+            self.calibrate_launch
         else:
             if self.publish_launch:
                 self.publish_launch.shutdown()
@@ -168,7 +171,9 @@ class EagerCalibrationRqt(Plugin):
 
     def handle_publish(self):
         if self.publish_launch:
-            rospy.logwarn('[{}] Already publishing! Ignoring input.'.format(rospy.get_name()))
+            rospy.loginfo('[{}] Stop publishing.'.format(rospy.get_name()))
+            self.publish_launch.shutdown()
+            self.publish_launch = None
         else:
             if self.calibrate_launch:
                 self.calibrate_launch.shutdown()
@@ -207,7 +212,7 @@ class EagerCalibrationRqt(Plugin):
             rotation = response.calibration.transform.transform.rotation
             calibration = {}
             calibration['position'] = [translation.x, translation.y, translation.z]
-            calibration['rotation'] = [rotation.x, rotation.y, rotation.z, rotation.w]
+            calibration['orientation'] = [rotation.x, rotation.y, rotation.z, rotation.w]
             save_path = substitute_xml_args('$(find eager_demo)/config/calibration.yaml')
             with open(save_path, 'w') as file:
                 yaml.dump(calibration, file)
@@ -270,6 +275,10 @@ class EagerCalibrationRqt(Plugin):
 
     def handle_sleep(self):
         msg = String('sleep')
+        self.event_publisher.publish(msg)
+
+    def handle_up(self):
+        msg = String('up')
         self.event_publisher.publish(msg)
 
     def handle_open(self):

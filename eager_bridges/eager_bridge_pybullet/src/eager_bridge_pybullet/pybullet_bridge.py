@@ -633,7 +633,7 @@ class PyBulletBridge(PhysicsBridge):
                 self._state_cbs[name][state]()
         return True
 
-    def _reset(self):
+    def _reset(self, req):
         # Set all actions before stepping the world
         for robot in self._reset_services:
             robot_resets = self._reset_services[robot]

@@ -7,10 +7,11 @@ from gym.utils import seeding
 from collections import OrderedDict
 from typing import List, Tuple, Callable, Optional
 from eager_core.objects import Object, Sensor
-from eager_core.srv import StepEnv, ResetEnv, Register
+from eager_core.srv import StepEnv, ResetEnv, ResetEnvRequest, Register
 from eager_core.utils.file_utils import substitute_xml_args, is_namespace_empty, launch_node
 from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
+from eager_core.msg import ObjectStates, State
 
 
 
@@ -228,7 +229,11 @@ class EagerEnv(BaseEagerEnv):
         if is_done_fn:
             self._is_done = is_done_fn
 
-        self._reset_fn = reset_fn
+        if reset_fn:
+            self._reset_fn = reset_fn
+        else:
+            self._reset_fn = self._random_reset
+
         self.STEPS_PER_ROLLOUT = max_steps
         self.steps = 0
 
@@ -264,12 +269,33 @@ class EagerEnv(BaseEagerEnv):
         :return: observations
         """
         self.steps = 0
+        states_to_reset = self.state_space.sample()
+        done = False
+        while not done:
+            reset_dict = self._reset_fn(self)
+            for obj_name, object in reset_dict.items():
+                for state_name, state in list(object.items()):
+                    if (obj_name not in states_to_reset) or (state_name not in states_to_reset[obj_name]):
+                        reset_dict[obj_name].pop(state_name)
+            for object in self.objects:
+                if object.name in reset_dict:
+                    object.reset(reset_dict[object.name])
+            request = ResetEnvRequest()
+            for obj_name, state_dict in reset_dict.items():
+                object_states = ObjectStates(name=obj_name)
+                for state in state_dict.keys():
+                    object_state = State(name=state)
+                    object_states.states.append(object_state)
+                request.objects.append(object_states)
+            response = self._reset(request)
 
-        if self._reset_fn:
-            self._reset_fn(self)
-
-        self._reset()
-
+            done = True
+            states_to_reset = dict()
+            for object in response.objects:
+                states_to_reset[object.name] = {}
+                for state in object.states:
+                    done = False
+                    states_to_reset[object.name][state.name] = None
         return self._get_obs()
 
     def render(self, mode: str = 'human') -> Optional[object]:
@@ -349,6 +375,10 @@ class EagerEnv(BaseEagerEnv):
             return self.steps >= self.STEPS_PER_ROLLOUT
         else:
             return False
+
+    def _random_reset(self, env):
+        reset_dict = env.state_space.sample()
+        return reset_dict
 
     def close(self) -> None:
         """

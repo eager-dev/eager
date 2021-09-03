@@ -24,7 +24,7 @@ gazebo:
 real:
   sensors:
     camera_rgb:
-      topic: camera/color/image_raw
+      topic: /camera/color/image_raw
       msg_name: Image
       type: data
 #    camera_depth:
