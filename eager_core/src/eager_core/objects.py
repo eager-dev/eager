@@ -21,6 +21,7 @@ class BaseRosObject():
         self.name = name
         self.args = str(kwargs)
         self._is_initialized = False
+        self.topic_name = None
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
         pass
@@ -30,7 +31,9 @@ class BaseRosObject():
 
     def get_topic(self, base_topic: str = '') -> str:
         if base_topic == '':
+            self.topic_name = self.name
             return self.name
+        self.topic_name = base_topic + '/' + self.name
         return base_topic + '/' + self.name
 
     def assert_not_yet_initialized(self, assert_type):

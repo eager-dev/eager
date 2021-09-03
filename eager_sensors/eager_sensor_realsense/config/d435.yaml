@@ -3,7 +3,7 @@ sensors:
     type: boxu8
     high: 255
     low: 0
-    shape: [1920, 1080, 3]
+    shape: [480, 640, 3]
 #  camera_depth:
 #    type: boxu8
 #    high: 255
@@ -33,12 +33,17 @@ real:
 #      type: data
 
 pybullet:
-  urdf:
+  xacro: $(find realsense2_description)/urdf/test_d435_camera.urdf.xacro
+  xacro_args:
+    use_nominal_extrinsics: 'true'
+  urdf_name: realsense2_d435
   sensors:
     camera_rgb:
+      # "realsense2_camera" --> ${name}_color_optical_frame
       type: camera_rgb
+      optical_frame_link: camera_color_optical_frame
       intrinsic:
-        fov: 80.21 # (deg)
+        fov: 57 # (deg)
         near_val: 0.1 # (m)
         far_val: 100 # (m)
       extrinsic:

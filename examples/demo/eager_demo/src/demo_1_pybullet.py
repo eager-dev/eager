@@ -16,6 +16,7 @@
 
 # ROS packages required
 import rospy
+from eager_core.utils.file_utils import launch_roscore, load_yaml
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
@@ -28,11 +29,12 @@ def reward_fn(obs):
     rwd = []
     for obj in obs:
         if 'robot' in obj:
-            rwd.append(-(obs[obj]['joint_sensors'] ** 2).sum())
+            rwd.append(-(obs[obj]['joint_pos'] ** 2).sum())
     return rwd
 
 
 if __name__ == '__main__':
+    roscore = launch_roscore()  # First launch roscore
 
     rospy.init_node('eager_demo', anonymous=True, log_level=rospy.WARN)
 
@@ -40,30 +42,30 @@ if __name__ == '__main__':
     engine = PyBulletEngine(gui=True)
 
     # Create robot
-    # todo: change to Viper
-    # todo: add calibrated position & orientation
-    robot = Object.create('robot', 'eager_robot_ur5e', 'ur5e')
+    robot = Object.create('robot', 'eager_robot_vx300s', 'vx300s')
 
     # Add a camera for rendering
-    # todo: add calibrated position & orientation
-    cam = Object.create('cam', 'eager_sensor_realsense', 'd435')
+    # todo: change 'rotation' key in calibration.yaml to 'rotation' for consistency.
+    cal = load_yaml('eager_demo', 'calibration')
+    cam = Object.create('cam', 'eager_sensor_realsense', 'd435', position=cal['position'], orientation=cal['rotation'])
 
     # Create environment
     env = EagerEnv(engine=engine,
                    objects=[robot, cam],
                    name='demo_env',
-                   render_obs=cam.sensors['camera_rgb'].get_obs,
+                   render_sensor=cam.sensors['camera_rgb'],
                    max_steps=100,
                    reward_fn=reward_fn)
     env = Flatten(env)
 
     obs = env.reset()
-    for i in range(1000):
+    for i in range(100):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-        # todo: implement render modes ("human", "rgb_array")
-        env.render()
+        rgb = env.render()
         if done:
             obs = env.reset()
 
+    # todo: create a env.close(): close render screen, and env.shutdown() to shutdown the environment cleanly.
     env.close()
+    exit(1)

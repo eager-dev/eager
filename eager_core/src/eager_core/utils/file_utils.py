@@ -1,8 +1,6 @@
-import rospkg
-import rosparam
-import rosservice
-import rostopic
+import rospkg, rosparam, rosservice, rostopic, roslaunch, rospy
 from roslaunch.substitution_args import resolve_args
+import importlib
 from six import raise_from
 
 
@@ -47,3 +45,32 @@ def is_namespace_empty(ns):
             topic_lst.append(topic)
     ns_empty = not len(srvs_lst) + len(topic_lst) > 0
     return ns_empty
+
+
+def get_attribute_from_module(module, attribute):
+    module = importlib.import_module(module)
+    attribute = getattr(module, attribute)
+    return attribute
+
+
+def launch_node(launch_file, args):
+    cli_args = [substitute_xml_args(launch_file)] + args
+    roslaunch_args = cli_args[1:]
+    roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
+    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    roslaunch.configure_logging(uuid)
+    launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+    return launch
+
+
+def launch_roscore():
+    uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
+    roslaunch.configure_logging(uuid)
+    roscore = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
+
+    try:
+        roscore.start()
+    except roslaunch.core.RLException as e:
+        rospy.logwarn('Roscore cannot run as another roscore/master is already running. Continuing without re-initializing the roscore.')
+        pass
+    return roscore

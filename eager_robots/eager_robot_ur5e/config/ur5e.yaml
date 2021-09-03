@@ -1,5 +1,5 @@
 sensors:
-  joint_sensors:
+  joint_pos:
     type: boxf32
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
     low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
@@ -49,7 +49,7 @@ webots:
   default_translation: [0, 0, 0]
   default_orientation: [0.707107, 0, 0, -0.707107]
   sensors:
-    joint_sensors:
+    joint_pos:
       names:
       - shoulder_pan_joint_sensor
       - shoulder_lift_joint_sensor
@@ -74,7 +74,7 @@ webots:
 
 real:
   sensors:
-    joint_sensors:
+    joint_pos:
       topic: joint_states
       msg_name: JointState
       type: position
@@ -103,7 +103,7 @@ gazebo:
   default_translation: [0, 0, 0]
   default_orientation: [0, 0, 0, 0]
   sensors:
-    joint_sensors:
+    joint_pos:
       topic: joint_states
       msg_name: JointState
       type: position
@@ -127,7 +127,7 @@ pybullet:
   xacro: '$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro'
   urdf_name: 'ur5e_nolimits'
   sensors:  # IMPORTANT! Currently, not possible to mix sensor measurements of links & joints
-    joint_sensors:
+    joint_pos:
       type: joint_pos # OPTIONS: joint_{pos, vel, force_torque, applied_torque}
       names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
 #    link_sensors:
