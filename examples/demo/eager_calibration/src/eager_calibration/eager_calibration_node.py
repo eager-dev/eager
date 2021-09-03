@@ -3,8 +3,12 @@
 import rospy
 import sys
 import moveit_commander
+from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
+from moveit_msgs.msg import RobotState
+from eager_calibration.srv import SetFloat32, SetFloat32Response
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
+from eager_core.action_server import FollowJointTrajectoryActionServer
 
 
 class EagerCalibration(object):
@@ -80,6 +84,10 @@ class EagerCalibration(object):
         moveit_commander.roscpp_initialize(sys.argv)
         scene = moveit_commander.PlanningSceneInterface(synchronous=True)
 
+        # Initialize robot state
+        self.robot_state = RobotState()
+        self.robot_state.joint_state.name = self.joint_names
+
         self.manipulator_group = moveit_commander.MoveGroupCommander(self.manipulator_group_name)
         self.end_effector_group = moveit_commander.MoveGroupCommander(self.end_effector_group_name)
 
@@ -132,14 +140,44 @@ class EagerCalibration(object):
         scene.add_box('base3', p3, size=(self.workspace_length, object_length, self.collision_height))
         scene.add_box('base4', p4, size=(self.workspace_length, object_length, self.collision_height))
 
+        self.action_server = FollowJointTrajectoryActionServer(
+            self.joint_names, 'arm_controller/follow_joint_trajectory', duration=2.0)
+
         # Subscribers
         rospy.Subscriber('~event_in', String, self._event_in_callback)
+
+        # Services
+        self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
+
+        rospy.Service('goal', SetFloat32, self._goal_callback)
+        rospy.Service('check', SetFloat32, self._check_callback)
 
     def _event_in_callback(self, msg):
         if self.event is None:
             self.event = msg.data
 
+    def _goal_callback(self, req):
+        response = SetFloat32Response()
+        rospy.logwarn('3 {}'.format(req.data))
+        try:
+            self._move_to_joint_goal(self.manipulator_group, list(req.data))
+        except moveit_commander.exception.MoveItCommanderException:
+            response.success = False
+            return response
+        response.success = True
+        return response
+
+    def _check_callback(self, req):
+        self.robot_state.joint_state.position = req.data
+        response = SetFloat32Response()
+        gsvr = GetStateValidityRequest()
+        gsvr.group_name = self.manipulator_group_name
+        gsvr.robot_state = self.robot_state
+        response.success = self.state_validity_service.call(gsvr).valid
+        return response
+
     def _move_to_joint_goal(self, move_group, joint_goal):
+        move_group.get_current_state()
         # Now, we call the planner to compute the plan and execute it.
         succes = move_group.go(joint_goal, wait=True)
         # Calling `stop()` ensures that there is no residual movement
@@ -147,6 +185,7 @@ class EagerCalibration(object):
         return succes
 
     def _move_to_pose_goal(self, move_group, pose_goal):
+        move_group.get_current_state()
         # Now, we call the planner to compute the plan and execute it.
         success = move_group.go(wait=True)
         # Calling `stop()` ensures that there is no residual movement
@@ -177,8 +216,19 @@ class EagerCalibration(object):
         self._move_to_joint_goal(self.manipulator_group, target)
 
     def _command_sleep(self):
+        self._command_home()
+        current_state = self.manipulator_group.get_current_state()
+        current_position = current_state.joint_state.position
         target = self.manipulator_group.get_named_target_values('Sleep')
-        self._move_to_joint_goal(self.manipulator_group, target)
+        goal_pos = []
+        for idx, joint_name in enumerate(self.joint_names):
+            if abs(current_position[idx]) > 0.05:
+                rospy.logwarn('[{}] Cannot go to sleep since robot is not in home position!'.format(rospy.get_name()))
+                return
+            goal_pos.append(target[joint_name])
+        self.action_server.act(goal_pos)
+        rospy.sleep(2)
+        self.action_server.act([])
 
     def _command_open(self):
         target = self.end_effector_group.get_named_target_values('Open')
@@ -187,6 +237,20 @@ class EagerCalibration(object):
     def _command_close(self):
         target = self.end_effector_group.get_named_target_values('Closed')
         self._move_to_joint_goal(self.end_effector_group, target)
+
+    def _command_up(self):
+        current_state = self.manipulator_group.get_current_state()
+        current_position = current_state.joint_state.position
+        target = self.manipulator_group.get_named_target_values('Sleep')
+        goal_pos = []
+        for idx, joint_name in enumerate(self.joint_names):
+            if abs(target[joint_name] - current_position[idx]) > 0.25:
+                rospy.logwarn('[{}] Cannot go up since robot is not in sleep position!'.format(rospy.get_name()))
+                return
+            goal_pos.append(target[joint_name] / 2)
+        self.action_server.act(goal_pos)
+        rospy.sleep(2)
+        self.action_server.act([])
 
     def command(self):
         while not rospy.is_shutdown():
@@ -225,6 +289,8 @@ class EagerCalibration(object):
                     self._command_open()
                 elif self.event == 'close':
                     self._command_close()
+                elif self.event == 'up':
+                    self._command_up()
                 self.event = None
             self.rate.sleep()
 
