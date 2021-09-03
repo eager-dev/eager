@@ -9,6 +9,8 @@ project(eager_calibration)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  std_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -20,12 +22,21 @@ find_package(catkin REQUIRED COMPONENTS
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 catkin_python_setup()
 
+add_service_files(
+  FILES
+  SetFloat32.srv
+)
+
+generate_messages(
+  DEPENDENCIES std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
 ###################################
 
 catkin_package(
+  CATKIN_DEPENDS message_runtime std_msgs
 )
 
 ###########

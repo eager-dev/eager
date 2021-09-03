@@ -2,6 +2,7 @@ moveit_package: eager_robot_vx300s
 urdf_path: '$(find interbotix_xsarm_descriptions)/urdf/vx300s.urdf.xacro'
 joint_names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
 group_name: interbotix_arm
+sensor_name: joint_pos
 base_frame: vx300s/base_link
 base_length: 0.4
 workspace_length: 2.4

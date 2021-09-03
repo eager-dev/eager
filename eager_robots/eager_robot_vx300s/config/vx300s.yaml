@@ -11,18 +11,18 @@ sensors:
 actuators:
   joints:
     type: boxf32
-    high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
-    low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
+    high: [3.14158, 1.25663, 1.605702, 3.14158, 2.23402, 3.14158]
+    low: [-3.14158, -1.85004, -1.76278, -3.14158, -1.86750, -3.14158]
 
 states:
   joint_pos:
     type: boxf32
-    high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
-    low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
+    high: [3.14158, 1.25663, 1.605702, 3.14158, 2.23402, 3.14158]
+    low: [-3.14158, -1.85004, -1.76278, -3.14158, -1.86750, -3.14158]
   joint_vel:
     type: boxf32
-    high: [1, 1, 1, 1, 1, 1]
-    low: [-1, -1, -1, -1, -1, -1]
+    high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
+    low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
 
 gazebo:
   sensors:
@@ -44,8 +44,28 @@ gazebo:
       names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
       topic: vx300s/joint_states
       entries: [6, 5, 0, 1, 7, 8]
-    joint_vel:
-      type: joint_vel
+
+real:
+  sensors:
+    joint_pos:
+      topic: /vx300s/joint_states
+      msg_name: JointState
+      type: position
+      entries: [0, 1, 2, 3, 4, 5]
+
+  actuators:
+    joints:
+      server_name: /vx300s/arm_controller/follow_joint_trajectory
+      action_server: FollowJointTrajectoryActionServer
       names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
-      topic: vx300s/joint_states
-      entries: [6, 5, 0, 1, 7, 8]
+
+  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
+    joint_pos:
+      type: joint_pos
+      names: [waist, shoulder, elbow, forearm_roll, wrist_angle, wrist_rotate]
+      topic: /vx300s/joint_states
+      entries: [0, 1, 2, 3, 4, 5]
+      reset_topic: /vx300s/goal
+      reset_type: eager_calibration.srv/SetFloat32
+      check_topic: /vx300s/check
+      check_type: eager_calibration.srv/SetFloat32

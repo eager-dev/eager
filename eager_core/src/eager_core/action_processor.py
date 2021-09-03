@@ -39,7 +39,7 @@ class ActionProcessor(ABC):
 
         # Get the name of the environment
         ns = rospy.get_namespace()
-        env = ns[:ns.find('/', 1) + 1]
+        env_name = ns.split('/')[1]
 
         # The environment action space can change because of the processor
         # There are two ways to define the new action space:
@@ -70,7 +70,7 @@ class ActionProcessor(ABC):
                 sens_def = object_params['sensors'][sensor]
                 msg_type = get_message_from_def(sens_def)
                 self._get_observation_services[object_name][sensor] = rospy.ServiceProxy(
-                    env + 'objects/' + object_name + '/sensors/' + sensor, msg_type)
+                    '/' + env_name + '/objects/' + object_name + '/sensors/' + sensor, msg_type)
         self._get_action_service = rospy.ServiceProxy(ns + '/raw', raw_action_msg)
         self.__process_action_service = rospy.Service(ns, action_msg, self.__process_action_handler)
         return space_msg  # The new environment action space

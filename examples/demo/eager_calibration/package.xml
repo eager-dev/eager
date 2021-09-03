@@ -34,12 +34,17 @@
   <!-- Use depend as a shortcut for packages that are both build and exec dependencies -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
   <build_export_depend>rospy</build_export_depend>
   <exec_depend>rospy</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
   <exec_depend>eager_core</exec_depend>
   <exec_depend>eager_bridge_gazebo</exec_depend>
   <exec_depend>eager_bridge_real</exec_depend>
   <exec_depend>eager_robot_vx300s</exec_depend>
+  <exec_depend>message_generation</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
   <!-- <exec_depend>easy_handeye</exec_depend>
   <exec_depend>aruco_ros</exec_depend>
 	<exec_depend>interbotix_xsarm_ros_control</exec_depend>

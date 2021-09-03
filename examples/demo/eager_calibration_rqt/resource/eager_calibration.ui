@@ -56,13 +56,6 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="1">
-    <widget class="QPushButton" name="uprightButton">
-     <property name="text">
-      <string>Upright</string>
-     </property>
-    </widget>
-   </item>
    <item row="3" column="0">
     <widget class="QPushButton" name="pose4Button">
      <property name="text">
@@ -193,6 +186,20 @@
     <widget class="QPushButton" name="openButton">
      <property name="text">
       <string>Open</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QPushButton" name="upButton">
+     <property name="text">
+      <string>Up</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="2">
+    <widget class="QPushButton" name="uprightButton">
+     <property name="text">
+      <string>Upright</string>
      </property>
     </widget>
    </item>
