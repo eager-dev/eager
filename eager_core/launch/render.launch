@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="name" doc="The environment name."/>
+    <arg name="topic_name" doc="Name of the image topic stream."/>
+    <arg name="fps" default="20" doc="Frames per second."/>
+    <group ns="$(arg name)">
+        <node name="render_node" pkg="eager_core" type="render_node.py" output="screen">
+            <param name="topic_name" value="$(arg topic_name)"/>
+            <param name="fps" value="$(arg fps)"/>
+        </node>
+    </group>
+</launch>
