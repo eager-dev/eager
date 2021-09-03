@@ -34,10 +34,15 @@ class SafeActions(ActionProcessor):
         collision_height = rospy.get_param('~collision_height')
         robot_type = rospy.get_param('~robot_type')
 
+        # Get robot name from namespace
+        ns = rospy.get_namespace()
+        self.robot_name = ns.split('/')[3]
+
         # Get params from config file
         params = load_yaml('eager_process_safe_actions', '{}'.format(robot_type))
         self.joint_names = params['joint_names']
         self.group_name = params['group_name']
+        self.sensor_name = params['sensor_name']
         moveit_package = params['moveit_package']
         urdf_path = params['urdf_path']
         base_frame = params['base_frame']
@@ -141,13 +146,7 @@ class SafeActions(ActionProcessor):
         pass
 
     def _process_action(self, action, observation):
-        if len(observation) > 1:
-            rospy.logwarn("[{}] Expected observation from only one robot".format(rospy.get_name()))
-        for robot in observation:
-            if len(observation[robot]) > 1:
-                rospy.logwarn("[{}] Expected observation from only one sensor".format(rospy.get_name()))
-            for sensor in observation[robot]:
-                current_position = observation[robot][sensor]
+        current_position = observation[self.robot_name][self.sensor_name]
         safe_action = self._getSafeAction(np.asarray(action), np.asarray(current_position))
         return safe_action
 
@@ -190,6 +189,7 @@ class SafeActions(ActionProcessor):
             gsvr.robot_state.joint_state.position = way_points[i, :]
             if not self.state_validity_service.call(gsvr).valid:
                 if i == 0:
+                    rospy.logwarn(current_position)
                     rospy.logwarn("Current state in collision!")
                     return self.previous_position
                 self.previous_position = current_position
