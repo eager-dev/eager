@@ -22,6 +22,9 @@ from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
 
+# Required for action processor
+from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
+
 
 # Dummy reward function - Here, we output a batch reward for each ur5e.
 # Anything can be defined here. All observations for each object in "objects" is included in obs
@@ -43,11 +46,24 @@ if __name__ == '__main__':
 
     # Create robot
     robot = Object.create('robot', 'eager_robot_vx300s', 'vx300s')
+    # Add action preprocessing
+    processor = SafeActionsProcessor(duration=0.5,
+                                     checks_per_rad=15,
+                                     vel_limit=0.25,
+                                     robot_type='vx300s',
+                                     collision_height=0.1,
+                                     )
+    robot.actuators['joints'].add_preprocess(
+        processor=processor,
+        observations_from_objects=[robot],
+    )
 
     # Add a camera for rendering
-    # todo: change 'rotation' key in calibration.yaml to 'rotation' for consistency.
-    cal = load_yaml('eager_demo', 'calibration')
-    cam = Object.create('cam', 'eager_sensor_realsense', 'd435', position=cal['position'], orientation=cal['orientation'])
+    calibration = load_yaml('eager_demo', 'calibration')
+    cam = Object.create('cam', 'eager_sensor_realsense', 'd435',
+                        position=calibration['position'],
+                        orientation=calibration['orientation'],
+                        )
 
     # Create environment
     env = EagerEnv(engine=engine,
@@ -55,7 +71,8 @@ if __name__ == '__main__':
                    name='demo_env',
                    render_sensor=cam.sensors['camera_rgb'],
                    max_steps=100,
-                   reward_fn=reward_fn)
+                   reward_fn=reward_fn,
+                   )
     env = Flatten(env)
 
     obs = env.reset()  # TODO: if code does not close properly, render seems to keep a thread open....

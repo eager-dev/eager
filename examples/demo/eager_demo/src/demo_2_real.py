@@ -24,7 +24,6 @@ from eager_bridge_real.real_engine import RealEngine  # noqa: F401
 
 # Required for action processor
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
-from gym import spaces  # todo: can we avoid having to import this?
 
 
 # Dummy reward function - Here, we output a batch reward for each robot.
@@ -60,7 +59,7 @@ if __name__ == '__main__':
     robot.actuators['joints'].add_preprocess(
         processor=processor,
         observations_from_objects=[robot],
-        action_space=spaces.Box(low=-3.14, high=3.14, shape=(6,)))
+        )
 
     # Add a camera for rendering
     # First load calibrated position & orientation
@@ -74,13 +73,13 @@ if __name__ == '__main__':
     env = EagerEnv(engine=engine,
                    objects=[robot, cam],
                    name='demo_env',
-                   render_obs=cam.sensors['camera_rgb'].get_obs,
+                   render_sensor=cam.sensors['camera_rgb'],
                    max_steps=10,
                    reward_fn=reward_fn)
     env = Flatten(env)
 
     obs = env.reset()
-    for i in range(50):
+    for i in range(20):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         # todo: implement render modes ("human", "rgb_array")
