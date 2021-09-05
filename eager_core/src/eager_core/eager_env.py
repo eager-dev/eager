@@ -312,7 +312,7 @@ class EagerEnv(BaseEagerEnv):
                 topic_name = self.render_sensor.topic_name
                 self.render_node = launch_node(launch_file, args=['name:=' + self.name,
                                                                   'topic_name:=' + topic_name,
-                                                                  'rate:=' + str(20)])
+                                                                  'fps:=20'])
                 self.render_node.start()
                 self.render_init = True
             return self.render_sensor.get_obs()
