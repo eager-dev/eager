@@ -29,6 +29,7 @@ class RealBridge(PhysicsBridge):
         self._get_state_services = []
 
         self._reset_services = dict()
+        self._remap_publishers = dict()
 
         super(RealBridge, self).__init__("real")
 
@@ -46,6 +47,7 @@ class RealBridge(PhysicsBridge):
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
+        self._remap_publishers[name] = {}
         for sensor in sensors:
             rospy.logdebug("Initializing sensor {}".format(sensor))
             sensor_params = sensors[sensor]
@@ -75,21 +77,26 @@ class RealBridge(PhysicsBridge):
                     msg_topic,
                     msg_type,
                     functools.partial(
-                        self._sensor_entries_callback, name=name, sensor=sensor, attribute=attribute, entries=entries))
-                    )
+                        self._sensor_entries_callback, name=name, sensor=sensor, attribute=attribute, entries=entries)))
             else:
+                self._remap_publishers[name][sensor] = None
+                if 'remap' in sensor_params:
+                    if sensor_params['remap']:
+                        self._remap_publishers[name][sensor] = rospy.Publisher(
+                            topic + "/sensors/" + sensor, msg_type, queue_size=1)
                 self._sensor_subscribers.append(rospy.Subscriber(
                     msg_topic,
                     msg_type,
-                    functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+                    functools.partial(
+                        self._sensor_callback,
+                        name=name,
+                        sensor=sensor,
+                        attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
                                                                          name=name, obs_name=sensor,
-                                                                         message_type=get_response_from_def(space)
-                                                                         )
-                                                       )
-                                         )
+                                                                         message_type=get_response_from_def(space))))
 
     def _init_actuators(self, topic, name, actuators):
         self._actuator_services[name] = {}
@@ -160,6 +167,8 @@ class RealBridge(PhysicsBridge):
                                          )
 
     def _sensor_callback(self, data, name, sensor, attribute):
+        if self._remap_publishers[name][sensor]:
+            self._remap_publishers[name][sensor].publish(data)
         data_list = getattr(data, attribute)
         self._sensor_buffer[name][sensor] = data_list
 
@@ -238,22 +247,13 @@ class RealBridge(PhysicsBridge):
                 if state.value:
                     if 'check' in reset_srvs:
                         validity_response = reset_srvs['check'](state.value)
-                        rospy.logwarn('1: {}'.format(state.value))
                         if not validity_response.success:
-                            rospy.logwarn(
-                                '[{}] Reset state {} for object {} not valid!'.format(rospy.get_name(), state_name, object_name)
-                                )
                             failed_state = State()
                             failed_state.name = state_name
                             failed_states.states.append(failed_state)
                         else:
-                            rospy.logwarn('valid')
-                            rospy.logwarn('2 {}'.format(state.value))
                             reset_response = reset_srvs['set'](list(state.value))
                             if not reset_response.success:
-                                rospy.logwarn(
-                                    '[{}] Reset state {} for object {} not failed!'.format(rospy.get_name(), state_name, object_name)
-                                    )
                                 failed_state = State()
                                 failed_state.name = state_name
                                 failed_states.states.append(failed_state)
