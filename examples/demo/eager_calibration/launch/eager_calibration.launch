@@ -118,5 +118,4 @@
     <param name="robot_velocity_scaling"      value="$(arg robot_velocity_scaling)" />
     <param name="robot_acceleration_scaling"  value="$(arg robot_acceleration_scaling)" />
   </node>
-
 </launch>
