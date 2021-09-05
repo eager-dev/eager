@@ -16,6 +16,7 @@ gazebo:
       topic: camera/color/image_raw
       msg_name: Image
       type: data
+      remap: True
 #    camera_depth:
 #      topic: camera/depth/image_rect_raw
 #      msg_name: Image
@@ -27,6 +28,7 @@ real:
       topic: /camera/color/image_raw
       msg_name: Image
       type: data
+      remap: True
 #    camera_depth:
 #      topic: camera/depth/image_rect_raw
 #      msg_name: Image
