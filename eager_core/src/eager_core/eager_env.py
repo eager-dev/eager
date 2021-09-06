@@ -270,7 +270,7 @@ class EagerEnv(BaseEagerEnv):
         """
         self.steps = 0
         states_to_reset = self.state_space.sample()
-        done = False
+        done = states_to_reset is None
         while not done:
             reset_dict = self._reset_fn(self)
             for obj_name, object in reset_dict.items():

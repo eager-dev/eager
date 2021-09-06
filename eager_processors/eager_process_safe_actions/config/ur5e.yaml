@@ -2,7 +2,7 @@ moveit_package: ur5_e_moveit_config
 urdf_path: '$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro'
 joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
 group_name: manipulator
-sensor_name: joint_sensors
+sensor_name: joint_pos
 base_frame: base_link
 base_length: 0.4
 workspace_length: 2.4

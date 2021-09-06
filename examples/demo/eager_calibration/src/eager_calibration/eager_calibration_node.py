@@ -36,7 +36,7 @@ class EagerCalibration(object):
 
         self.ee_step = rospy.get_param('~ee_step', 0.01)
         self.jump_threshold = rospy.get_param('~jump_threshold', 0.0)
-        self.collision_height = rospy.get_param('~collision_height', 0.08)
+        self.collision_height = rospy.get_param('~collision_height', 0.15)
         self.base_length = rospy.get_param('~base_length', 0.4)
         self.workspace_length = rospy.get_param('~workspace_length', 2.4)
         self.velocity_scaling_factor = rospy.get_param('~velocity_scaling_factor', 0.2)

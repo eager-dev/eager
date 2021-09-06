@@ -68,9 +68,9 @@ webots:
       - wrist_2_joint
       - wrist_3_joint
 
-  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
-    position: {}
-    orientation: {}
+  # states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
+  #   position: {}
+  #   orientation: {}
 
 real:
   sensors:

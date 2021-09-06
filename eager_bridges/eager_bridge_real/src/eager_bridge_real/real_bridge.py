@@ -168,7 +168,10 @@ class RealBridge(PhysicsBridge):
 
     def _sensor_callback(self, data, name, sensor, attribute):
         if self._remap_publishers[name][sensor]:
-            self._remap_publishers[name][sensor].publish(data)
+            try:
+                self._remap_publishers[name][sensor].publish(data)
+            except rospy.exceptions.ROSException:
+                pass
         data_list = getattr(data, attribute)
         self._sensor_buffer[name][sensor] = data_list
 
