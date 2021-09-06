@@ -59,8 +59,8 @@ class SafeActions(ActionProcessor):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        urdf_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        urdf_launch.start()
+        self.urdf_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self.urdf_launch.start()
 
         # Launch MoveIt
         str_launch_sim = '$(find {})/launch/move_group.launch'.format(moveit_package)
@@ -73,8 +73,8 @@ class SafeActions(ActionProcessor):
         roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
-        moveit_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-        moveit_launch.start()
+        self.moveit_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        self.moveit_launch.start()
 
         # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
@@ -140,7 +140,10 @@ class SafeActions(ActionProcessor):
         return space
 
     def _close(self):
-        pass
+        self.urdf_launch.shutdown()
+        self.moveit_launch.shutdown()
+        moveit_commander.roscpp_shutdown()
+        return True
 
     def _reset(self):
         pass
@@ -148,6 +151,8 @@ class SafeActions(ActionProcessor):
     def _process_action(self, action, observation):
         current_position = observation[self.robot_name][self.sensor_name]
         safe_action = self._getSafeAction(np.asarray(action), np.asarray(current_position))
+        if safe_action is None:
+            safe_action = current_position
         return safe_action
 
     def _getSafeAction(self, goal_position, current_position):
@@ -189,7 +194,6 @@ class SafeActions(ActionProcessor):
             gsvr.robot_state.joint_state.position = way_points[i, :]
             if not self.state_validity_service.call(gsvr).valid:
                 if i == 0:
-                    rospy.logwarn(current_position)
                     rospy.logwarn("Current state in collision!")
                     return self.previous_position
                 self.previous_position = current_position

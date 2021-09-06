@@ -82,6 +82,8 @@ class GazeboBridge(PhysicsBridge):
         self._reset_services = dict()
         self.controller_list = []
 
+        self._remap_publishers = dict()
+
         self.switch_controller_request = SwitchControllerRequest()
         self.switch_controller_request.start_asap = True
         self.switch_controller_request.strictness = 1
@@ -165,6 +167,7 @@ class GazeboBridge(PhysicsBridge):
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
+        self._remap_publishers[name] = {}
         for sensor in sensors:
             rospy.logdebug("Initializing sensor {}".format(sensor))
             sensor_params = sensors[sensor]
@@ -197,18 +200,25 @@ class GazeboBridge(PhysicsBridge):
                         self._sensor_entries_callback, name=name, sensor=sensor, attribute=attribute, entries=entries))
                     )
             else:
+                self._remap_publishers[name][sensor] = None
+                if 'remap' in sensor_params:
+                    if sensor_params['remap']:
+                        self._remap_publishers[name][sensor] = rospy.Publisher(
+                            topic + "/sensors/" + sensor, msg_type, queue_size=1)
                 self._sensor_subscribers.append(rospy.Subscriber(
                     msg_topic,
                     msg_type,
-                    functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute)))
+                    functools.partial(
+                        self._sensor_callback,
+                        name=name,
+                        sensor=sensor,
+                        attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
                                                                          name=name, obs_name=sensor,
                                                                          message_type=get_response_from_def(space)
-                                                                         )
-                                                       )
-                                         )
+                                                                         )))
 
     def _init_actuators(self, topic, name, actuators):
         self._actuator_services[name] = {}
@@ -257,26 +267,24 @@ class GazeboBridge(PhysicsBridge):
                         msg_topic,
                         msg_type,
                         functools.partial(
-                            self._state_entries_callback, name=name, state=state_name, attribute=attribute, entries=entries))
-                        )
+                            self._state_entries_callback, name=name, state=state_name, attribute=attribute, entries=entries)))
                 else:
                     self._state_subscribers.append(rospy.Subscriber(
                         msg_topic,
                         msg_type,
                         functools.partial(
-                            self._state_callback, name=name, state=state_name, attribute=attribute))
-                        )
+                            self._state_callback, name=name, state=state_name, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._state_buffer,
                                                                          name=name,
                                                                          obs_name=state_name,
                                                                          message_type=get_response_from_def(space)
-                                                                         )
-                                                       )
-                                         )
+                                                                         )))
 
     def _sensor_callback(self, data, name, sensor, attribute):
+        if self._remap_publishers[name][sensor]:
+            self._remap_publishers[name][sensor].publish(data)
         data_list = getattr(data, attribute)
         self._sensor_buffer[name][sensor] = data_list
 
@@ -379,10 +387,6 @@ class GazeboBridge(PhysicsBridge):
             self._reset_services[name][state_name] = {'get': get_reset_srv, 'set': set_reset_srv}
             if get_state_srv is not None:
                 self._get_state_services.append(get_state_srv)
-
-    def _state_callback(self, data, name, state, attribute, entries):
-        data_list = getattr(data, attribute)
-        self._state_buffer[name][state] = list(map(data_list.__getitem__, entries))
 
     def _service(self, req, buffer, name, obs_name, message_type):
         return message_type(buffer[name][obs_name])

@@ -158,7 +158,6 @@ class EagerCalibration(object):
 
     def _goal_callback(self, req):
         response = SetFloat32Response()
-        rospy.logwarn('3 {}'.format(req.data))
         try:
             self._move_to_joint_goal(self.manipulator_group, list(req.data))
         except moveit_commander.exception.MoveItCommanderException:
