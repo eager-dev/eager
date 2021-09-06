@@ -11,14 +11,14 @@ actuators:
     low: [-3.14159, -3.14159, -3.14159, -3.14159, -3.14159, -3.14159]
 
 states:
-  position:
-    type: boxf32
-    high: [3.4E+38, 3.4E+38, 3.4E+38] #Max float32
-    low: [-3.4E+38, -3.4E+38, -3.4E+38]
-  orientation:
-    type: boxf32
-    high: [1, 1, 1, 1] #Max float32
-    low: [-1, -1, -1, -1]
+#  position:
+#    type: boxf32
+#    high: [0.5, 0.5, 0.5] #Max float32
+#    low: [-0.5, -0.5, -0.5]
+#  orientation:
+#    type: boxf32
+#    high: [1, 1, 1, 1] #Max float32
+#    low: [-1, -1, -1, -1]
   joint_pos:
     type: boxf32
     high: [3.14159, 3.14159, 3.14159, 3.14159, 3.14159, 3.14159]
@@ -47,7 +47,8 @@ states:
 webots:
   node_type_name: UR5e
   default_translation: [0, 0, 0]
-  default_orientation: [0.707107, 0, 0, -0.707107]
+#  default_orientation: [0.707107, 0, 0, -0.707107]
+  default_orientation: [0, 0, 0, 1]
   sensors:
     joint_pos:
       names:
@@ -68,9 +69,9 @@ webots:
       - wrist_2_joint
       - wrist_3_joint
 
-  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
-    position: {}
-    orientation: {}
+#  states: # IMPORTANT! Only add states you are able to both read and reset in the physics engine
+#    position: {}
+#    orientation: {}
 
 real:
   sensors:
