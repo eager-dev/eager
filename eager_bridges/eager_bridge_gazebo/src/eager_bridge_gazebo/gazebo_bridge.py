@@ -17,6 +17,8 @@ from controller_manager_msgs.srv import ListControllers, ListControllersRequest,
 from eager_bridge_gazebo.srv import SetInt, SetIntRequest, SetJointState, SetJointStateRequest
 from geometry_msgs.msg import Point, Quaternion
 from eager_core.utils.message_utils import get_value_from_def, get_message_from_def, get_response_from_def, get_length_from_def
+from eager_core.srv import ResetEnvResponse
+from eager_core.msg import ObjectStates, State
 import time
 
 
@@ -70,6 +72,7 @@ class GazeboBridge(PhysicsBridge):
         self._sensor_services = []
 
         self._actuator_services = dict()
+        self._action_servers = dict()
 
         self._state_buffer = dict()
         self._state_subscribers = []
@@ -78,6 +81,8 @@ class GazeboBridge(PhysicsBridge):
 
         self._reset_services = dict()
         self.controller_list = []
+
+        self._remap_publishers = dict()
 
         self.switch_controller_request = SwitchControllerRequest()
         self.switch_controller_request.start_asap = True
@@ -162,10 +167,13 @@ class GazeboBridge(PhysicsBridge):
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = {}
+        self._remap_publishers[name] = {}
         for sensor in sensors:
             rospy.logdebug("Initializing sensor {}".format(sensor))
             sensor_params = sensors[sensor]
-            msg_topic = topic + "/" + sensor_params["topic"]
+            msg_topic = sensor_params['topic']
+            if not msg_topic.startswith('/'):
+                msg_topic = topic + "/" + sensor_params["topic"]
             msg_name = sensor_params["msg_name"]
             space = sensor_params['space']
             valid_msgs = [i[0] for i in getmembers(sensor_msgs.msg) if isclass(i[1])]
@@ -180,23 +188,41 @@ class GazeboBridge(PhysicsBridge):
             else:
                 rospy.logerror("Sensor message {} does not have an attribute named {}. Valid attributes are: {}".format(
                     msg_name, attribute_name, valid_attributes))
-            entries = sensor_params['entries']
+            entries = None
+            if 'entries' in sensor_params:
+                entries = sensor_params['entries']
             self._sensor_buffer[name][sensor] = [get_value_from_def(space)] * get_length_from_def(space)
-            self._sensor_subscribers.append(rospy.Subscriber(
-                msg_topic,
-                msg_type,
-                functools.partial(self._sensor_callback, name=name, sensor=sensor, attribute=attribute, entries=entries)))
+            if entries:
+                self._sensor_subscribers.append(rospy.Subscriber(
+                    msg_topic,
+                    msg_type,
+                    functools.partial(
+                        self._sensor_entries_callback, name=name, sensor=sensor, attribute=attribute, entries=entries))
+                    )
+            else:
+                self._remap_publishers[name][sensor] = None
+                if 'remap' in sensor_params:
+                    if sensor_params['remap']:
+                        self._remap_publishers[name][sensor] = rospy.Publisher(
+                            topic + "/sensors/" + sensor, msg_type, queue_size=1)
+                self._sensor_subscribers.append(rospy.Subscriber(
+                    msg_topic,
+                    msg_type,
+                    functools.partial(
+                        self._sensor_callback,
+                        name=name,
+                        sensor=sensor,
+                        attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/sensors/" + sensor, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._sensor_buffer,
                                                                          name=name, obs_name=sensor,
                                                                          message_type=get_response_from_def(space)
-                                                                         )
-                                                       )
-                                         )
+                                                                         )))
 
     def _init_actuators(self, topic, name, actuators):
         self._actuator_services[name] = {}
+        self._action_servers[name] = {}
         for actuator in actuators:
             rospy.logdebug("Initializing actuator {}".format(actuator))
             names = actuators[actuator]["names"]
@@ -206,11 +232,12 @@ class GazeboBridge(PhysicsBridge):
             valid_servers = [i[0] for i in getmembers(eager_core.action_server) if isclass(i[1])]
             if action_server_name in valid_servers:
                 action_server = getattr(eager_core.action_server, action_server_name)
+                self._action_servers[name][actuator] = action_server(names, server_name)
             else:
                 rospy.logerror("Action server {} not implemented. Valid action servers are: {}".format(
                     action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
-            set_action_srv = action_server(names, server_name).act
+            set_action_srv = self._action_servers[name][actuator].act
             self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)
 
     def _init_states(self, topic, name, states):
@@ -222,9 +249,12 @@ class GazeboBridge(PhysicsBridge):
             self._state_buffer[name][state_name] = [get_value_from_def(space)] * get_length_from_def(space)
             if state['type'] == 'joint_pos' or state['type'] == 'joint_vel':
                 if 'topic' in state:
-                    msg_topic = topic + '/' + state['topic']
+                    msg_topic = state['topic']
+                    if not msg_topic.startswith('/'):
+                        msg_topic = topic + '/' + msg_topic
                 else:
                     msg_topic = topic + '/joint_states'
+                entries = None
                 if 'entries' in state:
                     entries = state['entries']
                 msg_type = sensor_msgs.msg.JointState
@@ -232,23 +262,43 @@ class GazeboBridge(PhysicsBridge):
                     attribute = 'position'
                 elif state['type'] == 'joint_vel':
                     attribute = 'velocity'
-                self._state_subscribers.append(rospy.Subscriber(
-                    msg_topic,
-                    msg_type,
-                    functools.partial(self._state_callback, name=name, state=state_name, attribute=attribute, entries=entries)))
+                if entries:
+                    self._state_subscribers.append(rospy.Subscriber(
+                        msg_topic,
+                        msg_type,
+                        functools.partial(
+                            self._state_entries_callback, name=name, state=state_name, attribute=attribute, entries=entries)))
+                else:
+                    self._state_subscribers.append(rospy.Subscriber(
+                        msg_topic,
+                        msg_type,
+                        functools.partial(
+                            self._state_callback, name=name, state=state_name, attribute=attribute)))
             self._sensor_services.append(rospy.Service(topic + "/states/" + state_name, get_message_from_def(space),
                                                        functools.partial(self._service,
                                                                          buffer=self._state_buffer,
                                                                          name=name,
                                                                          obs_name=state_name,
                                                                          message_type=get_response_from_def(space)
-                                                                         )
-                                                       )
-                                         )
+                                                                         )))
 
-    def _sensor_callback(self, data, name, sensor, attribute, entries):
+    def _sensor_callback(self, data, name, sensor, attribute):
+        if self._remap_publishers[name][sensor]:
+            self._remap_publishers[name][sensor].publish(data)
+        data_list = getattr(data, attribute)
+        self._sensor_buffer[name][sensor] = data_list
+
+    def _sensor_entries_callback(self, data, name, sensor, attribute, entries):
         data_list = getattr(data, attribute)
         self._sensor_buffer[name][sensor] = list(map(data_list.__getitem__, entries))
+
+    def _state_callback(self, data, name, state, attribute):
+        data_list = getattr(data, attribute)
+        self._state_buffer[name][state] = data_list
+
+    def _state_entries_callback(self, data, name, state, attribute, entries):
+        data_list = getattr(data, attribute)
+        self._state_buffer[name][state] = list(map(data_list.__getitem__, entries))
 
     def _init_resets(self, topic, name, states):
         self._reset_services[name] = dict()
@@ -334,13 +384,9 @@ class GazeboBridge(PhysicsBridge):
             else:
                 raise ValueError('State type ("%s") must contain "{joint, base}".' % states[state]['type'])
             get_reset_srv = rospy.ServiceProxy(topic + "/resets/" + state_name, get_message_from_def(space))
-            self._reset_services[name][state_name] = (get_reset_srv, set_reset_srv)
+            self._reset_services[name][state_name] = {'get': get_reset_srv, 'set': set_reset_srv}
             if get_state_srv is not None:
                 self._get_state_services.append(get_state_srv)
-
-    def _state_callback(self, data, name, state, attribute, entries):
-        data_list = getattr(data, attribute)
-        self._state_buffer[name][state] = list(map(data_list.__getitem__, entries))
 
     def _service(self, req, buffer, name, obs_name, message_type):
         return message_type(buffer[name][obs_name])
@@ -360,7 +406,7 @@ class GazeboBridge(PhysicsBridge):
             get_state_service()
         return True
 
-    def _reset(self):
+    def _reset(self, req):
         # First we switch off all controllers
         for controller in self.controller_list:
             service = controller['service']
@@ -370,13 +416,34 @@ class GazeboBridge(PhysicsBridge):
             service(self.switch_controller_request)
             self._pause_physics()
         # Now we can perform the reset
-        for robot in self._reset_services:
-            robot_resets = self._reset_services[robot]
-            for state in robot_resets:
-                (get_state_srv, set_reset_srvs) = robot_resets[state]
-                state = get_state_srv()
+        response = ResetEnvResponse()
+        failed_resets = []
+        for object in req.objects:
+            object_name = object.name
+            if object_name not in self._reset_services:
+                break
+            failed_states = ObjectStates()
+            failed_states.name = object_name
+            states = object.states
+            for state in states:
+                state_name = state.name
+                if state_name not in self._reset_services[object_name]:
+                    break
+                reset_srvs = self._reset_services[object_name][state_name]
+                state = reset_srvs['get']()
                 if state.value:
-                    set_reset_srvs(list(state.value))
+                    if 'check' in reset_srvs:
+                        validity_response = reset_srvs['check'](state.value)
+                        if not validity_response.data:
+                            failed_state = State()
+                            failed_state.name = state_name
+                            failed_states.states.append(failed_state)
+                        else:
+                            reset_srvs['set'](list(state.value))
+                    else:
+                        reset_srvs['set'](list(state.value))
+            failed_resets.append(failed_states)
+        response.objects = failed_resets
         # Now we need to turn back on the controllers
         for controller in self.controller_list:
             service = controller['service']
@@ -387,7 +454,7 @@ class GazeboBridge(PhysicsBridge):
             self._pause_physics()
         # Finally, we need to step once in order to make the controllers active
         self.stepped = False
-        return True
+        return response
 
     def _close(self):
         self._launch.shutdown()

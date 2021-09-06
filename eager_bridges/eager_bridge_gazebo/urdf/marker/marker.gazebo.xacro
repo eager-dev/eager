@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="marker_gazebo" params="ID">
+
+  <!-- Link1 -->
+    <gazebo reference="marker_${ID}">
+      <material>
+        CustomMarker
+      </material>
+    </gazebo>
+  </xacro:macro>
+</robot>

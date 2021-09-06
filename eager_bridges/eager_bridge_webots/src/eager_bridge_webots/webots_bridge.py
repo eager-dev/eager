@@ -310,7 +310,7 @@ class WeBotsBridge(PhysicsBridge):
         #  we are not sure that the observation buffers are updated.
         return True
 
-    def _reset(self):
+    def _reset(self, req):
         # Set all actions before stepping the world
         for robot in self._reset_services:
             robot_resets = self._reset_services[robot]

@@ -52,6 +52,9 @@ add_message_files(
   Object.msg
   Space.msg
   Seed.msg
+  Seed.msg
+  ObjectStates.msg
+  State.msg
 )
 
 ## Generate services in the 'srv' folder

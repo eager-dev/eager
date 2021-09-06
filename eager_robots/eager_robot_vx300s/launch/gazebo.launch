@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="ns" default="vx300s"  doc="Namespace of the robot." />
+  <arg name="name" default="robot" doc="Name of the robot. This should be unique." />
+  <arg name="configuration" default="-z 0"/>
+
+  <arg name="robot_model"                       default="vx300s"/>
+  <arg name="robot_name"                        default="vx300s"/>
+  <arg name="add_marker"                        default="false"/>
+
+  <group ns="$(arg ns)">
+    <env name="GAZEBO_RESOURCE_PATH"              value="$(find interbotix_xsarm_gazebo)"/>
+
+    <rosparam file="$(find interbotix_xsarm_gazebo)/config/trajectory_controllers/$(arg robot_model)_trajectory_controllers.yaml" command="load" ns="$(arg robot_name)"/>
+
+    <param name="$(arg robot_name)/robot_description" command="$(find xacro)/xacro '$(find eager_robot_vx300s)/urdf/robot.urdf.xacro'
+                                                               robot_name:=$(arg robot_name)
+                                                               add_marker:=$(arg add_marker)" />
+
+    <node
+      name="urdf_spawner"
+      pkg="gazebo_ros"
+      type="spawn_model"
+      respawn="false"
+      output="screen"
+      ns="$(arg robot_name)"
+  	  args="-urdf -model $(arg name) $(arg configuration) -param robot_description"/>
+
+		<node
+      name="controller_spawner"
+      pkg="controller_manager"
+      type="controller_manager"
+      respawn="false"
+      output="screen"
+      ns="$(arg robot_name)"
+      args="spawn arm_controller gripper_controller joint_state_controller"/>
+
+		<node
+      name="robot_state_publisher"
+      pkg="robot_state_publisher"
+      type="robot_state_publisher"
+      ns="$(arg robot_name)">
+    </node>
+  </group>
+
+</launch>

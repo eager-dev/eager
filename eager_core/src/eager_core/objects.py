@@ -5,6 +5,7 @@ from eager_core.utils.gym_utils import (get_space_from_space_msg, get_message_fr
                                         get_def_from_space, get_response_from_space,
                                         get_space_from_def)
 from eager_core.srv import RegisterActionProcessor, RegisterActionProcessorRequest
+from std_srvs.srv import Empty
 from eager_core.msg import Object as Object_msg
 from collections import OrderedDict
 from typing import Dict, List, Callable, Union
@@ -21,6 +22,7 @@ class BaseRosObject():
         self.name = name
         self.args = str(kwargs)
         self._is_initialized = False
+        self.topic_name = None
 
     def _infer_space(self, base_topic: str = '') -> gym.Space:
         pass
@@ -30,7 +32,9 @@ class BaseRosObject():
 
     def get_topic(self, base_topic: str = '') -> str:
         if base_topic == '':
+            self.topic_name = self.name
             return self.name
+        self.topic_name = base_topic + '/' + self.name
         return base_topic + '/' + self.name
 
     def assert_not_yet_initialized(self, assert_type):
@@ -143,7 +147,7 @@ class Actuator(BaseRosObject):
     def __init__(self, type: str, name: str, space: gym.Space = None) -> None:
         super().__init__(type, name)
         self.action_space = space
-        self.preprocess_launch = None
+        self.preprocess_launch_args = None
         self.processor_action_space = None
 
     def init_node(self, base_topic: str = ''):
@@ -153,22 +157,26 @@ class Actuator(BaseRosObject):
         if self.action_space is None:
             self.action_space = self._infer_space(base_topic)
 
-        if self.preprocess_launch is not None:
+        if self.preprocess_launch_args is not None:
             # Launch processor
-            cli_args = self.preprocess_launch
+            cli_args = self.preprocess_launch_args
             cli_args.append('ns:={}'.format(self.get_topic(base_topic + '/actuators')))
             roslaunch_args = cli_args[1:]
             roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
             uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
             roslaunch.configure_logging(uuid)
-            launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
-            launch.start()
+            self._preprocess_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+            self._preprocess_launch.start()
 
             # Register processor
             self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(
                 base_topic + '/actuators') + "/register_processor", RegisterActionProcessor)
             self._register_action_processor_service.wait_for_service()
             response = self._register_action_processor_service(self.preprocess_req)
+
+            # Close service
+            self._register_action_processor_service = rospy.ServiceProxy(self.get_topic(
+                base_topic + '/actuators') + "/close_processor", Empty)
 
             if self.processor_action_space is not None:
                 self.action_space = self.processor_action_space
@@ -206,7 +214,7 @@ class Actuator(BaseRosObject):
         cli_args = [substitute_xml_args(launch_file)]
         for key, value in launch_args.items():
             cli_args.append('{}:={}'.format(key, value))
-        self.preprocess_launch = cli_args
+        self.preprocess_launch_args = cli_args
 
         observation_objects = []
         for object in observations_from_objects:
@@ -234,6 +242,9 @@ class Actuator(BaseRosObject):
 
     def close(self):
         self._act_service.shutdown()
+        if self.preprocess_launch_args:
+            self._register_action_processor_service()
+            self._preprocess_launch.shutdown()
 
 
 class Object(BaseRosObject):

@@ -1,5 +1,6 @@
 import abc
 import rospy
+from std_srvs.srv import Empty
 from eager_core.srv import RegisterActionProcessor, ResetEnv
 from eager_core.utils.file_utils import load_yaml
 from eager_core.utils.message_utils import get_message_from_def, get_response_from_def, get_space_msg_from_def
@@ -16,6 +17,7 @@ class ActionProcessor(ABC):
         self._get_observation_services = {}
         self.__register_service = rospy.Service('register_processor', RegisterActionProcessor, self.__register_handler)
         self.__reset_service = rospy.Service('reset_processor', ResetEnv, self.__reset_handler)
+        self.__close_service = rospy.Service('close_processor', Empty, self.__close_handler)
 
     @abc.abstractmethod
     def _process_action(self, action, observation):
@@ -39,7 +41,7 @@ class ActionProcessor(ABC):
 
         # Get the name of the environment
         ns = rospy.get_namespace()
-        env = ns[:ns.find('/', 1) + 1]
+        env_name = ns.split('/')[1]
 
         # The environment action space can change because of the processor
         # There are two ways to define the new action space:
@@ -70,7 +72,7 @@ class ActionProcessor(ABC):
                 sens_def = object_params['sensors'][sensor]
                 msg_type = get_message_from_def(sens_def)
                 self._get_observation_services[object_name][sensor] = rospy.ServiceProxy(
-                    env + 'objects/' + object_name + '/sensors/' + sensor, msg_type)
+                    '/' + env_name + '/objects/' + object_name + '/sensors/' + sensor, msg_type)
         self._get_action_service = rospy.ServiceProxy(ns + '/raw', raw_action_msg)
         self.__process_action_service = rospy.Service(ns, action_msg, self.__process_action_handler)
         return space_msg  # The new environment action space

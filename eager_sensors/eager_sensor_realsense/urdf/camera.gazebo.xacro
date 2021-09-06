@@ -30,10 +30,10 @@
         <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
          <alwaysOn>true</alwaysOn>
          <updateRate>0.0</updateRate>
-         <cameraName>camera/color</cameraName>
+         <cameraName>${name}/color</cameraName>
          <imageTopicName>image_raw</imageTopicName>
          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-         <frameName>camera_color_optical_frame</frameName>
+         <frameName>${name}_color_optical_frame</frameName>
          <hackBaseline>0.0</hackBaseline>
          <distortionK1>0.0</distortionK1>
          <distortionK2>0.0</distortionK2>
@@ -77,13 +77,13 @@
           <baseline>0.2</baseline>
           <alwaysOn>true</alwaysOn>
           <updateRate>1.0</updateRate>
-          <cameraName>camera</cameraName>
+          <cameraName>${name}</cameraName>
           <imageTopicName>ignore/image_raw</imageTopicName>
           <cameraInfoTopicName>ignore/camera_info</cameraInfoTopicName>
           <depthImageTopicName>depth/image_rect_raw</depthImageTopicName>
           <depthImageInfoTopicName>depth/camera_info</depthImageInfoTopicName>
           <pointCloudTopicName>points</pointCloudTopicName>
-          <frameName>camera_color_optical_frame</frameName>
+          <frameName>${name}_color_optical_frame</frameName>
           <pointCloudCutoff>0.5</pointCloudCutoff>
           <pointCloudCutoffMax>3.0</pointCloudCutoffMax>
           <distortionK1>0.0</distortionK1>

@@ -1,0 +1,20 @@
+<library path="src">
+  <class name="EAGER Calibration" type="eager_calibration_rqt.eager_calibration_rqt.EagerCalibrationRqt" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      GUI for EAGER calibration.
+    </description>
+    <qtgui>
+      <!-- optional grouping...
+      <group>
+        <label>Group</label>
+      </group>
+      <group>
+        <label>Subgroup</label>
+      </group>
+      -->
+      <label>Robot Tools</label>
+      <icon type="theme">system-help</icon>
+      <statustip>EAGER calibration system.</statustip>
+    </qtgui>
+  </class>
+</library>

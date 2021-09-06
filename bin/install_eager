@@ -96,11 +96,13 @@ for package_type in $package_types; do
   done
   if [ ${#not_installed[@]} -ge 1 ]; then
     if [ $full_install = true ]; then
-      packages_to_install+=" ${not_installed[@]}"
+      for not_installed_package in ${not_installed[@]}; do
+        packages_to_install+=" ${package_folder}/$not_installed_package"
+      done
     else
       not_installed_names=()
-      for installed_package in ${not_installed[@]}; do
-        IFS='_' read -ra ADDR <<< "$installed_package"
+      for not_installed_package in ${not_installed[@]}; do
+        IFS='_' read -ra ADDR <<< "$not_installed_package"
         name=$(echo ${ADDR[@]:2} | tr ' ' '_')
         not_installed_names+=("$name")
       done

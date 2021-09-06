@@ -2,6 +2,7 @@
 # from genpy import message
 import rospy
 import xacro
+from sensor_msgs.msg import Image
 from eager_core.physics_bridge import PhysicsBridge
 from eager_core.utils.file_utils import substitute_xml_args
 from eager_bridge_pybullet.pybullet_world import World
@@ -9,6 +10,8 @@ from eager_bridge_pybullet.pybullet_robot import URDFBasedRobot
 from eager_core.utils.message_utils import (get_value_from_def, get_message_from_def, get_response_from_def,
                                             get_length_from_def, get_dtype_from_def)
 
+from cv_bridge import CvBridge
+from scipy.spatial.transform import Rotation as R
 import re
 import numpy as np
 import functools
@@ -41,6 +44,9 @@ class PyBulletBridge(PhysicsBridge):
     def __init__(self):
         # Initialize simulator
         self._p, self.physics_client_id = self._start_simulator()
+
+        # If we render, we will initialize CV_bridge
+        self.cv_bridge = None
 
         # Initialize world
         world_file = '%s' % substitute_xml_args(rospy.get_param('physics_bridge/world'))
@@ -129,7 +135,7 @@ class PyBulletBridge(PhysicsBridge):
             elif bool(re.match(r"\$", config['urdf_name'])):
                 urdf_filename = substitute_xml_args(config['urdf_name']) + ".urdf"
             else:
-                eager_robot_pkg_path = substitute_xml_args('$(find eager_robot_' + object_type + ')')
+                eager_robot_pkg_path = substitute_xml_args('$(find ' + package + ')')
                 urdf_filename = eager_robot_pkg_path + '/' + config['urdf_name'] + '.urdf'
             generate_urdf = not('generate_urdf' in args and not(args['generate_urdf']))
             if generate_urdf:
@@ -137,11 +143,17 @@ class PyBulletBridge(PhysicsBridge):
                 rospy.loginfo("Running xacro to create urdf and storing it at %s", urdf_filename)
                 try:
                     xacro_file = substitute_xml_args(config['xacro'])
-                    robot_urdf = xacro.process_file(xacro_file).toprettyxml()
+                    if 'xacro_args' in config:
+                        xacro_args = config['xacro_args']
+                    else:
+                        xacro_args = dict()
+                    robot_urdf = xacro.process_file(xacro_file, mappings=xacro_args).toprettyxml()
                 except Exception as e:
                     rospy.logfatal('Failed to run xacro with error: \n%s', str(e))
                     sys.exit(1)
-                re_expr = re.compile(r"package\:\/\/[a-z\_]*")
+                # todo: this replaces 'package://' with desciption package.
+                #  However, it only works if meshes are stored in same package as the xacro file.
+                re_expr = re.compile(r"package\:\/\/[a-zA-Z0-9\_]*")
                 description_pkg_path = substitute_xml_args(re.search('\\$\\((.*)\\)', config['xacro'])[0])
                 str_urdf_full = re.sub(re_expr, description_pkg_path, robot_urdf)
                 with open(urdf_filename, 'w') as file:
@@ -216,21 +228,22 @@ class PyBulletBridge(PhysicsBridge):
                                              linkIndices=linkIndices,
                                              physicsClientId=self.physics_client_id)
             elif 'camera' in sensors[sensor]['type']:
-                # todo: make position adjustable
                 # todo: breaks if observation space is not defined as uint8 with 'shape' keyword...
+                # Also publish camera images as topics, in case we use them for rendering
+                pub = rospy.Publisher(topic + "/sensors/" + sensor, Image, queue_size=0)
+                if self.cv_bridge is None:
+                    self.cv_bridge = CvBridge()
+
+                # Pre-calculate quantities
+                frame_link = sensors[sensor]['optical_frame_link']
+                bodyid, linkindex = robot.parts[frame_link].get_bodyid_linkindex()
                 intrinsic = sensors[sensor]['intrinsic']
-                extrinsic = sensors[sensor]['extrinsic']
-                aspect = space['shape'][0] / space['shape'][1]  # height / width
+                width = space['shape'][1]
+                height = space['shape'][0]
                 proj_matrix = pybullet.computeProjectionMatrixFOV(fov=intrinsic['fov'],
-                                                                  aspect=aspect,
+                                                                  aspect=height / width,  # height / width
                                                                   nearVal=intrinsic['near_val'],
                                                                   farVal=intrinsic['far_val'])
-                view_matrix = pybullet.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=extrinsic['pos'],
-                                                                         distance=extrinsic['dist'],
-                                                                         roll=extrinsic['euler'][0],
-                                                                         pitch=extrinsic['euler'][1],
-                                                                         yaw=extrinsic['euler'][2],
-                                                                         upAxisIndex=extrinsic['up_axis'])
 
                 callback = functools.partial(self._camera_callback,
                                              buffer=self._sensor_buffer,
@@ -238,12 +251,14 @@ class PyBulletBridge(PhysicsBridge):
                                              obs_name=sensor,
                                              obs_type=sensors[sensor]['type'],
                                              dtype=get_dtype_from_def(space),
-                                             height=space['shape'][0],
-                                             width=space['shape'][1],
-                                             viewMatrix=view_matrix,
+                                             width=width,
+                                             height=height,
+                                             bodyUniqueId=bodyid,
+                                             linkIndex=linkindex,
                                              projectionMatrix=proj_matrix,
                                              renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
-                                             physicsClientId=self.physics_client_id)
+                                             physicsClientId=self.physics_client_id,
+                                             publisher=pub)
             else:
                 raise ValueError('Sensor_type ("%s") must contain either {joint, link, camera}.' % sensors[sensor]['type'])
 
@@ -461,18 +476,40 @@ class PyBulletBridge(PhysicsBridge):
             dtype,
             width,
             height,
-            viewMatrix,
+            bodyUniqueId,
+            linkIndex,
             projectionMatrix,
             renderer,
-            physicsClientId):
+            physicsClientId,
+            publisher):
+        # Get link state
+        (pos, quat, _, _, _, _) = self._p.getLinkState(bodyUniqueId=bodyUniqueId, linkIndex=linkIndex,
+                                                       physicsClientId=physicsClientId,
+                                                       computeLinkVelocity=0)
+        # Calculate camera extrinsic coordinates
+        r = R.from_quat(quat)
+        cameraEyePosition = pos
+        cameraTargetPosition = r.as_matrix()[:, 2]
+        cameraUpVector = -r.as_matrix()[:, 1]
+        view_matrix = pybullet.computeViewMatrix(cameraEyePosition,
+                                                 cameraTargetPosition,
+                                                 cameraUpVector,
+                                                 physicsClientId=physicsClientId)
+
+        # Prepare observation
         obs = []
         (_, _, rgba, depth, seg) = self._p.getCameraImage(width=width,
                                                           height=height,
-                                                          viewMatrix=viewMatrix,
+                                                          viewMatrix=view_matrix,
                                                           projectionMatrix=projectionMatrix,
                                                           flags=pybullet.ER_NO_SEGMENTATION_MASK,
                                                           renderer=renderer,
-                                                          physicsClientId=physicsClientId,)
+                                                          physicsClientId=physicsClientId)
+
+        # Publish rgb image for rendering (no subscribers, no computational load)
+        image_ros = self.cv_bridge.cv2_to_imgmsg(rgba[:, :, :3], encoding='passthrough')
+        publisher.publish(image_ros)
+
         if 'camera_rgb' == obs_type:
             obs.append(rgba[:, :, :3])
         elif 'camera_rgba' == obs_type:
@@ -596,7 +633,7 @@ class PyBulletBridge(PhysicsBridge):
                 self._state_cbs[name][state]()
         return True
 
-    def _reset(self):
+    def _reset(self, req):
         # Set all actions before stepping the world
         for robot in self._reset_services:
             robot_resets = self._reset_services[robot]

@@ -6,11 +6,13 @@ import rosparam
 from gym.utils import seeding
 from collections import OrderedDict
 from typing import List, Tuple, Callable, Optional
-from eager_core.objects import Object
-from eager_core.srv import StepEnv, ResetEnv, Register
-from eager_core.utils.file_utils import substitute_xml_args, is_namespace_empty
+from eager_core.objects import Object, Sensor
+from eager_core.srv import StepEnv, ResetEnv, ResetEnvRequest, Register
+from eager_core.utils.file_utils import substitute_xml_args, is_namespace_empty, launch_node
 from eager_core.msg import Seed, Object as ObjectMsg
 from eager_core.engine_params import EngineParams
+from eager_core.msg import ObjectStates, State
+
 
 
 class BaseEagerEnv(gym.Env):
@@ -150,13 +152,8 @@ class BaseEagerEnv(gym.Env):
         rosparam.upload_params('%s/physics_bridge' % name, engine.__dict__)
 
         # Launch the physics bridge under the namespace 'name'
-        cli_args = [substitute_xml_args(engine.launch_file),
-                    'name:=' + name]
-        roslaunch_args = cli_args[1:]
-        roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        roslaunch.configure_logging(uuid)
-        self._launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+        launch_file = substitute_xml_args(engine.launch_file)
+        self._launch = launch_node(launch_file, args=['name:=' + name])
         self._launch.start()
 
     def close(self, objects: List[Object] = [], observers: List['Observer'] = []) -> None:
@@ -203,7 +200,7 @@ class EagerEnv(BaseEagerEnv):
     :param objects: The objects to include in this environment
     :param observers: The observers to include in this environment
     :param name: The namespace to run this environment in (must by unique if using multiple environments simultaniously)
-    :param render_obs: A reference to the :func:`eager_core.objects.Sensor.get_obs` function of the observation to be used
+    :param render_sensor: A reference to the :func:`eager_core.objects.Sensor` object of the observation to be used
         in the :func:`render` function
     :param max_steps: The amount of steps per rollout, overridden if ``is_done_fn`` is set
     :param reward_fn: The reward function of this environment. Takes the environment and observations and returns a reward
@@ -213,7 +210,7 @@ class EagerEnv(BaseEagerEnv):
     """
 
     def __init__(self, engine: EngineParams, objects: List[Object] = [], observers: List['Observer'] = [],
-                 name: str = 'ros_env', render_obs: Callable[[], object] = None, max_steps: int = None,
+                 name: str = 'ros_env', render_sensor: Sensor = None, max_steps: int = None,
                  reward_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], float] = None,
                  is_done_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], bool] = None,
                  reset_fn: Callable[['EagerEnv'], None] = None) -> None:
@@ -221,7 +218,8 @@ class EagerEnv(BaseEagerEnv):
         super().__init__(engine, name)
         self.objects = objects
         self.observers = observers
-        self.render_obs = render_obs
+        self.render_sensor = render_sensor
+        self.render_init = False
 
         # Overwrite the _get_reward() function if provided
         if reward_fn:
@@ -231,7 +229,11 @@ class EagerEnv(BaseEagerEnv):
         if is_done_fn:
             self._is_done = is_done_fn
 
-        self._reset_fn = reset_fn
+        if reset_fn:
+            self._reset_fn = reset_fn
+        else:
+            self._reset_fn = self._random_reset
+
         self.STEPS_PER_ROLLOUT = max_steps
         self.steps = 0
 
@@ -267,24 +269,53 @@ class EagerEnv(BaseEagerEnv):
         :return: observations
         """
         self.steps = 0
+        states_to_reset = self.state_space.sample()
+        done = False
+        while not done:
+            reset_dict = self._reset_fn(self)
+            for obj_name, object in reset_dict.items():
+                for state_name, state in list(object.items()):
+                    if (obj_name not in states_to_reset) or (state_name not in states_to_reset[obj_name]):
+                        reset_dict[obj_name].pop(state_name)
+            for object in self.objects:
+                if object.name in reset_dict:
+                    object.reset(reset_dict[object.name])
+            request = ResetEnvRequest()
+            for obj_name, state_dict in reset_dict.items():
+                object_states = ObjectStates(name=obj_name)
+                for state in state_dict.keys():
+                    object_state = State(name=state)
+                    object_states.states.append(object_state)
+                request.objects.append(object_states)
+            response = self._reset(request)
 
-        if self._reset_fn:
-            self._reset_fn(self)
-
-        self._reset()
-
+            done = True
+            states_to_reset = dict()
+            for object in response.objects:
+                states_to_reset[object.name] = {}
+                for state in object.states:
+                    done = False
+                    states_to_reset[object.name][state.name] = None
         return self._get_obs()
 
     def render(self, mode: str = 'human') -> Optional[object]:
         """
-        Resets the environment by first calling the objects reset function and then resetting the environment
+        Produces a render image using the provided render_sensor in EagerEnv's constructor.
 
         :param mode: The rendering mode, currently not used
-        :return: The observation given in ``render_obs`` in the constructor, None if not set
+        :return: The observation given in ``render_sensor`` in the constructor, None if not set
         """
-        if self.render_obs:
-            obs = self.render_obs()
-            return obs
+        if self.render_sensor:
+            if mode == 'human' and not self.render_init:
+                # todo: launch render node with address, render rate and environment name as args
+                launch_file = '$(find eager_core)/launch/render.launch'
+                topic_name = self.render_sensor.topic_name
+                self.render_node = launch_node(launch_file, args=['name:=' + self.name,
+                                                                  'topic_name:=' + topic_name,
+                                                                  'fps:=20'])
+                self.render_node.start()
+                self.render_init = True
+            return self.render_sensor.get_obs()
         else:
             return None
 
@@ -345,10 +376,16 @@ class EagerEnv(BaseEagerEnv):
         else:
             return False
 
+    def _random_reset(self, env):
+        reset_dict = env.state_space.sample()
+        return reset_dict
+
     def close(self) -> None:
         """
         Closes and cleans up the environment.
 
         Will shutdown the physics engine and disable all passed node listeners.
         """
+        if self.render_init:
+            self.render_node.shutdown()
         super().close(objects=self.objects, observers=self.observers)

@@ -16,14 +16,15 @@
 
 # ROS packages required
 import rospy
+from eager_core.utils.file_utils import load_yaml
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_bridge_real.real_engine import RealEngine  # noqa: F401
+from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
 
 # Required for action processor
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
-from gym import spaces  # todo: can we avoid having to import this?
+
 
 # Dummy reward function - Here, we output a batch reward for each ur5e.
 # Anything can be defined here. All observations for each object in "objects" is included in obs
@@ -40,50 +41,35 @@ if __name__ == '__main__':
     rospy.init_node('eager_demo', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    # todo: safely start from home position
-    # todo: safely go to sleep position on env.close()
-    engine = RealEngine()
+    engine = WebotsEngine(gui=True)
 
     # Create robot
-    # todo: change to Viper
     # todo: add calibrated position & orientation
     robot = Object.create('robot', 'eager_robot_ur5e', 'ur5e')
-
     # Add action preprocessing
-    # todo: clean-up processor arguments with object config files ('ur5e', 'viperX') inside action processor ROS package
-    process_args = SafeActionsProcessor(moveit_package='ur5_e_moveit_config',
-                                        urdf_path='$(find ur_e_description)/urdf/ur5e_robot.urdf.xacro',
-                                        joint_names=['shoulder_pan_joint',
-                                                     'shoulder_lift_joint',
-                                                     'elbow_joint',
-                                                     'wrist_1_joint',
-                                                     'wrist_2_joint',
-                                                     'wrist_3_joint'],
-                                        group_name='manipulator',
-                                        duration=0.1,
-                                        object_frame='base_link',
-                                        checks_per_rad=15,
-                                        vel_limit=2.0,
-                                        robot_type='ur5e',
-                                        collision_height=0.01,
-                                        base_length=0.4,
-                                        workspace_length=2.4,
-                                        )
+    processor = SafeActionsProcessor(duration=0.08,
+                                     checks_per_rad=15,
+                                     vel_limit=0.25,
+                                     robot_type='ur5e',
+                                     collision_height=0.1,
+                                     )
     robot.actuators['joints'].add_preprocess(
-        launch_path='$(find eager_process_safe_actions)/launch/safe_actions.launch',
-        launch_args=process_args.__dict__,
+        processor=processor,
         observations_from_objects=[robot],
-        action_space=spaces.Box(low=-3.14, high=3.14, shape=(6,)))
+    )
 
     # Add a camera for rendering
-    # todo: add calibrated position & orientation
-    cam = Object.create('cam', 'eager_sensor_realsense', 'd435')
+    calibration = load_yaml('eager_demo', 'calibration')
+    cam = Object.create('cam', 'eager_sensor_multisense_s21', 'dual_cam',
+                        position=calibration['position'],
+                        orientation=calibration['orientation'],
+                        )
 
     # Create environment
     env = EagerEnv(engine=engine,
                    objects=[robot, cam],
                    name='demo_env',
-                   render_obs=cam.sensors['camera_rgb'].get_obs,
+                   render_sensor=cam.sensors['camera_right'],
                    max_steps=100,
                    reward_fn=reward_fn)
     env = Flatten(env)
@@ -92,8 +78,7 @@ if __name__ == '__main__':
     for i in range(1000):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-        # todo: implement render modes ("human", "rgb_array")
-        env.render()
+        rgb = env.render()
         if done:
             obs = env.reset()
 

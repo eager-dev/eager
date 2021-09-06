@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="ns" default="vx300s"  doc="Namespace of the robot." />
+  <arg name="name" default="robot" doc="Name of the robot. This should be unique." />
+
+  <arg name="robot_model"                       default="vx300s"/>
+  <arg name="robot_name"                        default="vx300s"/>
+  <arg name="dof"                               default="6"/>
+
+  <group ns="$(arg ns)">
+  	<include file="$(find interbotix_xsarm_ros_control)/launch/xsarm_ros_control.launch">
+      <arg name="robot_model" value="$(arg robot_model)"/>
+      <arg name="robot_name" value="$(arg robot_name)"/>
+      <arg name="dof" value="$(arg dof)"/>
+    </include>
+
+    <include file="$(find interbotix_xsarm_moveit)/launch/move_group.launch" ns="$(arg robot_name)">
+      <arg name="robot_model"                       value="$(arg robot_model)"/>
+      <arg name="robot_name"                        value="$(arg robot_name)"/>
+      <arg name="base_link_frame"                   value="base_link"/>
+      <arg name="dof"                               value="$(arg dof)"/>
+      <arg name="publish_monitored_planning_scene"  value="true" />
+    </include>
+  </group>
+
+</launch>
