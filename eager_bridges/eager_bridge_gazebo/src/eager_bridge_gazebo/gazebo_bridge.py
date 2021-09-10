@@ -238,7 +238,8 @@ class GazeboBridge(PhysicsBridge):
                     action_server_name, valid_servers))
             get_action_srv = rospy.ServiceProxy(topic + "/actuators/" + actuator, get_message_from_def(space))
             set_action_srv = self._action_servers[name][actuator].act
-            self._actuator_services[name][actuator] = (get_action_srv, set_action_srv)
+            reset_action_srv = self._action_servers[name][actuator].reset
+            self._actuator_services[name][actuator] = (get_action_srv, set_action_srv, reset_action_srv)
 
     def _init_states(self, topic, name, states):
         self._state_buffer[name] = {}
@@ -397,7 +398,7 @@ class GazeboBridge(PhysicsBridge):
             self.stepped = True
         for robot in self._actuator_services:
             for actuator in self._actuator_services[robot]:
-                (get_action_srv, set_action_srv) = self._actuator_services[robot][actuator]
+                (get_action_srv, set_action_srv, reset_action_srv) = self._actuator_services[robot][actuator]
                 actions = get_action_srv()
                 set_action_srv(actions.value)
         self._step_world(self.step_request)
@@ -407,6 +408,10 @@ class GazeboBridge(PhysicsBridge):
         return True
 
     def _reset(self, req):
+        for robot in self._actuator_services:
+            for actuator in self._actuator_services[robot]:
+                (get_action_srv, set_action_srv, reset_action_srv) = self._actuator_services[robot][actuator]
+                reset_action_srv()
         # First we switch off all controllers
         for controller in self.controller_list:
             service = controller['service']
@@ -452,7 +457,6 @@ class GazeboBridge(PhysicsBridge):
             self._unpause_physics()
             service(self.switch_controller_request)
             self._pause_physics()
-        # Finally, we need to step once in order to make the controllers active
         self.stepped = False
         return response
 
