@@ -21,6 +21,9 @@ class ActionServer(ABC):
     def act(self, action):
         self.client.send_goal(action)
 
+    def reset(self):
+        self.client.cancel_all_goals()
+
 
 class FollowJointTrajectoryActionServer(ActionServer):
     def __init__(self, joint_names, server_name, duration=0.5):
