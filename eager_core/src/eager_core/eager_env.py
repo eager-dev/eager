@@ -210,7 +210,7 @@ class EagerEnv(BaseEagerEnv):
     """
 
     def __init__(self, engine: EngineParams, objects: List[Object] = [], observers: List['Observer'] = [],
-                 name: str = 'ros_env', render_sensor: Sensor = None, max_steps: int = None,
+                 name: str = 'ros_env', render_sensor: Sensor = None, max_steps: int = 20,
                  reward_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], float] = None,
                  is_done_fn: Callable[['EagerEnv', 'OrderedDict[str, object]'], bool] = None,
                  reset_fn: Callable[['EagerEnv'], None] = None) -> None:
