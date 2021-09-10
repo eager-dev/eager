@@ -3,7 +3,7 @@ sensors:
     type: boxu8
     high: 255
     low: 0
-    shape: [480, 640, 3]
+    shape: [720, 1280, 3]
 #  camera_depth:
 #    type: boxu8
 #    high: 255
