@@ -56,6 +56,7 @@ class WeBotsBridge(PhysicsBridge):
         self._state_services = []
 
         self._reset_services = dict()
+        self._remap_publishers = dict()
 
         super(WeBotsBridge, self).__init__("webots")
 
@@ -121,6 +122,7 @@ class WeBotsBridge(PhysicsBridge):
 
     def _init_sensors(self, topic, name, sensors):
         self._sensor_buffer[name] = dict()
+        self._remap_publishers[name] = dict()
         for sensor_name in sensors:
             sensor = sensors[sensor_name]
             topic_list = sensor['names']
@@ -138,6 +140,11 @@ class WeBotsBridge(PhysicsBridge):
                     if 'type' in sensor:
                         sens_type = sensor['type']
                         if sens_type == 'camera':
+                            self._remap_publishers[name][sensor_name] = None
+                            if 'remap' in sensor:
+                                if sensor['remap']:
+                                    self._remap_publishers[name][sensor_name] = rospy.Publisher(
+                                        topic + "/sensors/" + sensor_name, Image, queue_size=1)
                             assert len(topic_list) == 1  # Temp check
                             self._sensor_subscribers.append(
                                 rospy.Subscriber(
@@ -281,6 +288,11 @@ class WeBotsBridge(PhysicsBridge):
         self._sensor_buffer[name][sensor][pos] = data.data
 
     def _camera_callback(self, data, name, sensor):
+        if self._remap_publishers[name][sensor]:
+            try:
+                self._remap_publishers[name][sensor].publish(data)
+            except rospy.exceptions.ROSException:
+                pass
         # TODO: Standardize image encoding
         self._sensor_buffer[name][sensor] = data.data
 
