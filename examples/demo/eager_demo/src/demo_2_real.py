@@ -19,42 +19,26 @@ import rospy
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
-from eager_core.utils.file_utils import load_yaml
+from eager_core.utils.file_utils import launch_roscore, load_yaml
 from eager_bridge_real.real_engine import RealEngine  # noqa: F401
 
 # Required for action processor
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 
 
-# Dummy reward function - Here, we output a batch reward for each robot.
-# Anything can be defined here. All observations for each object in "objects" is included in obs
-def reward_fn(obs):
-    rwd = []
-    for obj in obs:
-        if 'robot' in obj:
-            rwd.append(-(obs[obj]['joint_pos'] ** 2).sum())
-    return rwd
-
-
 if __name__ == '__main__':
-
     rospy.init_node('eager_demo', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
     engine = RealEngine(dt=0.4)
 
     # Create robot
-    robot = Object.create('robot', 'eager_robot_vx300s', 'vx300s',
-                          position=[0, 0, 0],
-                          orientation=[0, 0, 0, 1],
-                          )
+    robot = Object.create('robot', 'eager_robot_vx300s', 'vx300s', fixed_base=True)
 
     # Add action preprocessing
-    processor = SafeActionsProcessor(duration=0.5,
-                                     checks_per_rad=15,
-                                     vel_limit=0.25,
+    processor = SafeActionsProcessor(vel_limit=0.25,
                                      robot_type='vx300s',
-                                     collision_height=0.1,
+                                     collision_height=0.15,
                                      )
     robot.actuators['joints'].add_preprocess(
         processor=processor,
@@ -75,15 +59,14 @@ if __name__ == '__main__':
                    name='demo_env',
                    render_sensor=cam.sensors['camera_rgb'],
                    max_steps=10,
-                   reward_fn=reward_fn)
+                   )
     env = Flatten(env)
 
+    env.render()
     obs = env.reset()
-    for i in range(20):
+    for i in range(100):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-        # todo: implement render modes ("human", "rgb_array")
-        env.render()
         if done:
             obs = env.reset()
 

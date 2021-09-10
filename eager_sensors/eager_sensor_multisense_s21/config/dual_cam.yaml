@@ -18,6 +18,7 @@ webots:
   sensors:
     camera_right:
       type: camera
+      remap: True
       names:
         - MultiSense_S21_right_camera
     camera_left:

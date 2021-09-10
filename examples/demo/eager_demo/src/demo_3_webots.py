@@ -16,7 +16,7 @@
 
 # ROS packages required
 import rospy
-from eager_core.utils.file_utils import load_yaml
+from eager_core.utils.file_utils import launch_roscore, load_yaml
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
@@ -26,17 +26,8 @@ from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
 
 
-# Dummy reward function - Here, we output a batch reward for each ur5e.
-# Anything can be defined here. All observations for each object in "objects" is included in obs
-def reward_fn(obs):
-    rwd = []
-    for obj in obs:
-        if 'robot' in obj:
-            rwd.append(-(obs[obj]['joint_sensors'] ** 2).sum())
-    return rwd
-
-
 if __name__ == '__main__':
+    roscore = launch_roscore()  # First launch roscore
 
     rospy.init_node('eager_demo', anonymous=True, log_level=rospy.WARN)
 
@@ -47,11 +38,9 @@ if __name__ == '__main__':
     # todo: add calibrated position & orientation
     robot = Object.create('robot', 'eager_robot_ur5e', 'ur5e')
     # Add action preprocessing
-    processor = SafeActionsProcessor(duration=0.08,
-                                     checks_per_rad=15,
-                                     vel_limit=0.25,
+    processor = SafeActionsProcessor(vel_limit=2.0,
                                      robot_type='ur5e',
-                                     collision_height=0.1,
+                                     collision_height=0.01,
                                      )
     robot.actuators['joints'].add_preprocess(
         processor=processor,
@@ -70,15 +59,16 @@ if __name__ == '__main__':
                    objects=[robot, cam],
                    name='demo_env',
                    render_sensor=cam.sensors['camera_right'],
-                   max_steps=100,
-                   reward_fn=reward_fn)
+                   max_steps=10,
+                   )
+
     env = Flatten(env)
 
+    env.render()
     obs = env.reset()
-    for i in range(1000):
+    for i in range(25):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-        rgb = env.render()
         if done:
             obs = env.reset()
 

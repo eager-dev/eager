@@ -2,11 +2,8 @@ import os
 import rospy
 import rospkg
 import roslaunch
-import yaml
-from rospy import ROSException
 from eager_core.utils.file_utils import substitute_xml_args
-from std_srvs.srv import Empty, EmptyRequest
-from easy_handeye_msgs.srv import ComputeCalibration, ComputeCalibrationRequest
+from controller_manager_msgs.srv import SwitchController, SwitchControllerRequest
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtWidgets import QWidget
@@ -76,29 +73,20 @@ class EagerCalibrationRqt(Plugin):
         self.event_publisher = rospy.Publisher("eager_calibration/event_in", String, queue_size=1, latch=True)
         self.torque_service = rospy.ServiceProxy('torque_enable', TorqueEnable)
 
+        # Switch controller service
+        self._switch_controller_service = rospy.ServiceProxy('controller_manager/switch_controller', SwitchController)
+
         # Calibration Buttons
         self._widget.calibrateButton.clicked[bool].connect(self.handle_calibrate)
         self._widget.publishButton.clicked[bool].connect(self.handle_publish)
-        self._widget.saveButton.clicked[bool].connect(self.handle_save)
-        self._widget.pose1Button.clicked[bool].connect(self.handle_pose1)
-        self._widget.pose1Button.clicked[bool].connect(self.handle_pose1)
-        self._widget.pose2Button.clicked[bool].connect(self.handle_pose2)
-        self._widget.pose3Button.clicked[bool].connect(self.handle_pose3)
-        self._widget.pose4Button.clicked[bool].connect(self.handle_pose4)
-        self._widget.pose5Button.clicked[bool].connect(self.handle_pose5)
-        self._widget.pose6Button.clicked[bool].connect(self.handle_pose6)
-        self._widget.pose7Button.clicked[bool].connect(self.handle_pose7)
-        self._widget.pose8Button.clicked[bool].connect(self.handle_pose8)
-        self._widget.pose9Button.clicked[bool].connect(self.handle_pose9)
-        self._widget.pose10Button.clicked[bool].connect(self.handle_pose10)
-        self._widget.pose11Button.clicked[bool].connect(self.handle_pose11)
-        self._widget.pose12Button.clicked[bool].connect(self.handle_pose12)
 
         # Manipulator Buttons
         self._widget.homeButton.clicked[bool].connect(self.handle_home)
         self._widget.uprightButton.clicked[bool].connect(self.handle_upright)
         self._widget.sleepButton.clicked[bool].connect(self.handle_sleep)
         self._widget.upButton.clicked[bool].connect(self.handle_up)
+        self._widget.stopButton.clicked[bool].connect(self.handle_stop)
+        self._widget.releaseButton.clicked[bool].connect(self.handle_release)
 
         # Gripper Buttons
         self._widget.openButton.clicked[bool].connect(self.handle_open)
@@ -107,12 +95,6 @@ class EagerCalibrationRqt(Plugin):
         # Torque Buttons
         self._widget.enableButton.clicked[bool].connect(self.handle_enable)
         self._widget.disableButton.clicked[bool].connect(self.handle_disable)
-
-        # Calibration Services
-        self._get_calibration_service = rospy.ServiceProxy(
-            '{}_eye_on_base/compute_calibration'.format(self.namespace_prefix), ComputeCalibration)
-        self._save_calibration_service = rospy.ServiceProxy(
-            '{}_eye_on_base/save_calibration'.format(self.namespace_prefix), Empty)
 
     def shutdown_plugin(self):
         self.event_publisher.unregister()
@@ -137,7 +119,7 @@ class EagerCalibrationRqt(Plugin):
         if self.calibrate_launch:
             rospy.loginfo('[{}] Stop calibrating.'.format(rospy.get_name()))
             self.calibrate_launch.shutdown()
-            self.calibrate_launch
+            self.calibrate_launch = None
         else:
             if self.publish_launch:
                 self.publish_launch.shutdown()
@@ -168,6 +150,8 @@ class EagerCalibrationRqt(Plugin):
             roslaunch.configure_logging(uuid)
             self.calibrate_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
             self.calibrate_launch.start()
+            msg = String('calibrate')
+            self.event_publisher.publish(msg)
 
     def handle_publish(self):
         if self.publish_launch:
@@ -189,82 +173,6 @@ class EagerCalibrationRqt(Plugin):
             self.publish_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
             self.publish_launch.start()
 
-    def handle_save(self):
-        if self.calibrate_launch is None:
-            rospy.logwarn('[{}] Push calibrate first!.'.format(rospy.get_name()))
-        else:
-            try:
-                self._get_calibration_service.wait_for_service(timeout=3)
-            except ROSException:
-                rospy.logwarn('[{}] Calculate calibration service not available!'.format(rospy.get_name()))
-                return
-            req = ComputeCalibrationRequest()
-            try:
-                response = self._get_calibration_service(req)
-            except rospy.ServiceException:
-                rospy.logwarn('[{}] Get calibration failed, did you make enough samples?'.format(rospy.get_name()))
-                return
-            try:
-                self._save_calibration_service()
-            except rospy.ServiceException as e:
-                rospy.logwarn('[{}] Save calibration failed: {}'.format(rospy.get_name(), e))
-            translation = response.calibration.transform.transform.translation
-            rotation = response.calibration.transform.transform.rotation
-            calibration = {}
-            calibration['position'] = [translation.x, translation.y, translation.z]
-            calibration['orientation'] = [rotation.x, rotation.y, rotation.z, rotation.w]
-            save_path = substitute_xml_args('$(find eager_demo)/config/calibration.yaml')
-            with open(save_path, 'w') as file:
-                yaml.dump(calibration, file)
-
-    def handle_pose1(self):
-        msg = String('calibration_pose_1')
-        self.event_publisher.publish(msg)
-
-    def handle_pose2(self):
-        msg = String('calibration_pose_2')
-        self.event_publisher.publish(msg)
-
-    def handle_pose3(self):
-        msg = String('calibration_pose_3')
-        self.event_publisher.publish(msg)
-
-    def handle_pose4(self):
-        msg = String('calibration_pose_4')
-        self.event_publisher.publish(msg)
-
-    def handle_pose5(self):
-        msg = String('calibration_pose_5')
-        self.event_publisher.publish(msg)
-
-    def handle_pose6(self):
-        msg = String('calibration_pose_6')
-        self.event_publisher.publish(msg)
-
-    def handle_pose7(self):
-        msg = String('calibration_pose_7')
-        self.event_publisher.publish(msg)
-
-    def handle_pose8(self):
-        msg = String('calibration_pose_8')
-        self.event_publisher.publish(msg)
-
-    def handle_pose9(self):
-        msg = String('calibration_pose_9')
-        self.event_publisher.publish(msg)
-
-    def handle_pose10(self):
-        msg = String('calibration_pose_10')
-        self.event_publisher.publish(msg)
-
-    def handle_pose11(self):
-        msg = String('calibration_pose_11')
-        self.event_publisher.publish(msg)
-
-    def handle_pose12(self):
-        msg = String('calibration_pose_12')
-        self.event_publisher.publish(msg)
-
     def handle_home(self):
         msg = String('home')
         self.event_publisher.publish(msg)
@@ -280,6 +188,20 @@ class EagerCalibrationRqt(Plugin):
     def handle_up(self):
         msg = String('up')
         self.event_publisher.publish(msg)
+
+    def handle_stop(self):
+        request = SwitchControllerRequest()
+        request.stop_controllers = ['arm_controller', 'gripper_controller']
+        request.strictness = 2
+        request.start_asap = True
+        self._switch_controller_service(request)
+
+    def handle_release(self):
+        request = SwitchControllerRequest()
+        request.start_controllers = ['arm_controller', 'gripper_controller']
+        request.strictness = 1
+        request.start_asap = True
+        self._switch_controller_service(request)
 
     def handle_open(self):
         msg = String('open')

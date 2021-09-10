@@ -11,7 +11,7 @@ class RealEngine(EngineParams):
     """
 
     def __init__(self,
-                 dt: float = 0.08):
+                 dt: float = 0.4):
         # Only define variables (locally) you wish to store on the parameter server (done in baseclass constructor).
         bridge_type = 'real'
         launch_file = '$(find eager_bridge_%s)/launch/%s.launch' % (bridge_type, bridge_type)

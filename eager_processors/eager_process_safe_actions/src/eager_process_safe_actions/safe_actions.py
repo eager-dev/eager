@@ -151,8 +151,6 @@ class SafeActions(ActionProcessor):
     def _process_action(self, action, observation):
         current_position = observation[self.robot_name][self.sensor_name]
         safe_action = self._getSafeAction(np.asarray(action), np.asarray(current_position))
-        if safe_action is None:
-            safe_action = current_position
         return safe_action
 
     def _getSafeAction(self, goal_position, current_position):
@@ -194,8 +192,11 @@ class SafeActions(ActionProcessor):
             gsvr.robot_state.joint_state.position = way_points[i, :]
             if not self.state_validity_service.call(gsvr).valid:
                 if i == 0:
-                    rospy.logwarn("Current state in collision!")
-                    return self.previous_position
+                    # rospy.logwarn("Current state in collision!")
+                    goal_position = current_position
+                    if self.previous_position is not None and np.max(np.abs(current_position - self.previous_position) / self.duration)  < self.vel_limit:
+                        goal_position = self.previous_position
+                    return goal_position
                 self.previous_position = current_position
                 return way_points[i-1, :]
         self.previous_position = current_position

@@ -3,11 +3,16 @@
 import rospy
 import sys
 import moveit_commander
+import numpy as np
+import yaml
+from eager_core.utils.file_utils import substitute_xml_args
+from easy_handeye_msgs.srv import ComputeCalibration, ComputeCalibrationRequest, TakeSample
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
 from eager_calibration.srv import SetFloat32, SetFloat32Response
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
+from std_srvs.srv import Empty
 from eager_core.action_server import FollowJointTrajectoryActionServer
 
 
@@ -36,49 +41,113 @@ class EagerCalibration(object):
 
         self.ee_step = rospy.get_param('~ee_step', 0.01)
         self.jump_threshold = rospy.get_param('~jump_threshold', 0.0)
-        self.collision_height = rospy.get_param('~collision_height', 0.08)
+        self.collision_height = rospy.get_param('~collision_height', 0.2)
         self.base_length = rospy.get_param('~base_length', 0.4)
         self.workspace_length = rospy.get_param('~workspace_length', 2.4)
-        self.velocity_scaling_factor = rospy.get_param('~velocity_scaling_factor', 0.2)
-        self.acceleration_scaling_factor = rospy.get_param('~acceleration_scaling_factor', 0.2)
+        self.velocity_scaling_factor = rospy.get_param('~velocity_scaling_factor', 0.75)
+        self.acceleration_scaling_factor = rospy.get_param('~acceleration_scaling_factor', 0.75)
+
+        # Calibration prefix
+        self.namespace_prefix = rospy.get_param('~namespace_prefix', 'hand_eye_calibration')
 
         # Calibration poses
-        self.calibration_pose_1 = rospy.get_param('~calibration_pose_1',
-                                                  [0.26720266, 0.41769082, -0.61405873, -0.10920159, 1.02477717, 1.33158357]
-                                                  )
-        self.calibration_pose_2 = rospy.get_param('~calibration_pose_2',
-                                                  [-0.1697083, 0.42902144, -0.17906268, -0.48181534, 0.1369806, -0.42154863]
-                                                  )
-        self.calibration_pose_3 = rospy.get_param('~calibration_pose_3',
-                                                  [0.26720266, 0.41769082, -0.61405873, -0.10920159, 1.02477717, 1.33158357]
-                                                  )
-        self.calibration_pose_4 = rospy.get_param('~calibration_pose_4',
-                                                  [-0.20652833, 0.88519322, -1.03238164, 1.19097259, 1.34757152, -1.96848806]
-                                                  )
-        self.calibration_pose_5 = rospy.get_param('~calibration_pose_5',
-                                                  [-0.240835, 0.12732041, 0.05675729, 0.35895151, 0.02372742, -0.02372742]
-                                                  )
-        self.calibration_pose_6 = rospy.get_param('~calibration_pose_6',
-                                                  [-0.31433059, 0.37894629, -0.40868386, -2.55617312, -0.95543624, 2.55777874]
-                                                  )
-        self.calibration_pose_7 = rospy.get_param('~calibration_pose_7',
-                                                  [-0.19125552, 0.20515017, 0.11557607, 1.92872024, 0.08407946, -1.58544498]
-                                                  )
-        self.calibration_pose_8 = rospy.get_param('~calibration_pose_8',
-                                                  [-0.44587893, 0.4809407, -0.12195346, 1.7612175, 1.143879, -1.5109534]
-                                                  )
-        self.calibration_pose_9 = rospy.get_param('~calibration_pose_9',
-                                                  [0.07467588, 0.79585576, -1.2105316, 3.10480717, -1.20383058, -2.50254506]
-                                                  )
-        self.calibration_pose_10 = rospy.get_param('~calibration_pose_10',
-                                                   [0.0909588, 0.77143045, -1.0667212, 2.82870459, -0.84640253, -2.95916986]
-                                                   )
-        self.calibration_pose_11 = rospy.get_param('~calibration_pose_11',
-                                                   [-0.21074113, 0.80485942, -1.21160632, -3.1017593, -0.92140806, 2.94429842]
-                                                   )
-        self.calibration_pose_12 = rospy.get_param('~calibration_pose_12',
-                                                   [0.27810045, 0.21982409, -0.27928612, 2.86218982, -0.8442566, -3.12706443]
-                                                   )
+        calibration_pose_1 = rospy.get_param(
+            '~calibration_pose_1',
+            [-0.0076699042692780495, 0.15800002217292786, -0.42337870597839355,
+            -0.0015339808305725455, 0.8390874862670898, -0.003067961661145091]
+            )
+        calibration_pose_2 = rospy.get_param(
+            '~calibration_pose_2',
+            [0.19634954631328583, 0.26077672839164734, -0.526155412197113,
+            -0.8053399324417114, 1.084524393081665, 0.5890486240386963]
+            )
+        calibration_pose_3 = rospy.get_param(
+            '~calibration_pose_3',
+            [0.28378644585609436, 0.43104860186576843, -0.7179030179977417,
+            -1.118272066116333, 1.366776943206787, 0.7133010625839233]
+            )
+        calibration_pose_4 = rospy.get_param(
+            '~calibration_pose_4',
+            [0.2822524607181549, 0.46019425988197327, -0.7071651816368103,
+            -1.1167380809783936, 1.366776943206787, 0.5767768025398254]
+            )
+        calibration_pose_5 = rospy.get_param(
+            '~calibration_pose_5',
+            [0.3129321038722992, 0.849825382232666, -1.2026410102844238,
+            -1.5569905042648315, 1.6889128684997559, 0.5706408619880676]
+            )
+        calibration_pose_6 = rospy.get_param(
+            '~calibration_pose_6',
+            [0.3129321038722992, 0.8636311888694763, -1.2072429656982422,
+            -1.558524489402771, 1.6889128684997559, 0.9710098505020142]
+            )
+        calibration_pose_7 = rospy.get_param(
+            '~calibration_pose_7',
+            [0.31446605920791626, 0.5154175758361816, -0.6043884754180908,
+            -1.4419419765472412, 1.3959225416183472, 1.2624661922454834]
+            )
+        calibration_pose_8 = rospy.get_param(
+            '~calibration_pose_8',
+            [-0.026077674701809883, 0.1733398288488388, -0.24543693661689758,
+            -0.8559613227844238, 0.7056311964988708, 0.6043884754180908]
+            )
+        calibration_pose_9 = rospy.get_param(
+            '~calibration_pose_9',
+            [-0.03221359848976135, 0.1733398288488388, -0.0951068103313446,
+            -1.1428157091140747, 0.5276893973350525, 0.8682331442832947]
+            )
+        calibration_pose_10 = rospy.get_param(
+            '~calibration_pose_10',
+            [0.06749515980482101, 0.2715145945549011, -0.17487381398677826,
+            -1.4695535898208618, 0.9157865643501282, 1.1566215753555298]
+            )
+        calibration_pose_11 = rospy.get_param(
+            '~calibration_pose_11',
+            [0.06749515980482101, 0.28071850538253784, -0.1764077991247177,
+            -1.4695535898208618, 0.9157865643501282, 1.402058482170105]
+            )
+        calibration_pose_12 = rospy.get_param(
+            '~calibration_pose_12',
+            [-0.07056311517953873, -0.0015339808305725455, -0.1764077991247177,
+            -0.2346990704536438, 0.8022719621658325, -0.21322333812713623]
+            )
+        calibration_pose_13 = rospy.get_param(
+            '~calibration_pose_12',
+            [-0.16260196268558502, 0.5414952039718628, -0.951068103313446,
+            0.12118448317050934, 1.1274758577346802, -0.653475821018219]
+            )
+        calibration_pose_14 = rospy.get_param(
+            '~calibration_pose_12',
+            [-0.23930101096630096, 0.36201947927474976, -0.49087387323379517,
+            0.607456386089325, 0.6657477021217346, -1.0737866163253784]
+            )
+        calibration_pose_15 = rospy.get_param(
+            '~calibration_pose_12',
+            [-0.31446605920791626, 0.552233099937439, -0.8881748914718628,
+            0.7623884677886963, 1.1397477388381958, -1.1075341701507568]
+            )
+        calibration_pose_16 = rospy.get_param(
+            '~calibration_pose_12',
+            [-0.2791845202445984, 0.5721748471260071, -0.9710098505020142,
+            0.6013205051422119, 1.1842331886291504, -0.7470486760139465]
+            )
+        self.calibration_poses = np.asarray([calibration_pose_1,
+                                             calibration_pose_2,
+                                             calibration_pose_3,
+                                             calibration_pose_4,
+                                             calibration_pose_5,
+                                             calibration_pose_6,
+                                             calibration_pose_7,
+                                             calibration_pose_8,
+                                             calibration_pose_9,
+                                             calibration_pose_10,
+                                             calibration_pose_11,
+                                             calibration_pose_12,
+                                             calibration_pose_13,
+                                             calibration_pose_14,
+                                             calibration_pose_15,
+                                             calibration_pose_16,
+                                             ])
 
         # Initialize Moveit Commander and Scene
         moveit_commander.roscpp_initialize(sys.argv)
@@ -147,7 +216,12 @@ class EagerCalibration(object):
         rospy.Subscriber('~event_in', String, self._event_in_callback)
 
         # Services
-        self.state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
+        self._state_validity_service = rospy.ServiceProxy('check_state_validity', GetStateValidity)
+        self._take_sample_service = rospy.ServiceProxy('{}_eye_on_base/take_sample'.format(self.namespace_prefix), TakeSample)
+        self._get_calibration_service = rospy.ServiceProxy(
+            '{}_eye_on_base/compute_calibration'.format(self.namespace_prefix), ComputeCalibration)
+        self._save_calibration_service = rospy.ServiceProxy(
+            '{}_eye_on_base/save_calibration'.format(self.namespace_prefix), Empty)
 
         rospy.Service('goal', SetFloat32, self._goal_callback)
         rospy.Service('check', SetFloat32, self._check_callback)
@@ -158,6 +232,7 @@ class EagerCalibration(object):
 
     def _goal_callback(self, req):
         response = SetFloat32Response()
+        self.action_server.reset()
         try:
             self._move_to_joint_goal(self.manipulator_group, list(req.data))
         except moveit_commander.exception.MoveItCommanderException:
@@ -172,7 +247,7 @@ class EagerCalibration(object):
         gsvr = GetStateValidityRequest()
         gsvr.group_name = self.manipulator_group_name
         gsvr.robot_state = self.robot_state
-        response.success = self.state_validity_service.call(gsvr).valid
+        response.success = self._state_validity_service.call(gsvr).valid
         return response
 
     def _move_to_joint_goal(self, move_group, joint_goal):
@@ -226,8 +301,8 @@ class EagerCalibration(object):
                 return
             goal_pos.append(target[joint_name])
         self.action_server.act(goal_pos)
-        rospy.sleep(2)
-        self.action_server.act([])
+        rospy.sleep(3)
+        self.action_server.reset()
 
     def _command_open(self):
         target = self.end_effector_group.get_named_target_values('Open')
@@ -248,36 +323,46 @@ class EagerCalibration(object):
                 return
             goal_pos.append(target[joint_name] / 2)
         self.action_server.act(goal_pos)
-        rospy.sleep(2)
-        self.action_server.act([])
+        rospy.sleep(3)
+        self.action_server.reset()
+
+    def _command_calibrate(self):
+        try:
+            self._take_sample_service.wait_for_service(timeout=3)
+        except rospy.ROSException:
+            rospy.logwarn('[{}] Calculate calibration service not available!'.format(rospy.get_name()))
+            return
+        for pose in self.calibration_poses:
+            self._move_to_joint_goal(self.manipulator_group, pose)
+            rospy.sleep(1.0)
+            try:
+                self._take_sample_service()
+            except rospy.ServiceException:
+                rospy.logwarn('[{}] Take sample failed, is the marker visible for the camera?'.format(rospy.get_name()))
+        req = ComputeCalibrationRequest()
+        try:
+            response = self._get_calibration_service(req)
+        except rospy.ServiceException:
+            rospy.logwarn('[{}] Get calibration failed, did you make enough samples?'.format(rospy.get_name()))
+            return
+        try:
+            self._save_calibration_service()
+        except rospy.ServiceException as e:
+            rospy.logwarn('[{}] Save calibration failed: {}'.format(rospy.get_name(), e))
+        translation = response.calibration.transform.transform.translation
+        rotation = response.calibration.transform.transform.rotation
+        calibration = {}
+        calibration['position'] = [translation.x, translation.y, translation.z]
+        calibration['orientation'] = [rotation.x, rotation.y, rotation.z, rotation.w]
+        save_path = substitute_xml_args('$(find eager_demo)/config/calibration.yaml')
+        with open(save_path, 'w') as file:
+            yaml.dump(calibration, file)
 
     def command(self):
         while not rospy.is_shutdown():
             if self.event is not None:
-                if self.event == 'calibration_pose_1':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_1)
-                elif self.event == 'calibration_pose_2':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_2)
-                elif self.event == 'calibration_pose_3':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_3)
-                elif self.event == 'calibration_pose_4':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_4)
-                elif self.event == 'calibration_pose_5':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_5)
-                elif self.event == 'calibration_pose_6':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_6)
-                elif self.event == 'calibration_pose_7':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_7)
-                elif self.event == 'calibration_pose_8':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_8)
-                elif self.event == 'calibration_pose_9':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_9)
-                elif self.event == 'calibration_pose_10':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_10)
-                elif self.event == 'calibration_pose_11':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_11)
-                elif self.event == 'calibration_pose_12':
-                    self._move_to_joint_goal(self.manipulator_group, self.calibration_pose_12)
+                if self.event == 'calibrate':
+                    self._command_calibrate()
                 elif self.event == 'home':
                     self._command_home()
                 elif self.event == 'upright':
