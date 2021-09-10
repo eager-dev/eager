@@ -12,7 +12,7 @@ def quad_to_axis_angle(quad):
     return x, y, z, angle
 
 
-def quaternion_multiply(Q0, Q1):
+def quaternion_multiply(Q1, Q0):
     x0 = Q0[0]
     y0 = Q0[1]
     z0 = Q0[2]
