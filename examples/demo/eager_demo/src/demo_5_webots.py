@@ -16,10 +16,10 @@
 
 # ROS packages required
 import rospy
-from eager_core.utils.file_utils import launch_roscore, load_yaml
 from eager_core.eager_env import EagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
+from eager_core.utils.file_utils import launch_roscore, load_yaml
 from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
 
 # Required for action processor
@@ -32,28 +32,23 @@ if __name__ == '__main__':
     rospy.init_node('eager_demo', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    engine = WebotsEngine(gui=True)
+    engine = WebotsEngine()
 
     # Create robot
-    # todo: add calibrated position & orientation
-    robot1 = Object.create('robot1', 'eager_robot_ur5e', 'ur5e')
-    robot2 = Object.create('robot2', 'eager_robot_ur5e', 'ur5e', position=[-1, 1, 0])
+    robot = Object.create('robot', 'eager_robot_ur5e', 'ur5e', fixed_base=True)
 
     # Add action preprocessing
-    processor = SafeActionsProcessor(vel_limit=2.0,
+    processor = SafeActionsProcessor(vel_limit=0.25,
                                      robot_type='ur5e',
                                      collision_height=0.01,
                                      )
-    robot1.actuators['joints'].add_preprocess(
+    robot.actuators['joints'].add_preprocess(
         processor=processor,
-        observations_from_objects=[robot1],
-    )
-    robot2.actuators['joints'].add_preprocess(
-        processor=processor,
-        observations_from_objects=[robot2],
-    )
+        observations_from_objects=[robot],
+        )
 
     # Add a camera for rendering
+    # First load calibrated position & orientation
     calibration = load_yaml('eager_demo', 'calibration')
     cam = Object.create('cam', 'eager_sensor_multisense_s21', 'dual_cam',
                         position=calibration['position'],
@@ -62,17 +57,16 @@ if __name__ == '__main__':
 
     # Create environment
     env = EagerEnv(engine=engine,
-                   objects=[robot1, robot2, cam],
-                   name='demo3',
+                   objects=[robot, cam],
+                   name='demo5',
                    render_sensor=cam.sensors['camera_right'],
                    max_steps=10,
                    )
-
     env = Flatten(env)
 
     env.render()
     obs = env.reset()
-    for i in range(100):
+    for i in range(500):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         if done:

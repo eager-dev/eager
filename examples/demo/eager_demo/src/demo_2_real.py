@@ -56,15 +56,14 @@ if __name__ == '__main__':
     # Create environment
     env = EagerEnv(engine=engine,
                    objects=[robot, cam],
-                   name='demo_env',
+                   name='demo2',
                    render_sensor=cam.sensors['camera_rgb'],
-                   max_steps=10,
                    )
     env = Flatten(env)
 
     env.render()
     obs = env.reset()
-    for i in range(100):
+    for i in range(50):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         if done:
