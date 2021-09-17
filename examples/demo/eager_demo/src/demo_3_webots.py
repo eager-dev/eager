@@ -35,7 +35,6 @@ if __name__ == '__main__':
     engine = WebotsEngine(gui=True)
 
     # Create robot
-    # todo: add calibrated position & orientation
     robot1 = Object.create('robot1', 'eager_robot_ur5e', 'ur5e')
     robot2 = Object.create('robot2', 'eager_robot_ur5e', 'ur5e', position=[-1, 1, 0])
 
@@ -72,7 +71,7 @@ if __name__ == '__main__':
 
     env.render()
     obs = env.reset()
-    for i in range(100):
+    for i in range(50):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         if done:
