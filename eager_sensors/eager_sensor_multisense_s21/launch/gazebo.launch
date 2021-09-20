@@ -7,7 +7,7 @@
   <!-- Robot state publisher -->
   <group ns="$(arg ns)">
     <param name="robot_description"
-          command="$(find xacro)/xacro '$(find eager_sensor_multisense_s21)/urdf/multisense_s21.urdf.xacro'"/>
+          command="$(find xacro)/xacro '$(find eager_sensor_multisense_s21)/urdf/multisense_s21.urdf.xacro' gazebo:=true"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher">
       <param name="publish_frequency" type="double" value="50.0" />
     </node>

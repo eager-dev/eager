@@ -1,9 +1,17 @@
 <robot name="multisense" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:arg name="gazebo"                  default="false"/>
+  <xacro:property name="load_gazebo" value="$(arg gazebo)"/>
+
   <!-- import the camera -->
-  <xacro:include filename="$(find eager_sensor_multisense_s21)/urdf/camera.gazebo.xacro" />
+  <xacro:include filename="$(find eager_sensor_multisense_s21)/urdf/s21.urdf.xacro" />
 
   <link name="world"/>
 
   <!-- camera -->
-  <xacro:my_camera parent="world"/>
+  <xacro:sensor_s21 parent="world"/>
+
+  <xacro:if value="${load_gazebo}">
+    <xacro:include filename="$(find eager_sensor_multisense_s21)/urdf/s21.gazebo.xacro" />
+    <xacro:s21_gazebo/>
+  </xacro:if>
 </robot>
