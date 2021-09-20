@@ -19,6 +19,7 @@ import rospy
 from eager_core.eager_env import BaseEagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
+from eager_core.utils.file_utils import launch_node
 from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
@@ -44,7 +45,7 @@ class MyEnv(BaseEagerEnv):
                                          duration=0.08,
                                          checks_per_rad=15,
                                          vel_limit=3.0,
-                                         collision_height=0.1,
+                                         collision_height=0.01,
                                          )
         self.ur5e.actuators['joints'].add_preprocess(
             processor=processor,
@@ -52,7 +53,10 @@ class MyEnv(BaseEagerEnv):
             action_space=spaces.Box(low=-np.pi, high=np.pi, shape=(6,)))
 
         # Create a camera object
-        self.camera = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam')
+        self.camera = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam',
+                                    position=[1.0, 0.0, 0.65],
+                                    orientation=[0.0, 0.0, 1.0, 0.0],
+                                    )
 
         # Initialize all the services of the robots
         self._init_nodes([self.camera, self.ur5e])
@@ -89,14 +93,9 @@ class MyEnv(BaseEagerEnv):
         # Get new observations
         return self.ur5e.get_obs()
 
-    def render(self, mode, **kwargs):
-        # Use camera to render rgb images
-        rgbd = self.camera.sensors['camera_right'].get_obs()
-        return rgbd[:, :, :3]
-
     def _get_reward(self, obs):
         # Quadratic reward - move to goal position [0, -np.pi/2, 0, 0, 0, 0]
-        return -((obs['joint_sensors'] - np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
+        return -((obs['joint_pos'] - np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
 
     def _is_done(self, obs):
         return self.steps >= self.STEPS_PER_ROLLOUT
@@ -107,8 +106,8 @@ if __name__ == '__main__':
     rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
-    # engine = WebotsEngine()
-    engine = PyBulletEngine(gui=True)
+    engine = WebotsEngine()
+    # engine = PyBulletEngine(gui=True)
 
     # Create environment
     env = MyEnv(engine, name="my_env")
@@ -120,7 +119,6 @@ if __name__ == '__main__':
     for i in range(1000):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-        env.render()
         if done:
             obs = env.reset()
 

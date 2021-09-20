@@ -77,7 +77,7 @@ class MyEnv(BaseEagerEnv):
 
     def _get_reward(self, obs):
         # Quadratic reward - move to goal position [0, -np.pi/2, 0, 0, 0, 0]
-        return -((obs['joint_sensors'] - np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
+        return -((obs['joint_pos'] - np.array([0, -np.pi / 2, 0, 0, 0, 0], dtype='float32')) ** 2).sum()
 
     def _is_done(self, obs):
         return self.steps >= self.STEPS_PER_ROLLOUT

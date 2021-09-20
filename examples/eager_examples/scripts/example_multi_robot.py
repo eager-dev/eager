@@ -25,7 +25,7 @@ from stable_baselines3 import PPO
 
 if __name__ == '__main__':
 
-    rospy.init_node('example_safe_actions', anonymous=True, log_level=rospy.WARN)
+    rospy.init_node('example_multi_robot', anonymous=True, log_level=rospy.WARN)
 
     # Define the engine
     engine = PyBulletEngine(gui=True)
@@ -44,19 +44,22 @@ if __name__ == '__main__':
         rwd = []
         for obj in obs:
             if 'ur5e' in obj:
-                rwd.append(-(obs[obj]['joint_sensors'] ** 2).sum())
+                rwd.append(-(obs[obj]['joint_pos'] ** 2).sum())
         return rwd
 
     # Add a camera for rendering
-    cam = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam')
+    cam = Object.create('d435', 'eager_sensor_realsense', 'd435',
+                        position=[3.0, 0.0, 0.65],
+                        orientation=[0.0, 0.0, 1.0, 0.0],
+                        )
     objects.append(cam)
 
     # Create environment
     env = EagerEnv(
         engine=engine,
         objects=objects,
-        name='multi_env',
-        render_obs=cam.sensors['camera_right'].get_obs,
+        name='example_multi_env',
+        render_sensor=cam.sensors['camera_rgb'],
         max_steps=100,
         reward_fn=reward_fn)
     env = Flatten(env)
