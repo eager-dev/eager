@@ -4,6 +4,7 @@
 [![PEP8 Style Test](https://img.shields.io/github/workflow/status/eager-dev/eager/Lint?label=PEP8)](https://github.com/eager-dev/eager/actions/workflows/lint.yaml)
 
 # EAGER
+<span style="color:red">Discontinued. Please check-out [EAGERx](https://github.com/eager-dev/eagerx). text</span>.
 
 Engine Agnostic Gym Environment for Robotics (EAGER) is a toolkit that
 will allow users to apply (deep) reinforcement learning for both simulated
