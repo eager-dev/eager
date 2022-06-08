@@ -25,9 +25,11 @@ class RenderNode(object):
         if self.image_ros is None:
             return
         try:
+            cv_image = self.bridge.imgmsg_to_cv2(self.image_ros)
             # Related issue: https://github.com/ros-perception/vision_opencv/issues/207
-            cv_image = np.frombuffer(self.image_ros.data, dtype=np.uint8).reshape(self.image_ros.height, self.image_ros.width, -1)
-            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
+            # cv_image = np.frombuffer(self.image_ros.data, dtype=np.uint8).reshape(self.image_ros.height, self.image_ros.width, -1)
+            if not self.image_ros.encoding == 'bgra8':
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
         except CvBridgeError as e:
             print(e)
             return

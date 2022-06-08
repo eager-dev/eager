@@ -39,6 +39,8 @@ class EagerCalibrationRqt(Plugin):
         self.freehand_robot_movement = rospy.get_param('~freehand_robot_movement', True)
         self.robot_velocity_scaling = rospy.get_param('~robot_velocity_scaling', 0.2)
         self.robot_acceleration_scaling = rospy.get_param('robot_acceleration_scaling', 0.2)
+        self.move_group_namespace = rospy.get_param('move_group_namespace', '/vx300s')
+        self.move_group = rospy.get_param('move_group', 'interbotix_arm')
 
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
@@ -143,6 +145,8 @@ class EagerCalibrationRqt(Plugin):
                         "freehand_robot_movement:={}".format(self.freehand_robot_movement),
                         "robot_velocity_scaling:={}".format(self.robot_velocity_scaling),
                         "robot_acceleration_scaling:={}".format(self.robot_acceleration_scaling),
+                        "move_group_namespace:={}".format(self.move_group_namespace),
+                        "move_group:={}".format(self.move_group),
                         ]
             roslaunch_args = cli_args[1:]
             roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]

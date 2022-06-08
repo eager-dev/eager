@@ -18,9 +18,9 @@ if __name__ == '__main__':
     roscore = launch_roscore()  # First launch roscore
 
     rospy.init_node('eager_demo', anonymous=True, log_level=rospy.WARN)
+    rate = rospy.Rate(1 / 0.08)
 
     # Define the engine
-    engine = RealEngine()
 
     # Create robot
 
@@ -39,5 +39,6 @@ if __name__ == '__main__':
         obs, reward, done, info = env.step(action)
         if done:
             obs = env.reset()
+        rate.sleep()
 
     env.close()
