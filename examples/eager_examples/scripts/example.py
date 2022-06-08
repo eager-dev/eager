@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # Initialize environment
     robot = Object.create('ur5e1', 'eager_robot_ur5e', 'ur5e', fixed_base=False)
     robot2 = Object.create('ur5e2', 'eager_robot_ur5e', 'ur5e', position=[1, 0, 0], self_collision=False)
-    env = EagerEnv(engine=engine, objects=[robot, robot2], name='ros_env')
+    env = EagerEnv(engine=engine, objects=[robot, robot2], name='example_env')
     env = Flatten(env)
 
     check_env(env)

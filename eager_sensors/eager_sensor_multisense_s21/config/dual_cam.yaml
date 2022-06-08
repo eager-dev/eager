@@ -3,12 +3,12 @@ sensors:
     type: boxu8
     high: 255
     low: 0
-    shape: [1024, 544, 4]
+    shape: [544, 1024, 4]
   camera_left:
     type: boxu8
     high: 255
     low: 0
-    shape: [1024, 544, 4]
+    shape: [544, 1024, 4]
 
 webots:
   node_type_name: MultiSenseS21
@@ -27,10 +27,12 @@ webots:
         - MultiSense_S21_left_camera
 
 pybullet:
-  urdf:
+  xacro: $(find eager_sensor_multisense_s21)/urdf/multisense_s21.urdf.xacro
+  urdf_name: multisense_s21
   sensors:
     camera_right:
       type: camera_rgbd
+      optical_frame_link: right_camera_optical_frame
       names: [MultiSense_S21_right_camera]
       intrinsic:
         fov: 80.21 # (deg)
@@ -44,6 +46,7 @@ pybullet:
 
     camera_left:
       type: camera_rgbd
+      optical_frame_link: left_camera_optical_frame
       names: [MultiSense_S21_left_camera]
       intrinsic:
         fov: 80.21 # (deg)

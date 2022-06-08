@@ -5,6 +5,7 @@ import rospy
 from eager_core.eager_env import BaseEagerEnv
 from eager_core.objects import Object
 from eager_core.wrappers.flatten import Flatten
+from eager_core.utils.file_utils import launch_node
 from eager_bridge_webots.webots_engine import WebotsEngine  # noqa: F401
 from eager_bridge_pybullet.pybullet_engine import PyBulletEngine  # noqa: F401
 from eager_process_safe_actions.safe_actions_processor import SafeActionsProcessor
@@ -36,7 +37,10 @@ class MyEnv(BaseEagerEnv):
             processor=processor,
             observations_from_objects=[self.ur5e],
             action_space=spaces.Box(low=-np.pi, high=np.pi, shape=(6,)))
-        self.camera = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam')
+        self.camera = Object.create('ms21', 'eager_sensor_multisense_s21', 'dual_cam',
+                                    position=[1.0, 0.0, 0.65],
+                                    orientation=[-0.1305262, 0.0, 0.9914449, 0.0],
+                                    )
 
         self._init_nodes([self.camera, self.ur5e])
 
@@ -71,13 +75,8 @@ class MyEnv(BaseEagerEnv):
         # Get new observations
         return self.ur5e.get_obs()
 
-    def render(self, mode, **kwargs):
-        # Use camera to render rgb images
-        rgbd = self.camera.sensors['camera_right'].get_obs()
-        return rgbd[:, :, :3]
-
     def _get_reward(self, obs):
-        return -(self.ur5e.get_state(['joint_pos'])['joint_pos'][5] - 2)**2  # Je mag hier iets verzinnen Bas
+        return -(obs['joint_pos'][5] - 2)**2
 
     def _is_done(self, obs):
         return self.steps >= self.STEPS_PER_ROLLOUT
@@ -88,8 +87,8 @@ if __name__ == '__main__':
     rospy.init_node('ur5e_example', anonymous=True, log_level=rospy.WARN)
 
     # Engine specific parameters
-    # engine = WebotsEngine(world='$(find ur5e_example)/worlds/ur5e_cam.wbt')
-    engine = PyBulletEngine(gui=True)
+    engine = WebotsEngine()
+    # engine = PyBulletEngine()
 
     env = MyEnv(engine, name="my_env")
     env = Flatten(env)
@@ -100,8 +99,6 @@ if __name__ == '__main__':
     for i in range(1000):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
-
-        env.render()
         if done:
             obs = env.reset()
 

@@ -42,7 +42,7 @@ if __name__ == '__main__':
                         )
 
     # Create environment
-    env = EagerEnv(name='demo_env',
+    env = EagerEnv(name='demo1',
                    engine=engine,
                    objects=[robot, cam],
                    render_sensor=cam.sensors['camera_rgb'],
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     env.render()
     obs = env.reset()  # TODO: if code does not close properly, render seems to keep a thread open....
-    for i in range(200):
+    for i in range(100):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         if done:

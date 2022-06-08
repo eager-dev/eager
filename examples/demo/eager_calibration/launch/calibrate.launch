@@ -20,6 +20,8 @@
   <arg name="freehand_robot_movement"     default="true" />
   <arg name="robot_velocity_scaling"      default="0.2" />
   <arg name="robot_acceleration_scaling"  default="0.2" />
+  <arg name="move_group_namespace"        default="/vx300s" />
+  <arg name="move_group"                  default="interbotix_arm" />
 
   <!-- start ArUco -->
   <node name="aruco_tracker" pkg="aruco_ros" type="single">
@@ -44,6 +46,8 @@
     <arg name="freehand_robot_movement" value="$(arg freehand_robot_movement)" />
     <arg name="robot_velocity_scaling" value="$(arg robot_velocity_scaling)" />
     <arg name="robot_acceleration_scaling" value="$(arg robot_acceleration_scaling)" />
+    <arg name="move_group_namespace"        value="$(arg move_group_namespace)" />
+    <arg name="move_group"                  value="$(arg move_group)" />
   </include>
 
 </launch>
